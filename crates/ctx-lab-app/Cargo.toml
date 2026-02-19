@@ -12,6 +12,7 @@ serde_json.workspace = true
 chrono.workspace = true
 anyhow.workspace = true
 rusqlite = { version = "0.32", features = ["bundled"] }
+toml.workspace = true
 notify = "7"
 sysinfo = "0.33"
 

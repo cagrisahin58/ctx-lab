@@ -1,6 +1,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 mod db;
+pub mod reconcile;
 
 fn main() {
     tauri::Builder::default()

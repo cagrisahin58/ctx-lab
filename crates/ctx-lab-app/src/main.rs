@@ -3,6 +3,7 @@
 mod db;
 pub mod events;
 pub mod reconcile;
+pub mod watcher;
 
 fn main() {
     tauri::Builder::default()

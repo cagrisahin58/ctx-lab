@@ -1,14 +1,8 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-pub mod commands;
-mod db;
-pub mod events;
-pub mod process_watcher;
-pub mod reconcile;
-pub mod tray;
-pub mod watcher;
+use ctx_lab_app::commands::DbPool;
+use ctx_lab_app::{commands, events, reconcile, tray, watcher};
 
-use commands::DbPool;
 use std::sync::Mutex;
 use tauri::{Emitter, Manager};
 

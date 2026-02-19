@@ -349,9 +349,30 @@ pub fn get_settings() -> Result<serde_json::Value, String> {
 }
 
 #[tauri::command]
-pub fn update_settings(_config: serde_json::Value) -> Result<(), String> {
-    // TODO: Deserialize to AppConfig, write to config.toml
-    Ok(())
+pub fn update_settings(config: serde_json::Value) -> Result<(), String> {
+    let config_path = ctx_lab_core::storage::ctx_lab_dir()
+        .map_err(|e| e.to_string())?
+        .join("config.toml");
+
+    // Load existing config so non-exposed fields retain their values
+    let mut app_config =
+        ctx_lab_core::config::load_config(&config_path).map_err(|e| e.to_string())?;
+
+    // Apply only the fields the frontend sends
+    if let Some(v) = config.get("privacy_mode").and_then(|v| v.as_str()) {
+        app_config.privacy_mode = v.to_string();
+    }
+    if let Some(v) = config
+        .get("checkpoint_interval_minutes")
+        .and_then(|v| v.as_u64())
+    {
+        app_config.checkpoint_interval_minutes = v as u32;
+    }
+    if let Some(v) = config.get("sanitize_secrets").and_then(|v| v.as_bool()) {
+        app_config.sanitize_secrets = v;
+    }
+
+    ctx_lab_core::config::write_config(&config_path, &app_config).map_err(|e| e.to_string())
 }
 
 // ---------------------------------------------------------------------------

@@ -1,4 +1,6 @@
+import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import { Settings } from "lucide-react";
 import { useProjects } from "../hooks/useProjects";
 import { ProjectCard } from "../components/ProjectCard";
 import { QuickResume } from "../components/QuickResume";
@@ -25,7 +27,16 @@ export function Dashboard() {
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
           {t("dashboard.title")}
         </h1>
-        <ThemeToggle />
+        <div className="flex items-center gap-2">
+          <Link
+            to="/settings"
+            className="p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+            title={t("settings.title")}
+          >
+            <Settings size={20} className="text-gray-600 dark:text-gray-400" />
+          </Link>
+          <ThemeToggle />
+        </div>
       </header>
       {lastProject && <QuickResume project={lastProject} />}
       <h2 className="text-lg font-semibold text-gray-700 dark:text-gray-300 mt-8 mb-4">

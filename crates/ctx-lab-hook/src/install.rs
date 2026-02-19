@@ -77,16 +77,38 @@ pub fn patch_hooks_into_settings(settings: &serde_json::Value, binary_path: &str
             .entry(*event).or_insert_with(|| serde_json::json!([]));
         let arr = event_hooks.as_array_mut().unwrap();
 
-        // Remove existing ctx-lab hooks (idempotency)
-        arr.retain(|h| !h.get("ctx-lab-managed").and_then(|v| v.as_bool()).unwrap_or(false));
+        // Remove existing ctx-lab hooks — handles both old flat and new nested format
+        arr.retain(|entry| !is_ctx_lab_managed(entry));
 
+        // Claude Code hook format: each entry needs hooks array
+        // matcher is omitted to match all occurrences (it's a regex string, not an object)
         arr.push(serde_json::json!({
-            "type": "command",
-            "command": format!("{} {}", binary_path, subcommand),
-            "ctx-lab-managed": true
+            "hooks": [
+                {
+                    "type": "command",
+                    "command": format!("{} {}", binary_path, subcommand),
+                    "ctx-lab-managed": true
+                }
+            ]
         }));
     }
     patched
+}
+
+/// Check if an event entry is ctx-lab-managed.
+/// Handles both old flat format and new nested format for migration.
+pub fn is_ctx_lab_managed(entry: &serde_json::Value) -> bool {
+    // Old flat format: {"type": "command", "ctx-lab-managed": true, ...}
+    if entry.get("ctx-lab-managed").and_then(|v| v.as_bool()).unwrap_or(false) {
+        return true;
+    }
+    // New nested format: {"matcher": {}, "hooks": [{"ctx-lab-managed": true, ...}]}
+    if let Some(hooks) = entry.get("hooks").and_then(|h| h.as_array()) {
+        return hooks.iter().any(|h| {
+            h.get("ctx-lab-managed").and_then(|v| v.as_bool()).unwrap_or(false)
+        });
+    }
+    false
 }
 
 fn register_machine(base: &Path) -> Result<()> {
@@ -111,20 +133,39 @@ mod tests {
         let settings = serde_json::json!({});
         let patched = patch_hooks_into_settings(&settings, "/bin/ctx-lab-hook");
         let hooks = &patched["hooks"];
-        assert!(hooks["SessionStart"].is_array());
-        assert!(hooks["PostToolUse"].is_array());
-        assert!(hooks["Stop"].is_array());
-        assert!(hooks["SessionEnd"].is_array());
+
+        for event in &["SessionStart", "PostToolUse", "Stop", "SessionEnd"] {
+            let arr = hooks[*event].as_array().unwrap();
+            assert_eq!(arr.len(), 1, "expected 1 entry for {}", event);
+            // matcher should be omitted (not an empty object)
+            assert!(arr[0].get("matcher").is_none(), "matcher should be omitted for {}", event);
+            let inner = arr[0]["hooks"].as_array().unwrap();
+            assert_eq!(inner.len(), 1);
+            assert_eq!(inner[0]["type"], "command");
+            assert!(inner[0]["ctx-lab-managed"].as_bool().unwrap());
+        }
     }
 
     #[test]
     fn test_patch_preserves_existing_hooks() {
+        // Existing hook with string matcher (correct Claude Code format)
         let settings = serde_json::json!({
-            "hooks": { "SessionStart": [{"type": "command", "command": "echo existing"}] }
+            "hooks": {
+                "SessionStart": [
+                    {
+                        "matcher": "startup",
+                        "hooks": [{"type": "command", "command": "echo existing"}]
+                    }
+                ]
+            }
         });
         let patched = patch_hooks_into_settings(&settings, "/bin/ctx-lab-hook");
         let arr = patched["hooks"]["SessionStart"].as_array().unwrap();
-        assert!(arr.len() >= 2);
+        assert_eq!(arr.len(), 2, "existing hook + ctx-lab hook");
+        // First entry is the existing one (preserved)
+        assert_eq!(arr[0]["hooks"][0]["command"], "echo existing");
+        // Second entry is the ctx-lab one
+        assert!(arr[1]["hooks"][0]["ctx-lab-managed"].as_bool().unwrap());
     }
 
     #[test]
@@ -133,7 +174,31 @@ mod tests {
         let first = patch_hooks_into_settings(&settings, "/bin/ctx-lab-hook");
         let second = patch_hooks_into_settings(&first, "/bin/ctx-lab-hook");
         let arr = second["hooks"]["SessionStart"].as_array().unwrap();
-        let ctx_count = arr.iter().filter(|h| h.get("ctx-lab-managed").and_then(|v| v.as_bool()).unwrap_or(false)).count();
-        assert_eq!(ctx_count, 1);
+        let ctx_count = arr.iter().filter(|entry| is_ctx_lab_managed(entry)).count();
+        assert_eq!(ctx_count, 1, "should have exactly 1 ctx-lab entry after double patch");
+    }
+
+    #[test]
+    fn test_patch_migrates_old_flat_format() {
+        // Old flat format that ctx-lab previously wrote (before fix)
+        let settings = serde_json::json!({
+            "hooks": {
+                "SessionStart": [
+                    {
+                        "type": "command",
+                        "command": "/old/path/ctx-lab-hook session-start",
+                        "ctx-lab-managed": true
+                    }
+                ]
+            }
+        });
+        let patched = patch_hooks_into_settings(&settings, "/bin/ctx-lab-hook");
+        let arr = patched["hooks"]["SessionStart"].as_array().unwrap();
+        assert_eq!(arr.len(), 1, "old flat entry should be replaced");
+        // New entry should be in nested format (no matcher, just hooks array)
+        let inner = arr[0]["hooks"].as_array().unwrap();
+        assert_eq!(inner.len(), 1);
+        assert_eq!(inner[0]["command"], "/bin/ctx-lab-hook session-start");
+        assert!(inner[0]["ctx-lab-managed"].as_bool().unwrap());
     }
 }

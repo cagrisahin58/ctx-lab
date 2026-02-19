@@ -18,11 +18,8 @@ pub fn run() -> Result<()> {
     if let Some(hooks) = settings.get_mut("hooks").and_then(|h| h.as_object_mut()) {
         for (_event, event_hooks) in hooks.iter_mut() {
             if let Some(arr) = event_hooks.as_array_mut() {
-                arr.retain(|h| {
-                    !h.get("ctx-lab-managed")
-                        .and_then(|v| v.as_bool())
-                        .unwrap_or(false)
-                });
+                // Handles both old flat format and new nested format
+                arr.retain(|entry| !crate::install::is_ctx_lab_managed(entry));
             }
         }
     }

@@ -11,15 +11,15 @@ fn main() {
         .plugin(tauri_plugin_shell::init())
         .setup(|app| {
             let ctx_lab_dir = ctx_lab_core::storage::ctx_lab_dir()
-                .map_err(|e| Box::new(std::io::Error::new(std::io::ErrorKind::Other, e.to_string())) as Box<dyn std::error::Error>)?;
+                .map_err(|e| Box::new(std::io::Error::other(e.to_string())) as Box<dyn std::error::Error>)?;
             let db_path = ctx_lab_dir.join("cache.db");
 
             // Initialize DB + full rebuild
             let pool = DbPool::new(&db_path)
-                .map_err(|e| Box::new(std::io::Error::new(std::io::ErrorKind::Other, e.to_string())))?;
+                .map_err(|e| Box::new(std::io::Error::other(e.to_string())))?;
             {
                 let conn = pool.get()
-                    .map_err(|e| Box::new(std::io::Error::new(std::io::ErrorKind::Other, e.to_string())))?;
+                    .map_err(|e| Box::new(std::io::Error::other(e.to_string())))?;
                 if let Err(e) = reconcile::full_rebuild(&conn, &ctx_lab_dir) {
                     eprintln!("[ctx-lab] Warning: full_rebuild failed: {}", e);
                 }
@@ -31,7 +31,7 @@ fn main() {
 
             // Watcher consumer thread
             let pool_for_watcher = DbPool::new(&db_path)
-                .map_err(|e| Box::new(std::io::Error::new(std::io::ErrorKind::Other, e.to_string())))?;
+                .map_err(|e| Box::new(std::io::Error::other(e.to_string())))?;
             let dir_for_watcher = ctx_lab_dir.clone();
             let app_handle = app.handle().clone();
             std::thread::spawn(move || {
@@ -55,7 +55,7 @@ fn main() {
 
             // Periodic reconcile (every 10 minutes)
             let pool_for_reconcile = DbPool::new(&db_path)
-                .map_err(|e| Box::new(std::io::Error::new(std::io::ErrorKind::Other, e.to_string())))?;
+                .map_err(|e| Box::new(std::io::Error::other(e.to_string())))?;
             let dir_for_reconcile = ctx_lab_dir.clone();
             std::thread::spawn(move || {
                 loop {

@@ -2,12 +2,12 @@
   "$schema": "https://raw.githubusercontent.com/nicegui/nicegui/main/nicegui/.nicegui/tauri.conf.json",
   "productName": "ctx-lab",
   "version": "0.1.0",
-  "identifier": "com.ctxlab.app",
+  "identifier": "com.ctxlab.desktop",
   "build": {
     "frontendDist": "../../frontend/dist",
     "devUrl": "http://localhost:5173",
-    "beforeDevCommand": "cd ../../frontend && npm run dev",
-    "beforeBuildCommand": "cd ../../frontend && npm run build"
+    "beforeDevCommand": "",
+    "beforeBuildCommand": ""
   },
   "app": {
     "windows": [

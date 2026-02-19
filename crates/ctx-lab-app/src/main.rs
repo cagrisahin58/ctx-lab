@@ -1,5 +1,6 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+pub mod commands;
 mod db;
 pub mod events;
 pub mod reconcile;

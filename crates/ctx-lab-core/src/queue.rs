@@ -31,7 +31,7 @@ where F: FnMut(&str, serde_json::Value) -> Result<()>
 {
     let mut entries: Vec<_> = std::fs::read_dir(queue_dir)?
         .filter_map(|e| e.ok())
-        .filter(|e| e.path().extension().map_or(false, |ext| ext == "json"))
+        .filter(|e| e.path().extension().is_some_and(|ext| ext == "json"))
         .collect();
     entries.sort_by_key(|e| e.file_name());
 

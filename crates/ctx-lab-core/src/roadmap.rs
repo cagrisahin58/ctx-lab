@@ -74,10 +74,10 @@ pub fn mark_complete(content: &str, item_text: &str) -> Option<String> {
     let target_line = found_line?;
     let mut new_lines: Vec<String> = lines.iter().map(|l| l.to_string()).collect();
     new_lines[target_line] = ITEM_RE.replace(&new_lines[target_line], "- [x] $2").to_string();
-    for idx in (target_line + 1)..new_lines.len() {
-        if let Some(caps) = ITEM_RE.captures(new_lines[idx].trim()) {
+    for line in new_lines.iter_mut().skip(target_line + 1) {
+        if let Some(caps) = ITEM_RE.captures(line.trim()) {
             if &caps[1] == " " {
-                new_lines[idx] = ITEM_RE.replace(&new_lines[idx], "- [>] $2").to_string();
+                *line = ITEM_RE.replace(line, "- [>] $2").to_string();
                 break;
             }
         }

@@ -141,7 +141,7 @@ mod tests {
 
     fn write_sample_transcript(dir: &Path) -> std::path::PathBuf {
         let path = dir.join("transcript.jsonl");
-        let lines = vec![
+        let lines = [
             r#"{"role":"user","type":"text","message":"Fix the login bug"}"#,
             r#"{"role":"assistant","type":"text","message":"I'll fix the login bug. The issue is in auth.rs."}"#,
             r#"{"role":"assistant","type":"tool_use","name":"Read","input":{}}"#,
@@ -175,7 +175,7 @@ mod tests {
     fn test_parse_jsonl_no_duplicate_tools() {
         let tmp = TempDir::new().unwrap();
         let path = tmp.path().join("transcript.jsonl");
-        let lines = vec![
+        let lines = [
             r#"{"role":"assistant","type":"tool_use","name":"Read","input":{}}"#,
             r#"{"role":"assistant","type":"tool_use","name":"Read","input":{}}"#,
         ];

@@ -1,0 +1,6 @@
+{
+    "session_id": "test-session-001",
+    "transcript_path": "/tmp/test-transcript.jsonl",
+    "cwd": "/Users/test/projects/sample-project",
+    "reason": "prompt_input_exit"
+}

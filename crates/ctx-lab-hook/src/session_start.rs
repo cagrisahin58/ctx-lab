@@ -71,7 +71,7 @@ pub fn project_slug_from_cwd(cwd: &str) -> String {
 fn read_last_session_summary(project_dir: &std::path::Path) -> Option<String> {
     let sessions_dir = project_dir.join("sessions");
     let mut entries: Vec<_> = std::fs::read_dir(&sessions_dir).ok()?.filter_map(|e| e.ok())
-        .filter(|e| e.path().extension().map_or(false, |ext| ext == "json")).collect();
+        .filter(|e| e.path().extension().is_some_and(|ext| ext == "json")).collect();
     entries.sort_by_key(|e| e.file_name());
     let last = entries.last()?;
     let content = std::fs::read_to_string(last.path()).ok()?;

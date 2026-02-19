@@ -55,23 +55,8 @@ pub fn run() -> Result<()> {
     ));
     ctx_lab_core::storage::write_json(&session_file, &session)?;
 
-    // Write event
-    let event_dir = base.join(".events");
-    std::fs::create_dir_all(&event_dir)?;
-    let event = serde_json::json!({
-        "event": "session_ended",
-        "session_id": payload.session_id,
-        "project": slug,
-        "timestamp": now.to_rfc3339(),
-    });
-    ctx_lab_core::storage::write_json(
-        &event_dir.join(format!(
-            "{}_{}_ended.json",
-            now.format("%Y%m%d_%H%M%S"),
-            &payload.session_id
-        )),
-        &event,
-    )?;
+    // Emit event via shared bridge
+    crate::event_bridge::emit_event("session_ended", &payload.session_id, &slug).ok();
 
     // Enqueue enrichment
     let queue_payload = serde_json::json!({

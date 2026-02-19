@@ -189,6 +189,14 @@ pub fn incremental_update(
     Ok(())
 }
 
+/// Diff filesystem vs SQLite, fix drift.
+///
+/// For v1 simplicity this just delegates to `full_rebuild`.
+/// Future versions can compare file lists and only update deltas.
+pub fn reconcile(conn: &Connection, ctx_lab_dir: &Path) -> Result<ReconcileReport> {
+    full_rebuild(conn, ctx_lab_dir)
+}
+
 // ---------------------------------------------------------------------------
 // Internal helpers
 // ---------------------------------------------------------------------------
@@ -484,6 +492,32 @@ created_at = "2026-01-01T00:00:00Z"
             .query_row("SELECT COUNT(*) FROM projects", [], |row| row.get(0))
             .unwrap();
         assert_eq!(count, 1);
+    }
+
+    #[test]
+    fn test_reconcile_finds_missing_sessions() {
+        let (dir, conn) = setup_test_env();
+        full_rebuild(&conn, dir.path()).unwrap();
+
+        // Add a session file after initial rebuild
+        let session = serde_json::json!({
+            "schema_version": 1,
+            "id": "ses_late",
+            "project_id": "proj_test",
+            "machine": "mac",
+            "started_at": "2026-01-05T10:00:00Z",
+            "summary": "late session",
+            "summary_source": "git_only"
+        });
+        std::fs::write(
+            dir.path()
+                .join("projects/test-project/sessions/late.json"),
+            serde_json::to_string(&session).unwrap(),
+        )
+        .unwrap();
+
+        let report = reconcile(&conn, dir.path()).unwrap();
+        assert!(report.added >= 1); // At least the late session was picked up
     }
 
     #[test]

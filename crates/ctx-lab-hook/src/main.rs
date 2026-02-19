@@ -1,13 +1,14 @@
 use clap::{Parser, Subcommand};
 
-mod session_start;
 mod checkpoint;
-mod stop;
-mod session_end;
-mod install;
-mod uninstall;
 mod doctor;
+mod event_bridge;
+mod install;
 mod process_queue;
+mod session_end;
+mod session_start;
+mod stop;
+mod uninstall;
 
 #[derive(Parser)]
 #[command(name = "ctx-lab-hook", version, about = "ctx-lab Claude Code hook binary")]

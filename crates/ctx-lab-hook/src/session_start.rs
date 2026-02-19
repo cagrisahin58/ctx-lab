@@ -53,11 +53,8 @@ pub fn run() -> Result<()> {
     let block = build_claude_md_block(last_summary.as_deref(), active_step.as_deref(), &roadmap_content);
     let _ = ctx_lab_core::claude_md::update_claude_md(std::path::Path::new(&payload.cwd), &block);
 
-    // Write event
-    let event_dir = base.join(".events");
-    std::fs::create_dir_all(&event_dir)?;
-    let event = serde_json::json!({"event": "session_started", "session_id": payload.session_id, "project": slug, "timestamp": chrono::Utc::now().to_rfc3339()});
-    ctx_lab_core::storage::write_json(&event_dir.join(format!("{}_{}_started.json", chrono::Utc::now().format("%Y%m%d_%H%M%S"), &payload.session_id)), &event)?;
+    // Emit event via shared bridge
+    crate::event_bridge::emit_event("session_started", &payload.session_id, &slug).ok();
 
     // Output to stdout
     print!("{}", format_output(&context));

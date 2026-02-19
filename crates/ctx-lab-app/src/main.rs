@@ -3,7 +3,9 @@
 pub mod commands;
 mod db;
 pub mod events;
+pub mod process_watcher;
 pub mod reconcile;
+pub mod tray;
 pub mod watcher;
 
 use commands::DbPool;
@@ -65,13 +67,16 @@ fn main() {
                 loop {
                     std::thread::sleep(std::time::Duration::from_secs(600));
                     if let Ok(conn) = pool_for_reconcile.get() {
-                        let _ = reconcile::full_rebuild(&conn, &dir_for_reconcile);
+                        let _ = reconcile::reconcile(&conn, &dir_for_reconcile);
                     }
                 }
             });
 
             // Manage state
             app.manage(Mutex::new(pool));
+
+            // System tray
+            tray::setup_tray(app)?;
 
             Ok(())
         })

@@ -1,9 +1,15 @@
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { Dashboard } from "./pages/Dashboard";
+import { ProjectDetail } from "./pages/ProjectDetail";
+
 function App() {
   return (
-    <div className="p-4">
-      <h1 className="text-2xl font-bold">ctx-lab</h1>
-      <p>Dashboard loading...</p>
-    </div>
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<Dashboard />} />
+        <Route path="/project/:id" element={<ProjectDetail />} />
+      </Routes>
+    </BrowserRouter>
   );
 }
 

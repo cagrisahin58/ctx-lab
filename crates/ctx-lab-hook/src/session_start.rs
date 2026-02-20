@@ -65,6 +65,24 @@ pub fn project_slug_from_cwd(cwd: &str) -> String {
     std::path::Path::new(cwd).file_name().map(|f| f.to_string_lossy().to_string()).unwrap_or_else(|| "unknown-project".into())
 }
 
+/// Read the real project ID from meta.toml (falls back to `proj_{slug}` if missing).
+pub fn read_project_id(slug: &str) -> String {
+    let base = match ctx_lab_core::storage::ctx_lab_dir() {
+        Ok(b) => b,
+        Err(_) => return format!("proj_{}", slug),
+    };
+    let meta_path = base.join("projects").join(slug).join("meta.toml");
+    let content = match std::fs::read_to_string(&meta_path) {
+        Ok(c) => c,
+        Err(_) => return format!("proj_{}", slug),
+    };
+    let meta: ctx_lab_core::models::ProjectMeta = match toml::from_str(&content) {
+        Ok(m) => m,
+        Err(_) => return format!("proj_{}", slug),
+    };
+    meta.project.id
+}
+
 fn read_last_session_summary(project_dir: &std::path::Path) -> Option<String> {
     let sessions_dir = project_dir.join("sessions");
     let mut entries: Vec<_> = std::fs::read_dir(&sessions_dir).ok()?.filter_map(|e| e.ok())

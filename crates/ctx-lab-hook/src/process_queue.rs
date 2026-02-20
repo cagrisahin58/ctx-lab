@@ -40,7 +40,7 @@ fn process_checkpoint(payload: serde_json::Value) -> Result<()> {
         schema_version: ctx_lab_core::models::SCHEMA_VERSION,
         id: chk_id.clone(),
         session_id: format!("ses_{}", session_id),
-        project_id: format!("proj_{}", slug),
+        project_id: crate::session_start::read_project_id(&slug),
         machine: hostname::get()
             .map(|h| h.to_string_lossy().to_string())
             .unwrap_or_else(|_| "unknown".into()),

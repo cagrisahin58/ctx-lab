@@ -26,7 +26,7 @@ pub fn run() -> Result<()> {
     let session = ctx_lab_core::models::Session {
         schema_version: ctx_lab_core::models::SCHEMA_VERSION,
         id: format!("ses_{}", &payload.session_id),
-        project_id: format!("proj_{}", slug),
+        project_id: crate::session_start::read_project_id(&slug),
         machine: hostname,
         started_at: now,
         ended_at: Some(now),

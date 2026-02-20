@@ -20,8 +20,15 @@ fn main() {
             {
                 let conn = pool.get()
                     .map_err(|e| Box::new(std::io::Error::other(e.to_string())))?;
-                if let Err(e) = reconcile::full_rebuild(&conn, &ctx_lab_dir) {
-                    eprintln!("[ctx-lab] Warning: full_rebuild failed: {}", e);
+                match reconcile::full_rebuild(&conn, &ctx_lab_dir) {
+                    Ok(report) => {
+                        if !report.errors.is_empty() {
+                            for err in &report.errors {
+                                eprintln!("[ctx-lab] rebuild error: {}", err);
+                            }
+                        }
+                    }
+                    Err(e) => eprintln!("[ctx-lab] Warning: full_rebuild failed: {}", e),
                 }
             }
 

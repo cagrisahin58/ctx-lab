@@ -68,5 +68,16 @@ pub fn run() -> Result<()> {
         "timestamp": now.to_rfc3339(),
     });
     ctx_lab_core::queue::enqueue("session_end_enrich", &payload.session_id, &queue_payload)?;
+
+    // Git-based sync: commit + push
+    let short_summary: String = session.summary.chars().take(50).collect();
+    let commit_msg = format!("session: {} — {}", slug, short_summary);
+    match ctx_lab_core::git_ops::sync_push(&base, &commit_msg) {
+        Ok(ctx_lab_core::git_ops::SyncResult::Synced) => eprintln!("[ctx-lab] Pushed to remote"),
+        Ok(ctx_lab_core::git_ops::SyncResult::Offline(e)) => eprintln!("[ctx-lab] Push skipped: {}", e),
+        Ok(_) => {}
+        Err(e) => eprintln!("[ctx-lab] Sync push error: {}", e),
+    }
+
     Ok(())
 }

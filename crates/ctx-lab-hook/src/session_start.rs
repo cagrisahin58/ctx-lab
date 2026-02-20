@@ -7,8 +7,18 @@ pub fn run() -> Result<()> {
     std::io::stdin().read_to_string(&mut input)?;
     let payload: SessionStartPayload = serde_json::from_str(&input)?;
 
-    let slug = project_slug_from_cwd(&payload.cwd);
     let base = ctx_lab_core::storage::ctx_lab_dir()?;
+
+    // Git-based sync: pull on startup
+    match ctx_lab_core::git_ops::sync_pull(&base) {
+        Ok(ctx_lab_core::git_ops::SyncResult::Synced) => eprintln!("[ctx-lab] Synced from remote"),
+        Ok(ctx_lab_core::git_ops::SyncResult::Conflict(msg)) => eprintln!("[ctx-lab] {}", msg),
+        Ok(ctx_lab_core::git_ops::SyncResult::Offline(e)) => eprintln!("[ctx-lab] Offline: {}", e),
+        Ok(_) => {}
+        Err(e) => eprintln!("[ctx-lab] Sync pull error: {}", e),
+    }
+
+    let slug = project_slug_from_cwd(&payload.cwd);
     let project_dir = base.join("projects").join(&slug);
     std::fs::create_dir_all(&project_dir)?;
 

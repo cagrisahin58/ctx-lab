@@ -8,6 +8,101 @@ pub struct TranscriptHighlights {
     pub tools_used: Vec<String>,
 }
 
+/// Structured summary built from transcript highlights.
+pub struct TranscriptSummary {
+    /// Concise description of what was accomplished (from assistant summaries).
+    pub what_was_done: String,
+    /// Extracted next steps / TODOs from the conversation.
+    pub next_steps: String,
+    /// The first real user request in the session.
+    pub first_request: String,
+}
+
+/// Build a structured summary from transcript highlights.
+///
+/// - `what_was_done`: synthesized from the last few assistant summaries
+/// - `next_steps`: extracted from messages containing keywords like "next", "TODO", "remaining"
+/// - `first_request`: the first user message
+pub fn build_summary(highlights: &TranscriptHighlights) -> TranscriptSummary {
+    // --- first_request ---
+    let first_request = highlights
+        .user_messages
+        .first()
+        .cloned()
+        .unwrap_or_default();
+
+    // --- what_was_done ---
+    // Use the last few (up to 3) assistant summaries to describe what happened.
+    let what_was_done = {
+        let summaries = &highlights.assistant_summaries;
+        if summaries.is_empty() {
+            String::new()
+        } else {
+            // Take the last 3 summaries; they best represent what was accomplished.
+            let tail: Vec<&str> = summaries
+                .iter()
+                .rev()
+                .take(3)
+                .collect::<Vec<_>>()
+                .into_iter()
+                .rev()
+                .map(|s| s.as_str())
+                .collect();
+            tail.join(". ")
+        }
+    };
+
+    // --- next_steps ---
+    // Scan all messages (user + assistant) for lines containing actionable keywords.
+    let next_steps = extract_next_steps(highlights);
+
+    TranscriptSummary {
+        what_was_done,
+        next_steps,
+        first_request,
+    }
+}
+
+/// Scan user messages and assistant summaries for next-step / TODO indicators.
+fn extract_next_steps(highlights: &TranscriptHighlights) -> String {
+    let keywords = ["next", "todo", "remaining", "follow-up", "followup", "later", "still need"];
+    let mut candidates: Vec<String> = Vec::new();
+
+    // Helper: check a message for keyword matches and collect relevant lines.
+    let check_message = |text: &str, candidates: &mut Vec<String>| {
+        let lower = text.to_lowercase();
+        for keyword in &keywords {
+            if lower.contains(keyword) {
+                // Extract individual lines that contain the keyword
+                for line in text.lines() {
+                    let line_lower = line.to_lowercase();
+                    if keywords.iter().any(|kw| line_lower.contains(kw)) {
+                        let trimmed = line.trim().to_string();
+                        if !trimmed.is_empty() && !candidates.contains(&trimmed) {
+                            candidates.push(trimmed);
+                        }
+                    }
+                }
+                break; // already processed all lines for this message
+            }
+        }
+    };
+
+    // Check user messages (users often state what they want next)
+    for msg in &highlights.user_messages {
+        check_message(msg, &mut candidates);
+    }
+
+    // Check assistant summaries (assistant often mentions next steps)
+    for summary in &highlights.assistant_summaries {
+        check_message(summary, &mut candidates);
+    }
+
+    // Limit to 5 most relevant items to keep it concise
+    candidates.truncate(5);
+    candidates.join("; ")
+}
+
 pub trait TranscriptSource {
     fn extract_highlights(&self, max_messages: usize, max_bytes: usize) -> Result<TranscriptHighlights>;
 }
@@ -439,5 +534,193 @@ mod tests {
             "expected 1 real user message (commands filtered), got: {:?}", highlights.user_messages
         );
         assert!(highlights.user_messages[0].contains("review the PR"));
+    }
+
+    // --- Tests for build_summary() ---
+
+    #[test]
+    fn test_build_summary_empty_highlights() {
+        let highlights = TranscriptHighlights {
+            user_messages: vec![],
+            assistant_summaries: vec![],
+            tools_used: vec![],
+        };
+        let summary = build_summary(&highlights);
+        assert!(summary.what_was_done.is_empty());
+        assert!(summary.next_steps.is_empty());
+        assert!(summary.first_request.is_empty());
+    }
+
+    #[test]
+    fn test_build_summary_first_request() {
+        let highlights = TranscriptHighlights {
+            user_messages: vec![
+                "Fix the login bug".into(),
+                "Now add tests".into(),
+            ],
+            assistant_summaries: vec![],
+            tools_used: vec![],
+        };
+        let summary = build_summary(&highlights);
+        assert_eq!(summary.first_request, "Fix the login bug");
+    }
+
+    #[test]
+    fn test_build_summary_what_was_done_from_summaries() {
+        let highlights = TranscriptHighlights {
+            user_messages: vec!["Fix the bug".into()],
+            assistant_summaries: vec![
+                "I'll investigate the authentication bug".into(),
+                "I found the bug in the hash comparison".into(),
+                "The fix is applied".into(),
+                "All 12 tests pass".into(),
+            ],
+            tools_used: vec![],
+        };
+        let summary = build_summary(&highlights);
+        // Should use the last 3 summaries
+        assert!(summary.what_was_done.contains("I found the bug"));
+        assert!(summary.what_was_done.contains("The fix is applied"));
+        assert!(summary.what_was_done.contains("All 12 tests pass"));
+        // Should NOT contain the first summary (only last 3)
+        assert!(!summary.what_was_done.contains("I'll investigate"));
+    }
+
+    #[test]
+    fn test_build_summary_what_was_done_few_summaries() {
+        let highlights = TranscriptHighlights {
+            user_messages: vec![],
+            assistant_summaries: vec!["Fixed the bug".into()],
+            tools_used: vec![],
+        };
+        let summary = build_summary(&highlights);
+        assert_eq!(summary.what_was_done, "Fixed the bug");
+    }
+
+    #[test]
+    fn test_build_summary_next_steps_from_user() {
+        let highlights = TranscriptHighlights {
+            user_messages: vec![
+                "Fix the bug".into(),
+                "Next we need to add rate limiting".into(),
+            ],
+            assistant_summaries: vec!["Bug fixed".into()],
+            tools_used: vec![],
+        };
+        let summary = build_summary(&highlights);
+        assert!(
+            summary.next_steps.contains("Next we need to add rate limiting"),
+            "expected next_steps to contain user's next request, got: {:?}",
+            summary.next_steps
+        );
+    }
+
+    #[test]
+    fn test_build_summary_next_steps_from_assistant() {
+        let highlights = TranscriptHighlights {
+            user_messages: vec!["Fix the bug".into()],
+            assistant_summaries: vec![
+                "Bug fixed".into(),
+                "The remaining work is to add integration tests".into(),
+            ],
+            tools_used: vec![],
+        };
+        let summary = build_summary(&highlights);
+        assert!(
+            summary.next_steps.contains("remaining work is to add integration tests"),
+            "expected next_steps from assistant summary, got: {:?}",
+            summary.next_steps
+        );
+    }
+
+    #[test]
+    fn test_build_summary_next_steps_todo_keyword() {
+        let highlights = TranscriptHighlights {
+            user_messages: vec![
+                "TODO: refactor the auth module".into(),
+            ],
+            assistant_summaries: vec![],
+            tools_used: vec![],
+        };
+        let summary = build_summary(&highlights);
+        assert!(
+            summary.next_steps.contains("TODO: refactor the auth module"),
+            "expected TODO keyword match, got: {:?}",
+            summary.next_steps
+        );
+    }
+
+    #[test]
+    fn test_build_summary_next_steps_case_insensitive() {
+        let highlights = TranscriptHighlights {
+            user_messages: vec!["NEXT step is deployment".into()],
+            assistant_summaries: vec![],
+            tools_used: vec![],
+        };
+        let summary = build_summary(&highlights);
+        assert!(
+            !summary.next_steps.is_empty(),
+            "expected case-insensitive keyword match for NEXT"
+        );
+    }
+
+    #[test]
+    fn test_build_summary_no_duplicate_next_steps() {
+        let highlights = TranscriptHighlights {
+            user_messages: vec![
+                "Next: add tests".into(),
+            ],
+            assistant_summaries: vec![
+                "Next: add tests".into(),
+            ],
+            tools_used: vec![],
+        };
+        let summary = build_summary(&highlights);
+        // Should only appear once even though both user and assistant said it
+        let count = summary.next_steps.matches("Next: add tests").count();
+        assert_eq!(count, 1, "expected no duplicate next steps, got: {:?}", summary.next_steps);
+    }
+
+    #[test]
+    fn test_build_summary_multiline_next_steps() {
+        let highlights = TranscriptHighlights {
+            user_messages: vec![],
+            assistant_summaries: vec![
+                "Work completed.\nNext steps:\n- Add error handling\n- Write docs".into(),
+            ],
+            tools_used: vec![],
+        };
+        let summary = build_summary(&highlights);
+        assert!(
+            summary.next_steps.contains("Next steps:"),
+            "expected multiline next steps extraction, got: {:?}",
+            summary.next_steps
+        );
+    }
+
+    #[test]
+    fn test_build_summary_from_real_fixture_highlights() {
+        // Simulate what parse_jsonl produces from the real fixture
+        let highlights = TranscriptHighlights {
+            user_messages: vec![
+                "Fix the authentication bug in login.rs".into(),
+                "Now add a rate limiter to prevent brute force attacks".into(),
+            ],
+            assistant_summaries: vec![
+                "I'll investigate the authentication bug in login".into(),
+                "I found the bug".into(),
+                "The fix is applied".into(),
+                "All 12 tests pass".into(),
+                "I'll add a rate limiter to protect against brute force attacks".into(),
+            ],
+            tools_used: vec!["Read".into(), "Edit".into(), "Bash".into(), "Write".into()],
+        };
+        let summary = build_summary(&highlights);
+
+        assert_eq!(summary.first_request, "Fix the authentication bug in login.rs");
+        assert!(!summary.what_was_done.is_empty());
+        // Last 3 summaries
+        assert!(summary.what_was_done.contains("All 12 tests pass"));
+        assert!(summary.what_was_done.contains("rate limiter"));
     }
 }

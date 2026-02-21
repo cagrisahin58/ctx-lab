@@ -92,21 +92,18 @@ fn process_session_enrichment(payload: serde_json::Value) -> Result<()> {
         (config.transcript_max_tokens * 4) as usize,
     );
 
-    session.tools_used = highlights.tools_used;
-    session.transcript_highlights = highlights.user_messages.clone();
+    // Build structured summary from transcript highlights (must borrow before partial moves)
+    let transcript_summary = ctx_lab_core::transcript::build_summary(&highlights);
 
-    // Build enriched summary
-    if !highlights.user_messages.is_empty() || !highlights.assistant_summaries.is_empty() {
-        let mut parts = Vec::new();
-        if let Some(first) = highlights.user_messages.first() {
-            parts.push(format!("Started with: {}", first));
-        }
-        if let Some(last) = highlights.assistant_summaries.last() {
-            parts.push(format!("Concluded: {}", last));
-        }
-        session.summary = parts.join(". ");
+    session.tools_used = highlights.tools_used;
+    session.transcript_highlights = highlights.user_messages;
+
+    if !transcript_summary.what_was_done.is_empty() {
+        session.summary = transcript_summary.what_was_done;
         session.summary_source = "transcript+git".into();
     }
+    // else: keep existing summary and summary_source (e.g. git diff fallback)
+    session.next_steps = transcript_summary.next_steps;
 
     // Sanitize
     if config.sanitize_secrets {
@@ -118,6 +115,9 @@ fn process_session_enrichment(payload: serde_json::Value) -> Result<()> {
             .into_iter()
             .map(|h| ctx_lab_core::sanitize::sanitize(&h).text)
             .collect();
+        let sanitized_next = ctx_lab_core::sanitize::sanitize(&session.next_steps);
+        session.next_steps = sanitized_next.text;
+        session.redaction_count += sanitized_next.redaction_count;
     }
 
     // Update CLAUDE.md

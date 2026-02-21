@@ -49,6 +49,12 @@ export function SessionTimeline({ sessions }: { sessions: SessionInfo[] }) {
                 {session.summary}
               </p>
             )}
+
+            {session.next_steps && (
+              <p className="text-sm italic text-gray-500 dark:text-gray-400 mt-1 line-clamp-2">
+                {session.next_steps}
+              </p>
+            )}
           </div>
         ))}
       </div>

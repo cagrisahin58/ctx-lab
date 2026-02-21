@@ -17,6 +17,7 @@ i18n.use(initReactI18next).init({
         "project.noRoadmap": "No roadmap yet",
         "project.roadmapHint":
           "Start a Claude Code session and ask for help creating a project roadmap.",
+        "project.nextSteps": "Next Steps",
         "project.backToDashboard": "Back to Dashboard",
         "common.loading": "Loading...",
         "common.openEditor": "Open in Editor",
@@ -46,6 +47,7 @@ i18n.use(initReactI18next).init({
         "project.noRoadmap": "Henuz yol haritasi yok",
         "project.roadmapHint":
           "Bir Claude Code oturumu baslatin ve proje yol haritasi olusturmak icin yardim isteyin.",
+        "project.nextSteps": "Sonraki Adimlar",
         "project.backToDashboard": "Panele Don",
         "common.loading": "Yukleniyor...",
         "common.openEditor": "Editorde Ac",

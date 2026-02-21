@@ -49,6 +49,19 @@ export function ProjectDetail() {
       <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
         {detail.name}
       </h1>
+
+      {detail.recent_sessions.length > 0 &&
+        detail.recent_sessions[0].next_steps && (
+          <div className="mb-6 rounded-lg border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/30 p-4">
+            <h3 className="text-sm font-semibold text-blue-800 dark:text-blue-300 mb-1">
+              {t("project.nextSteps")}
+            </h3>
+            <p className="text-sm text-blue-700 dark:text-blue-400">
+              {detail.recent_sessions[0].next_steps}
+            </p>
+          </div>
+        )}
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div>
           <h2 className="text-lg font-semibold mb-3 text-gray-700 dark:text-gray-300">

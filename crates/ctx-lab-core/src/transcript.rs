@@ -89,17 +89,84 @@ fn parse_jsonl(path: &Path, max_messages: usize, max_bytes: usize) -> Result<Tra
     for line in reader.lines() {
         let line = line?;
         if line.trim().is_empty() { continue; }
-        if let Ok(entry) = serde_json::from_str::<serde_json::Value>(&line) {
+        let entry = match serde_json::from_str::<serde_json::Value>(&line) {
+            Ok(e) => e,
+            Err(_) => continue,
+        };
+
+        let top_type = entry.get("type").and_then(|t| t.as_str()).unwrap_or("");
+
+        // Skip non-conversation entries (progress, system, file snapshots, queue ops)
+        match top_type {
+            "progress" | "system" | "file-history-snapshot" | "queue-operation" => continue,
+            _ => {}
+        }
+
+        // Skip entries with isMeta: true
+        if entry.get("isMeta").and_then(|v| v.as_bool()).unwrap_or(false) {
+            continue;
+        }
+
+        // Try real Claude Code format first: top-level "type" is "user"/"assistant",
+        // actual content is inside "message" object with "role" and "content" fields.
+        if let Some(message_obj) = entry.get("message").and_then(|m| m.as_object()) {
+            let role = message_obj.get("role").and_then(|r| r.as_str()).unwrap_or("");
+            let content = message_obj.get("content");
+
+            match role {
+                "user" => {
+                    // String content = real user message; array = tool_results (skip)
+                    if let Some(content_val) = content {
+                        if let Some(text) = content_val.as_str() {
+                            if !is_command_content(text) {
+                                highlights.user_messages.push(text.chars().take(200).collect());
+                            }
+                        }
+                        // Array content with tool_result entries: skip (not real user messages)
+                    }
+                }
+                "assistant" => {
+                    if let Some(arr) = content.and_then(|c| c.as_array()) {
+                        for item in arr {
+                            let item_type = item.get("type").and_then(|t| t.as_str()).unwrap_or("");
+                            match item_type {
+                                "text" => {
+                                    if let Some(text) = item.get("text").and_then(|t| t.as_str()) {
+                                        let first_sentence = text.split('.').next().unwrap_or(text);
+                                        highlights.assistant_summaries.push(
+                                            first_sentence.chars().take(200).collect()
+                                        );
+                                    }
+                                }
+                                "tool_use" => {
+                                    if let Some(name) = item.get("name").and_then(|n| n.as_str()) {
+                                        if !highlights.tools_used.contains(&name.to_string()) {
+                                            highlights.tools_used.push(name.to_string());
+                                        }
+                                    }
+                                }
+                                // Skip "thinking" blocks and other types
+                                _ => {}
+                            }
+                        }
+                    }
+                }
+                _ => {}
+            }
+        } else {
+            // Backward compat: flat format (role/type/message at top level)
             let role = entry.get("role").and_then(|r| r.as_str()).unwrap_or("");
             let msg_type = entry.get("type").and_then(|t| t.as_str()).unwrap_or("");
             match (role, msg_type) {
                 ("user", _) => {
-                    if let Some(text) = extract_text(&entry) {
-                        highlights.user_messages.push(text.chars().take(200).collect());
+                    if let Some(text) = extract_text_flat(&entry) {
+                        if !is_command_content(&text) {
+                            highlights.user_messages.push(text.chars().take(200).collect());
+                        }
                     }
                 }
                 ("assistant", "text") => {
-                    if let Some(text) = extract_text(&entry) {
+                    if let Some(text) = extract_text_flat(&entry) {
                         let first = text.split('.').next().unwrap_or(&text);
                         highlights.assistant_summaries.push(first.chars().take(200).collect());
                     }
@@ -113,14 +180,21 @@ fn parse_jsonl(path: &Path, max_messages: usize, max_bytes: usize) -> Result<Tra
                 }
                 _ => {}
             }
-            message_count += 1;
-            if message_count >= max_messages { break; }
         }
+
+        message_count += 1;
+        if message_count >= max_messages { break; }
     }
     Ok(highlights)
 }
 
-fn extract_text(entry: &serde_json::Value) -> Option<String> {
+/// Check if user message content is a command (not a real user message)
+fn is_command_content(text: &str) -> bool {
+    text.contains("<command-name>") || text.contains("<local-command>")
+}
+
+/// Extract text from flat format entries (backward compat)
+fn extract_text_flat(entry: &serde_json::Value) -> Option<String> {
     entry.get("message")
         .or_else(|| entry.get("content"))
         .and_then(|c| {
@@ -204,5 +278,166 @@ mod tests {
         std::fs::write(&path, lines.join("\n")).unwrap();
         let highlights = extract_highlights(&path, tmp.path(), 5, 100_000);
         assert!(highlights.user_messages.len() <= 5);
+    }
+
+    // --- Tests for real Claude Code JSONL format ---
+
+    fn fixture_path(name: &str) -> std::path::PathBuf {
+        let mut p = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        p.pop(); // crates/
+        p.pop(); // workspace root
+        p.push("tests/fixtures/transcripts");
+        p.push(name);
+        p
+    }
+
+    #[test]
+    fn test_parse_real_claude_code_format() {
+        let path = fixture_path("real_claude_code.jsonl");
+        assert!(path.exists(), "fixture file missing: {:?}", path);
+        let highlights = parse_jsonl(&path, 500, 1_000_000).unwrap();
+
+        // Should extract real user messages (not tool_result arrays, not isMeta)
+        assert!(
+            highlights.user_messages.iter().any(|m| m.contains("Fix the authentication bug")),
+            "expected user message about auth bug, got: {:?}", highlights.user_messages
+        );
+        assert!(
+            highlights.user_messages.iter().any(|m| m.contains("rate limiter")),
+            "expected user message about rate limiter, got: {:?}", highlights.user_messages
+        );
+
+        // Should extract tools used
+        assert!(
+            highlights.tools_used.contains(&"Read".to_string()),
+            "expected Read in tools_used, got: {:?}", highlights.tools_used
+        );
+        assert!(
+            highlights.tools_used.contains(&"Edit".to_string()),
+            "expected Edit in tools_used, got: {:?}", highlights.tools_used
+        );
+        assert!(
+            highlights.tools_used.contains(&"Bash".to_string()),
+            "expected Bash in tools_used, got: {:?}", highlights.tools_used
+        );
+        assert!(
+            highlights.tools_used.contains(&"Write".to_string()),
+            "expected Write in tools_used, got: {:?}", highlights.tools_used
+        );
+
+        // Should extract assistant text summaries
+        assert!(
+            !highlights.assistant_summaries.is_empty(),
+            "expected assistant summaries, got none"
+        );
+        assert!(
+            highlights.assistant_summaries.iter().any(|s| s.contains("authentication bug")),
+            "expected summary about auth bug, got: {:?}", highlights.assistant_summaries
+        );
+    }
+
+    #[test]
+    fn test_skip_progress_and_system_entries() {
+        let tmp = TempDir::new().unwrap();
+        let path = tmp.path().join("transcript.jsonl");
+        let lines = [
+            r#"{"type":"system","subtype":"init","content":"System prompt","isMeta":true}"#,
+            r#"{"type":"progress","content":{"tool":"Read","status":"running"},"isMeta":true}"#,
+            r#"{"type":"progress","content":{"tool":"Read","status":"completed"},"isMeta":true}"#,
+            r#"{"type":"file-history-snapshot","content":{"path":"foo.rs","snapshot":"..."}}"#,
+            r#"{"type":"queue-operation","content":{"operation":"hook-fired"}}"#,
+            r#"{"type":"user","message":{"role":"user","content":"Real user message"}}"#,
+        ];
+        std::fs::write(&path, lines.join("\n")).unwrap();
+        let highlights = parse_jsonl(&path, 500, 1_000_000).unwrap();
+
+        // Only the real user message should be extracted
+        assert_eq!(
+            highlights.user_messages.len(), 1,
+            "expected 1 user message, got: {:?}", highlights.user_messages
+        );
+        assert!(highlights.user_messages[0].contains("Real user message"));
+
+        // No tools, no summaries from progress/system entries
+        assert!(highlights.tools_used.is_empty(), "expected no tools, got: {:?}", highlights.tools_used);
+        assert!(highlights.assistant_summaries.is_empty(), "expected no summaries, got: {:?}", highlights.assistant_summaries);
+    }
+
+    #[test]
+    fn test_skip_tool_result_user_messages() {
+        let tmp = TempDir::new().unwrap();
+        let path = tmp.path().join("transcript.jsonl");
+        let lines = [
+            r#"{"type":"user","message":{"role":"user","content":"Real question from human"}}"#,
+            r#"{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"toolu_01","content":"file contents here"}]}}"#,
+            r#"{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"toolu_02","content":"edit applied"}]}}"#,
+            r#"{"type":"user","message":{"role":"user","content":"Another real question"}}"#,
+        ];
+        std::fs::write(&path, lines.join("\n")).unwrap();
+        let highlights = parse_jsonl(&path, 500, 1_000_000).unwrap();
+
+        // Only string content user messages, not tool_result arrays
+        assert_eq!(
+            highlights.user_messages.len(), 2,
+            "expected 2 real user messages, got: {:?}", highlights.user_messages
+        );
+        assert!(highlights.user_messages[0].contains("Real question from human"));
+        assert!(highlights.user_messages[1].contains("Another real question"));
+    }
+
+    #[test]
+    fn test_backward_compat_flat_format() {
+        // The old flat format must still work
+        let tmp = TempDir::new().unwrap();
+        let path = write_sample_transcript(tmp.path());
+        let highlights = parse_jsonl(&path, 100, 100_000).unwrap();
+
+        assert_eq!(highlights.user_messages.len(), 2, "expected 2 user messages from flat format");
+        assert!(highlights.user_messages[0].contains("Fix the login bug"));
+        assert!(highlights.user_messages[1].contains("Now add tests"));
+
+        assert!(highlights.tools_used.contains(&"Read".to_string()));
+        assert!(highlights.tools_used.contains(&"Write".to_string()));
+
+        assert!(!highlights.assistant_summaries.is_empty(), "expected assistant summaries from flat format");
+    }
+
+    #[test]
+    fn test_filter_ismeta_user_messages() {
+        let tmp = TempDir::new().unwrap();
+        let path = tmp.path().join("transcript.jsonl");
+        let lines = [
+            r#"{"type":"user","message":{"role":"user","content":"Real message"},"isMeta":false}"#,
+            r#"{"type":"user","message":{"role":"user","content":"<command-name>commit</command-name>"},"isMeta":true}"#,
+            r#"{"type":"user","message":{"role":"user","content":"<local-command>/help</local-command>"},"isMeta":true}"#,
+            r#"{"type":"system","subtype":"command","content":"<command-name>commit</command-name>","isMeta":true}"#,
+        ];
+        std::fs::write(&path, lines.join("\n")).unwrap();
+        let highlights = parse_jsonl(&path, 500, 1_000_000).unwrap();
+
+        assert_eq!(
+            highlights.user_messages.len(), 1,
+            "expected only 1 non-meta user message, got: {:?}", highlights.user_messages
+        );
+        assert!(highlights.user_messages[0].contains("Real message"));
+    }
+
+    #[test]
+    fn test_filter_command_name_content() {
+        let tmp = TempDir::new().unwrap();
+        let path = tmp.path().join("transcript.jsonl");
+        let lines = [
+            r#"{"type":"user","message":{"role":"user","content":"<command-name>review-pr</command-name>"}}"#,
+            r#"{"type":"user","message":{"role":"user","content":"<local-command>/clear</local-command>"}}"#,
+            r#"{"type":"user","message":{"role":"user","content":"Please review the PR"}}"#,
+        ];
+        std::fs::write(&path, lines.join("\n")).unwrap();
+        let highlights = parse_jsonl(&path, 500, 1_000_000).unwrap();
+
+        assert_eq!(
+            highlights.user_messages.len(), 1,
+            "expected 1 real user message (commands filtered), got: {:?}", highlights.user_messages
+        );
+        assert!(highlights.user_messages[0].contains("review the PR"));
     }
 }

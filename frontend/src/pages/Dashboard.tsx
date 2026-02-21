@@ -7,6 +7,7 @@ import { useProjects } from "../hooks/useProjects";
 import { ProjectCard } from "../components/ProjectCard";
 import { QuickResume } from "../components/QuickResume";
 import { ThemeToggle } from "../components/ThemeToggle";
+import { ZoomControl } from "../components/ZoomControl";
 
 export function Dashboard() {
   const { t } = useTranslation();
@@ -31,6 +32,7 @@ export function Dashboard() {
           {t("dashboard.title")}
         </h1>
         <div className="flex items-center gap-2">
+          <ZoomControl />
           <button
             onClick={async () => {
               setRebuilding(true);

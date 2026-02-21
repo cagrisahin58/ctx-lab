@@ -1,1 +1,9 @@
 @import "tailwindcss";
+
+:root {
+  --ctx-lab-zoom: 1;
+}
+
+body {
+  font-size: calc(1rem * var(--ctx-lab-zoom));
+}

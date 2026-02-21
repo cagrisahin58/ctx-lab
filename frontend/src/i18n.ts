@@ -10,6 +10,7 @@ i18n.use(initReactI18next).init({
         "dashboard.projects": "Projects",
         "dashboard.noProjects":
           "No projects yet. Start a Claude Code session to create one.",
+        "dashboard.rebuildCache": "Rebuild Cache",
         "project.roadmap": "Roadmap",
         "project.sessions": "Sessions",
         "project.decisions": "Decisions",
@@ -35,6 +36,7 @@ i18n.use(initReactI18next).init({
         "dashboard.projects": "Projeler",
         "dashboard.noProjects":
           "Henuz proje yok. Bir Claude Code oturumu baslatin.",
+        "dashboard.rebuildCache": "Onbellegi Yenile",
         "project.roadmap": "Yol Haritasi",
         "project.sessions": "Oturumlar",
         "project.decisions": "Kararlar",

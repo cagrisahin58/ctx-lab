@@ -1,6 +1,8 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { Settings } from "lucide-react";
+import { RefreshCw, Settings } from "lucide-react";
+import { api } from "../lib/tauri";
 import { useProjects } from "../hooks/useProjects";
 import { ProjectCard } from "../components/ProjectCard";
 import { QuickResume } from "../components/QuickResume";
@@ -8,7 +10,8 @@ import { ThemeToggle } from "../components/ThemeToggle";
 
 export function Dashboard() {
   const { t } = useTranslation();
-  const { projects, loading } = useProjects();
+  const { projects, loading, refresh } = useProjects();
+  const [rebuilding, setRebuilding] = useState(false);
 
   if (loading) {
     return (
@@ -28,6 +31,25 @@ export function Dashboard() {
           {t("dashboard.title")}
         </h1>
         <div className="flex items-center gap-2">
+          <button
+            onClick={async () => {
+              setRebuilding(true);
+              try {
+                await api.rebuildCache();
+                await refresh();
+              } finally {
+                setRebuilding(false);
+              }
+            }}
+            disabled={rebuilding}
+            className="p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+            title={t("dashboard.rebuildCache")}
+          >
+            <RefreshCw
+              size={20}
+              className={`text-gray-600 dark:text-gray-400 ${rebuilding ? "animate-spin" : ""}`}
+            />
+          </button>
           <Link
             to="/settings"
             className="p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"

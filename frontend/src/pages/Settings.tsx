@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import i18n from "../i18n";
 import { ArrowLeft, Settings as SettingsIcon, RefreshCw } from "lucide-react";
 import { api } from "../lib/tauri";
 import { ThemeToggle } from "../components/ThemeToggle";
@@ -107,6 +108,29 @@ export function Settings() {
       </header>
 
       <div className="max-w-lg space-y-6">
+        {/* Language */}
+        <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm">
+          <label
+            htmlFor="language-select"
+            className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+          >
+            {t("settings.language")}
+          </label>
+          <select
+            id="language-select"
+            value={i18n.language}
+            onChange={(e) => {
+              const val = e.target.value;
+              i18n.changeLanguage(val);
+              localStorage.setItem("ctx-lab-language", val);
+            }}
+            className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="en">English</option>
+            <option value="tr">Turkce</option>
+          </select>
+        </div>
+
         {/* Privacy Mode */}
         <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm">
           <label

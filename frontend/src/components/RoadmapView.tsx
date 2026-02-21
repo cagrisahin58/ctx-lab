@@ -1,4 +1,5 @@
-import { Check, PlayCircle, Circle, PauseCircle, AlertCircle } from "lucide-react";
+import { Check, PlayCircle, Circle, PauseCircle, AlertCircle, Map } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { ProgressBar } from "./ProgressBar";
 import type { RoadmapData, RoadmapItem } from "../lib/types";
 
@@ -34,6 +35,23 @@ function RoadmapItemRow({ item }: { item: RoadmapItem }) {
 }
 
 export function RoadmapView({ roadmap }: { roadmap: RoadmapData }) {
+  const { t } = useTranslation();
+
+  // Empty state
+  if (roadmap.items.length === 0) {
+    return (
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-8 text-center">
+        <Map size={48} className="mx-auto mb-3 text-gray-300 dark:text-gray-600" />
+        <h3 className="text-lg font-medium text-gray-700 dark:text-gray-300 mb-1">
+          {t("project.noRoadmap")}
+        </h3>
+        <p className="text-sm text-gray-500 dark:text-gray-400">
+          {t("project.roadmapHint")}
+        </p>
+      </div>
+    );
+  }
+
   // Group items by phase
   const phases = new Map<string, RoadmapItem[]>();
   const noPhase: RoadmapItem[] = [];

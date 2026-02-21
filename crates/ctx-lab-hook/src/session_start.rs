@@ -110,7 +110,7 @@ pub fn build_additional_context(last_summary: Option<&str>, active_step: Option<
     if let Some(s) = active_step { parts.push(format!("Active roadmap step: {}", s)); }
     if let Some(p) = progress { parts.push(format!("Progress: {}", p)); }
     if !has_roadmap {
-        parts.push("No roadmap yet. You can help the user create a project roadmap at ~/.ctx-lab/projects/<slug>/roadmap.md using markdown checkboxes (- [ ] item, - [>] active, - [x] done).".into());
+        parts.push("No roadmap yet. When the user discusses project goals, proactively suggest creating a roadmap at ~/.ctx-lab/projects/<slug>/roadmap.md. Use this format:\n# Phase A: Name\n- [x] Completed item\n- [>] Active item (currently working on)\n- [ ] Pending item\n- [~] Suspended item\n- [!] Blocked item".into());
     }
     let mut result = parts.join("\n");
     if result.len() > 1500 { result = result.chars().take(1497).collect::<String>() + "..."; }

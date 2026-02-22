@@ -40,6 +40,12 @@ pub struct Session {
     pub recovered: bool,
     #[serde(default)]
     pub redaction_count: u32,
+    #[serde(default)]
+    pub token_count: Option<u64>,
+    #[serde(default)]
+    pub estimated_cost_usd: Option<f64>,
+    #[serde(default)]
+    pub model: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -186,6 +192,9 @@ mod tests {
             checkpoints_merged: vec![],
             recovered: false,
             redaction_count: 0,
+            token_count: None,
+            estimated_cost_usd: None,
+            model: None,
         };
         let json = serde_json::to_string(&session).unwrap();
         let parsed: Session = serde_json::from_str(&json).unwrap();

@@ -45,6 +45,9 @@ pub fn run() -> Result<()> {
         checkpoints_merged: vec![],
         recovered: false,
         redaction_count: 0,
+        token_count: None,
+        estimated_cost_usd: None,
+        model: None,
     };
 
     let session_file = sessions_dir.join(format!(

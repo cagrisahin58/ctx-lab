@@ -118,6 +118,22 @@ function SessionRow({
                   {session.transcript_highlights.length} highlights
                 </span>
               )}
+              {session.estimated_cost_usd != null && session.estimated_cost_usd > 0 && (
+                <span
+                  className="font-mono"
+                  style={{
+                    fontSize: 11,
+                    color: session.estimated_cost_usd > 1 ? "#f59e0b" : "#22c55e",
+                  }}
+                >
+                  ${session.estimated_cost_usd.toFixed(4)}
+                </span>
+              )}
+              {session.model && (
+                <span className="font-mono" style={{ fontSize: 11, color: "var(--text-muted)" }}>
+                  {session.model.replace(/^claude-/, "").replace(/-\d{8}$/, "")}
+                </span>
+              )}
             </div>
           </div>
         </div>

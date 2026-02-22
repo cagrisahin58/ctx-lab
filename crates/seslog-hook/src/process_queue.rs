@@ -95,6 +95,20 @@ fn process_session_enrichment(payload: serde_json::Value) -> Result<()> {
     // Build structured summary from transcript highlights (must borrow before partial moves)
     let transcript_summary = seslog_core::transcript::build_summary(&highlights);
 
+    // Token count and cost estimation
+    let total_tokens = highlights.total_input_tokens + highlights.total_output_tokens;
+    if total_tokens > 0 {
+        session.token_count = Some(total_tokens);
+        session.estimated_cost_usd = Some(
+            seslog_core::transcript::estimate_cost_usd(
+                highlights.total_input_tokens,
+                highlights.total_output_tokens,
+                highlights.model.as_deref(),
+            )
+        );
+    }
+    session.model = highlights.model.clone();
+
     session.tools_used = highlights.tools_used;
     session.transcript_highlights = highlights.user_messages;
 

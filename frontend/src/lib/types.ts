@@ -27,6 +27,9 @@ export interface SessionInfo {
   files_changed: number;
   recovered: boolean;
   transcript_highlights: string[];
+  token_count: number | null;
+  estimated_cost_usd: number | null;
+  model: string | null;
 }
 
 export interface RoadmapData {

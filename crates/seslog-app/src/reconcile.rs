@@ -265,8 +265,9 @@ fn upsert_session(conn: &Connection, session: &Session, source_path: &Path) -> R
         "INSERT OR REPLACE INTO sessions
             (id, project_id, machine, started_at, ended_at,
              duration_minutes, end_reason, summary, summary_source,
-             next_steps, files_changed, recovered, redaction_count, source_path)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14)",
+             next_steps, files_changed, recovered, redaction_count, source_path,
+             token_count, estimated_cost_usd, model)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17)",
         params![
             session.id,
             session.project_id,
@@ -282,6 +283,9 @@ fn upsert_session(conn: &Connection, session: &Session, source_path: &Path) -> R
             session.recovered as i32,
             session.redaction_count,
             source_path.to_string_lossy().to_string(),
+            session.token_count.map(|t| t as i64),
+            session.estimated_cost_usd,
+            session.model,
         ],
     )?;
 

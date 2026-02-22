@@ -58,6 +58,9 @@ pub struct SessionResponse {
     pub files_changed: i64,
     pub recovered: bool,
     pub transcript_highlights: Vec<String>,
+    pub token_count: Option<i64>,
+    pub estimated_cost_usd: Option<f64>,
+    pub model: Option<String>,
 }
 
 #[derive(Debug, Clone, serde::Serialize)]
@@ -190,7 +193,8 @@ pub fn get_sessions_inner(
     let conn = pool.get()?;
     let mut stmt = conn.prepare(
         "SELECT id, project_id, machine, started_at, ended_at,
-                duration_minutes, summary, next_steps, files_changed, recovered
+                duration_minutes, summary, next_steps, files_changed, recovered,
+                token_count, estimated_cost_usd, model
          FROM sessions
          WHERE project_id = ?1
          ORDER BY started_at DESC
@@ -214,6 +218,9 @@ pub fn get_sessions_inner(
             files_changed,
             recovered: recovered_int != 0,
             transcript_highlights: Vec::new(), // filled below
+            token_count: row.get(10)?,
+            estimated_cost_usd: row.get(11)?,
+            model: row.get(12)?,
         })
     })?;
 

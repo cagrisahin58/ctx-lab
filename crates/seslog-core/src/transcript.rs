@@ -6,6 +6,9 @@ pub struct TranscriptHighlights {
     pub user_messages: Vec<String>,
     pub assistant_summaries: Vec<String>,
     pub tools_used: Vec<String>,
+    pub total_input_tokens: u64,
+    pub total_output_tokens: u64,
+    pub model: Option<String>,
 }
 
 /// Structured summary built from transcript highlights.
@@ -130,6 +133,9 @@ pub fn extract_highlights(transcript_path: &Path, cwd: &Path, max_messages: usiz
             user_messages: vec![],
             assistant_summaries: vec!["(transcript unavailable)".into()],
             tools_used: vec![],
+            total_input_tokens: 0,
+            total_output_tokens: 0,
+            model: None,
         })
 }
 
@@ -157,6 +163,9 @@ impl<'a> TranscriptSource for GitDiffFallback<'a> {
             user_messages: vec![],
             assistant_summaries: summaries,
             tools_used: vec![],
+            total_input_tokens: 0,
+            total_output_tokens: 0,
+            model: None,
         })
     }
 }
@@ -179,6 +188,9 @@ fn parse_jsonl(path: &Path, max_messages: usize, max_bytes: usize) -> Result<Tra
         user_messages: Vec::new(),
         assistant_summaries: Vec::new(),
         tools_used: Vec::new(),
+        total_input_tokens: 0,
+        total_output_tokens: 0,
+        model: None,
     };
     let mut message_count = 0;
     for line in reader.lines() {
@@ -221,6 +233,20 @@ fn parse_jsonl(path: &Path, max_messages: usize, max_bytes: usize) -> Result<Tra
                     }
                 }
                 "assistant" => {
+                    // Extract usage tokens from message.usage
+                    if let Some(usage) = message_obj.get("usage") {
+                        let input = usage.get("input_tokens").and_then(|v| v.as_u64()).unwrap_or(0);
+                        let output = usage.get("output_tokens").and_then(|v| v.as_u64()).unwrap_or(0);
+                        highlights.total_input_tokens += input;
+                        highlights.total_output_tokens += output;
+                    }
+                    // Extract model name (take the first non-null model)
+                    if highlights.model.is_none() {
+                        if let Some(model) = message_obj.get("model").and_then(|m| m.as_str()) {
+                            highlights.model = Some(model.to_string());
+                        }
+                    }
+
                     if let Some(arr) = content.and_then(|c| c.as_array()) {
                         for item in arr {
                             let item_type = item.get("type").and_then(|t| t.as_str()).unwrap_or("");
@@ -301,6 +327,32 @@ fn extract_text_flat(entry: &serde_json::Value) -> Option<String> {
                     .collect::<Vec<_>>().join(" "))
             } else { None }
         })
+}
+
+// ---------------------------------------------------------------------------
+// Cost estimation
+// ---------------------------------------------------------------------------
+
+struct ModelPricing {
+    input_per_1m: f64,
+    output_per_1m: f64,
+}
+
+fn get_pricing(model: Option<&str>) -> ModelPricing {
+    let model = model.unwrap_or("");
+    if model.contains("opus") {
+        ModelPricing { input_per_1m: 15.0, output_per_1m: 75.0 }
+    } else if model.contains("haiku") {
+        ModelPricing { input_per_1m: 0.25, output_per_1m: 1.25 }
+    } else {
+        // Default: Sonnet pricing (most common)
+        ModelPricing { input_per_1m: 3.0, output_per_1m: 15.0 }
+    }
+}
+
+pub fn estimate_cost_usd(input_tokens: u64, output_tokens: u64, model: Option<&str>) -> f64 {
+    let p = get_pricing(model);
+    (input_tokens as f64 * p.input_per_1m + output_tokens as f64 * p.output_per_1m) / 1_000_000.0
 }
 
 #[cfg(test)]
@@ -544,6 +596,9 @@ mod tests {
             user_messages: vec![],
             assistant_summaries: vec![],
             tools_used: vec![],
+            total_input_tokens: 0,
+            total_output_tokens: 0,
+            model: None,
         };
         let summary = build_summary(&highlights);
         assert!(summary.what_was_done.is_empty());
@@ -560,6 +615,9 @@ mod tests {
             ],
             assistant_summaries: vec![],
             tools_used: vec![],
+            total_input_tokens: 0,
+            total_output_tokens: 0,
+            model: None,
         };
         let summary = build_summary(&highlights);
         assert_eq!(summary.first_request, "Fix the login bug");
@@ -576,6 +634,9 @@ mod tests {
                 "All 12 tests pass".into(),
             ],
             tools_used: vec![],
+            total_input_tokens: 0,
+            total_output_tokens: 0,
+            model: None,
         };
         let summary = build_summary(&highlights);
         // Should use the last 3 summaries
@@ -592,6 +653,9 @@ mod tests {
             user_messages: vec![],
             assistant_summaries: vec!["Fixed the bug".into()],
             tools_used: vec![],
+            total_input_tokens: 0,
+            total_output_tokens: 0,
+            model: None,
         };
         let summary = build_summary(&highlights);
         assert_eq!(summary.what_was_done, "Fixed the bug");
@@ -606,6 +670,9 @@ mod tests {
             ],
             assistant_summaries: vec!["Bug fixed".into()],
             tools_used: vec![],
+            total_input_tokens: 0,
+            total_output_tokens: 0,
+            model: None,
         };
         let summary = build_summary(&highlights);
         assert!(
@@ -624,6 +691,9 @@ mod tests {
                 "The remaining work is to add integration tests".into(),
             ],
             tools_used: vec![],
+            total_input_tokens: 0,
+            total_output_tokens: 0,
+            model: None,
         };
         let summary = build_summary(&highlights);
         assert!(
@@ -641,6 +711,9 @@ mod tests {
             ],
             assistant_summaries: vec![],
             tools_used: vec![],
+            total_input_tokens: 0,
+            total_output_tokens: 0,
+            model: None,
         };
         let summary = build_summary(&highlights);
         assert!(
@@ -656,6 +729,9 @@ mod tests {
             user_messages: vec!["NEXT step is deployment".into()],
             assistant_summaries: vec![],
             tools_used: vec![],
+            total_input_tokens: 0,
+            total_output_tokens: 0,
+            model: None,
         };
         let summary = build_summary(&highlights);
         assert!(
@@ -674,6 +750,9 @@ mod tests {
                 "Next: add tests".into(),
             ],
             tools_used: vec![],
+            total_input_tokens: 0,
+            total_output_tokens: 0,
+            model: None,
         };
         let summary = build_summary(&highlights);
         // Should only appear once even though both user and assistant said it
@@ -689,6 +768,9 @@ mod tests {
                 "Work completed.\nNext steps:\n- Add error handling\n- Write docs".into(),
             ],
             tools_used: vec![],
+            total_input_tokens: 0,
+            total_output_tokens: 0,
+            model: None,
         };
         let summary = build_summary(&highlights);
         assert!(
@@ -714,6 +796,9 @@ mod tests {
                 "I'll add a rate limiter to protect against brute force attacks".into(),
             ],
             tools_used: vec!["Read".into(), "Edit".into(), "Bash".into(), "Write".into()],
+            total_input_tokens: 0,
+            total_output_tokens: 0,
+            model: None,
         };
         let summary = build_summary(&highlights);
 
@@ -722,5 +807,61 @@ mod tests {
         // Last 3 summaries
         assert!(summary.what_was_done.contains("All 12 tests pass"));
         assert!(summary.what_was_done.contains("rate limiter"));
+    }
+
+    // --- Tests for token/cost tracking ---
+
+    #[test]
+    fn test_estimate_cost_opus() {
+        let cost = estimate_cost_usd(1_000_000, 1_000_000, Some("claude-opus-4-6"));
+        assert!((cost - 90.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_estimate_cost_sonnet_default() {
+        let cost = estimate_cost_usd(1_000_000, 1_000_000, None);
+        assert!((cost - 18.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_estimate_cost_haiku() {
+        let cost = estimate_cost_usd(1_000_000, 1_000_000, Some("claude-haiku-4-5"));
+        assert!((cost - 1.5).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_graceful_fallback_no_usage() {
+        let tmp = TempDir::new().unwrap();
+        let path = tmp.path().join("transcript.jsonl");
+        let line = r#"{"type":"assistant","message":{"role":"assistant","content":[{"type":"text","text":"hello"}]}}"#;
+        std::fs::write(&path, line).unwrap();
+        let highlights = parse_jsonl(&path, 100, 100_000).unwrap();
+        assert_eq!(highlights.total_input_tokens, 0);
+        assert_eq!(highlights.total_output_tokens, 0);
+    }
+
+    #[test]
+    fn test_parse_jsonl_extracts_usage() {
+        let tmp = TempDir::new().unwrap();
+        let path = tmp.path().join("transcript.jsonl");
+        let lines = vec![
+            r#"{"type":"assistant","message":{"role":"assistant","content":[{"type":"text","text":"hello"}],"usage":{"input_tokens":100,"output_tokens":50},"model":"claude-sonnet-4-6-20250514"}}"#,
+            r#"{"type":"assistant","message":{"role":"assistant","content":[{"type":"text","text":"done"}],"usage":{"input_tokens":200,"output_tokens":100},"model":"claude-sonnet-4-6-20250514"}}"#,
+        ];
+        std::fs::write(&path, lines.join("\n")).unwrap();
+        let highlights = parse_jsonl(&path, 100, 100_000).unwrap();
+        assert_eq!(highlights.total_input_tokens, 300);
+        assert_eq!(highlights.total_output_tokens, 150);
+        assert_eq!(highlights.model.as_deref(), Some("claude-sonnet-4-6-20250514"));
+    }
+
+    #[test]
+    fn test_parse_jsonl_extracts_model_name() {
+        let tmp = TempDir::new().unwrap();
+        let path = tmp.path().join("transcript.jsonl");
+        let line = r#"{"type":"assistant","message":{"role":"assistant","content":[{"type":"text","text":"hi"}],"model":"claude-opus-4-6-20250514"}}"#;
+        std::fs::write(&path, line).unwrap();
+        let highlights = parse_jsonl(&path, 100, 100_000).unwrap();
+        assert_eq!(highlights.model.as_deref(), Some("claude-opus-4-6-20250514"));
     }
 }

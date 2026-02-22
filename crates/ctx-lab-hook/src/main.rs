@@ -8,6 +8,7 @@ mod process_queue;
 mod session_end;
 mod session_start;
 mod stop;
+mod summary;
 mod uninstall;
 
 #[derive(Parser)]
@@ -27,6 +28,10 @@ enum Commands {
     Uninstall,
     Doctor,
     ProcessQueue,
+    Summary {
+        #[arg()]
+        text: String,
+    },
 }
 
 fn main() {
@@ -40,6 +45,7 @@ fn main() {
         Commands::Uninstall => uninstall::run(),
         Commands::Doctor => doctor::run(),
         Commands::ProcessQueue => process_queue::run(),
+        Commands::Summary { text } => summary::run(&text),
     };
     if let Err(e) = result {
         eprintln!("[ctx-lab] ERROR: {}", e);

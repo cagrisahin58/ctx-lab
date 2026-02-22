@@ -5,7 +5,7 @@ i18n.use(initReactI18next).init({
   resources: {
     en: {
       translation: {
-        "dashboard.title": "ctx-lab",
+        "dashboard.title": "Seslog",
         "dashboard.quickResume": "Continue where you left off",
         "dashboard.projects": "Projects",
         "dashboard.noProjects":
@@ -20,7 +20,6 @@ i18n.use(initReactI18next).init({
         "project.nextSteps": "Next Steps",
         "project.backToDashboard": "Back to Dashboard",
         "common.loading": "Loading...",
-        "common.openEditor": "Open in Editor",
         "common.notFound": "Project not found",
         "settings.title": "Settings",
         "settings.language": "Language",
@@ -35,7 +34,7 @@ i18n.use(initReactI18next).init({
     },
     tr: {
       translation: {
-        "dashboard.title": "ctx-lab",
+        "dashboard.title": "Seslog",
         "dashboard.quickResume": "Kaldiginiz yerden devam edin",
         "dashboard.projects": "Projeler",
         "dashboard.noProjects":
@@ -50,7 +49,6 @@ i18n.use(initReactI18next).init({
         "project.nextSteps": "Sonraki Adimlar",
         "project.backToDashboard": "Panele Don",
         "common.loading": "Yukleniyor...",
-        "common.openEditor": "Editorde Ac",
         "common.notFound": "Proje bulunamadi",
         "settings.title": "Ayarlar",
         "settings.language": "Dil",

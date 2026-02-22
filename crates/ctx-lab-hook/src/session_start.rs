@@ -105,20 +105,21 @@ fn read_last_session_summary(project_dir: &std::path::Path) -> Option<String> {
 }
 
 pub fn build_additional_context(last_summary: Option<&str>, active_step: Option<&str>, progress: Option<&str>, has_roadmap: bool) -> String {
-    let mut parts = vec!["[ctx-lab] Project context:".to_string()];
+    let mut parts = vec!["[Seslog] Project context:".to_string()];
     if let Some(s) = last_summary { parts.push(format!("Last session: {}", s.chars().take(500).collect::<String>())); }
     if let Some(s) = active_step { parts.push(format!("Active roadmap step: {}", s)); }
     if let Some(p) = progress { parts.push(format!("Progress: {}", p)); }
     if !has_roadmap {
-        parts.push("No roadmap yet. When the user discusses project goals, proactively suggest creating a roadmap at ~/.ctx-lab/projects/<slug>/roadmap.md. Use this format:\n# Phase A: Name\n- [x] Completed item\n- [>] Active item (currently working on)\n- [ ] Pending item\n- [~] Suspended item\n- [!] Blocked item".into());
+        parts.push("No roadmap yet. When the user says 'yol haritasi olustur' (create roadmap), analyze the project state and write a roadmap to ~/.ctx-lab/projects/<slug>/roadmap.md where <slug> is the basename of the current working directory. Use this exact format:\n## Phase Name\n- [x] Completed item\n- [>] Active item (currently working on)\n- [ ] Pending item\n- [~] Suspended item\n- [!] Blocked item".into());
     }
+    parts.push("When the user says 'oturum ozet' (session summary):\n1. Summarize what was done and remaining work in 3-4 sentences, then run: ctx-lab-hook summary \"<your summary>\"\n2. If ~/.ctx-lab/projects/<slug>/roadmap.md exists (where <slug> is basename of cwd), update it: mark completed items as [x], the currently active item as [>], and pending items as [ ]. Write the updated file directly.".into());
     let mut result = parts.join("\n");
-    if result.len() > 1500 { result = result.chars().take(1497).collect::<String>() + "..."; }
+    if result.len() > 2000 { result = result.chars().take(1997).collect::<String>() + "..."; }
     result
 }
 
 fn build_claude_md_block(last_summary: Option<&str>, active_step: Option<&str>, roadmap_content: &str) -> String {
-    let mut lines = vec!["## Project Status (auto-updated by ctx-lab)".to_string(), String::new()];
+    let mut lines = vec!["## Project Status (auto-updated by Seslog)".to_string(), String::new()];
     if let Some(s) = last_summary { lines.push(format!("**Last Session:** {}", s.chars().take(300).collect::<String>())); }
     if let Some(s) = active_step { lines.push(format!("**Active Step:** {}", s)); }
     let items = ctx_lab_core::roadmap::parse_roadmap(roadmap_content);
@@ -173,7 +174,7 @@ mod tests {
     fn test_build_context_truncation() {
         let long = "x".repeat(2000);
         let ctx = build_additional_context(Some(&long), Some("step"), Some("50%"), true);
-        assert!(ctx.len() <= 1500);
+        assert!(ctx.len() <= 2000);
     }
 
     #[test]

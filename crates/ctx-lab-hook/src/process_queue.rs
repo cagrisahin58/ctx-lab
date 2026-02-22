@@ -98,12 +98,17 @@ fn process_session_enrichment(payload: serde_json::Value) -> Result<()> {
     session.tools_used = highlights.tools_used;
     session.transcript_highlights = highlights.user_messages;
 
-    if !transcript_summary.what_was_done.is_empty() {
-        session.summary = transcript_summary.what_was_done;
-        session.summary_source = "transcript+git".into();
+    // Manual summary (from `ctx-lab-hook summary`) takes priority
+    if session.summary_source != "manual" {
+        if !transcript_summary.what_was_done.is_empty() {
+            session.summary = transcript_summary.what_was_done;
+            session.summary_source = "transcript+git".into();
+        }
+        // else: keep existing summary (e.g. git diff fallback)
     }
-    // else: keep existing summary and summary_source (e.g. git diff fallback)
-    session.next_steps = transcript_summary.next_steps;
+    if session.next_steps.is_empty() {
+        session.next_steps = transcript_summary.next_steps;
+    }
 
     // Sanitize
     if config.sanitize_secrets {
@@ -126,7 +131,7 @@ fn process_session_enrichment(payload: serde_json::Value) -> Result<()> {
     let roadmap_content = std::fs::read_to_string(&roadmap_path).unwrap_or_default();
     let active_step = ctx_lab_core::roadmap::active_item(&roadmap_content).map(|i| i.text);
     let block = format!(
-        "## Project Status (auto-updated by ctx-lab)\n\n**Last Session:** {}\n**Summary:** {}\n{}",
+        "## Project Status (auto-updated by Seslog)\n\n**Last Session:** {}\n**Summary:** {}\n{}",
         session
             .ended_at
             .map_or("unknown".into(), |t| t.format("%Y-%m-%d %H:%M").to_string()),

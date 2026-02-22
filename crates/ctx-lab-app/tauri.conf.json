@@ -1,6 +1,6 @@
 {
   "$schema": "https://raw.githubusercontent.com/nicegui/nicegui/main/nicegui/.nicegui/tauri.conf.json",
-  "productName": "ctx-lab",
+  "productName": "Seslog",
   "version": "0.1.0",
   "identifier": "com.ctxlab.desktop",
   "build": {
@@ -12,7 +12,7 @@
   "app": {
     "windows": [
       {
-        "title": "ctx-lab",
+        "title": "Seslog",
         "width": 1200,
         "height": 800,
         "resizable": true,

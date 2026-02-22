@@ -18,14 +18,13 @@ export function ThemeToggle() {
   return (
     <button
       onClick={() => setDark(!dark)}
-      className="p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+      className="flex items-center justify-center rounded-md transition-colors"
+      style={{ width: 28, height: 28, color: "var(--text-muted)" }}
+      onMouseEnter={(e) => e.currentTarget.style.background = "var(--bg-surface-hover)"}
+      onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
       title="Toggle theme"
     >
-      {dark ? (
-        <Sun size={20} className="text-yellow-400" />
-      ) : (
-        <Moon size={20} className="text-gray-600" />
-      )}
+      {dark ? <Sun size={15} /> : <Moon size={15} />}
     </button>
   );
 }

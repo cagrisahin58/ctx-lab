@@ -3,13 +3,16 @@ export function ProgressBar({ percent }: { percent: number }) {
 
   return (
     <div className="flex items-center gap-2">
-      <div className="flex-1 h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+      <div
+        className="flex-1 rounded-full overflow-hidden"
+        style={{ height: 5, background: "var(--border-default)" }}
+      >
         <div
-          className="h-full bg-green-500 rounded-full transition-all duration-300"
-          style={{ width: `${clamped}%` }}
+          className="h-full rounded-full transition-all duration-300"
+          style={{ width: `${clamped}%`, background: "var(--accent)" }}
         />
       </div>
-      <span className="text-xs text-gray-500 dark:text-gray-400 tabular-nums">
+      <span className="font-mono tabular-nums" style={{ fontSize: 11, color: "var(--text-muted)" }}>
         {Math.round(clamped)}%
       </span>
     </div>

@@ -13,25 +13,34 @@ export function ZoomControl() {
   }, [zoom]);
 
   return (
-    <div className="flex items-center gap-1">
+    <div className="flex items-center gap-0.5">
       <button
         onClick={() => setZoom((z) => Math.max(0.8, +(z - 0.1).toFixed(1)))}
         disabled={zoom <= 0.8}
-        className="p-1.5 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+        className="flex items-center justify-center rounded-md transition-colors disabled:opacity-25 disabled:cursor-not-allowed"
+        style={{ width: 24, height: 24, color: "var(--text-muted)" }}
+        onMouseEnter={(e) => { if (zoom > 0.8) e.currentTarget.style.background = "var(--bg-surface-hover)"; }}
+        onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
         title="Zoom out"
       >
-        <ZoomOut size={16} className="text-gray-600 dark:text-gray-400" />
+        <ZoomOut size={14} />
       </button>
-      <span className="text-xs font-mono w-8 text-center text-gray-600 dark:text-gray-400 select-none">
+      <span
+        className="font-mono tabular-nums select-none text-center"
+        style={{ fontSize: 10, color: "var(--text-muted)", width: 28 }}
+      >
         {Math.round(zoom * 100)}%
       </span>
       <button
         onClick={() => setZoom((z) => Math.min(1.5, +(z + 0.1).toFixed(1)))}
         disabled={zoom >= 1.5}
-        className="p-1.5 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+        className="flex items-center justify-center rounded-md transition-colors disabled:opacity-25 disabled:cursor-not-allowed"
+        style={{ width: 24, height: 24, color: "var(--text-muted)" }}
+        onMouseEnter={(e) => { if (zoom < 1.5) e.currentTarget.style.background = "var(--bg-surface-hover)"; }}
+        onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
         title="Zoom in"
       >
-        <ZoomIn size={16} className="text-gray-600 dark:text-gray-400" />
+        <ZoomIn size={14} />
       </button>
     </div>
   );

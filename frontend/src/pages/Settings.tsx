@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import i18n from "../i18n";
-import { ArrowLeft, Settings as SettingsIcon, RefreshCw } from "lucide-react";
+import { ArrowLeft, RefreshCw } from "lucide-react";
 import { api } from "../lib/tauri";
 import { ThemeToggle } from "../components/ThemeToggle";
 import type { AppConfig } from "../lib/types";
@@ -83,39 +83,35 @@ export function Settings() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-screen">
-        <p className="text-gray-500 dark:text-gray-400">
-          {t("common.loading")}
-        </p>
+      <div className="flex items-center justify-center h-screen" style={{ background: "var(--bg-app)" }}>
+        <p style={{ color: "var(--text-muted)", fontSize: 13 }}>{t("common.loading")}</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-6">
+    <div className="min-h-screen px-8 py-6" style={{ background: "var(--bg-app)" }}>
       <Link
         to="/"
-        className="flex items-center gap-1 text-blue-600 dark:text-blue-400 mb-4 hover:underline"
+        className="inline-flex items-center gap-1.5 transition-colors mb-6"
+        style={{ fontSize: 13, color: "var(--text-secondary)" }}
+        onMouseEnter={(e) => e.currentTarget.style.color = "var(--text-primary)"}
+        onMouseLeave={(e) => e.currentTarget.style.color = "var(--text-secondary)"}
       >
-        <ArrowLeft size={16} /> {t("settings.backToDashboard")}
+        <ArrowLeft size={14} /> {t("settings.backToDashboard")}
       </Link>
 
-      <header className="flex items-center gap-2 mb-8">
-        <SettingsIcon size={24} className="text-gray-700 dark:text-gray-300" />
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-          {t("settings.title")}
-        </h1>
-      </header>
+      <h1
+        className="font-semibold mb-6"
+        style={{ fontSize: 20, color: "var(--text-primary)" }}
+      >
+        {t("settings.title")}
+      </h1>
 
-      <div className="max-w-lg space-y-6">
+      <div className="max-w-lg space-y-3">
         {/* Language */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm">
-          <label
-            htmlFor="language-select"
-            className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
-          >
-            {t("settings.language")}
-          </label>
+        <SettingCard>
+          <SettingLabel htmlFor="language-select">{t("settings.language")}</SettingLabel>
           <select
             id="language-select"
             value={i18n.language}
@@ -124,40 +120,42 @@ export function Settings() {
               i18n.changeLanguage(val);
               localStorage.setItem("ctx-lab-language", val);
             }}
-            className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full rounded-md px-3 py-1.5 transition-colors focus:outline-none"
+            style={{
+              fontSize: 13,
+              background: "var(--bg-app)",
+              border: "1px solid var(--border-default)",
+              color: "var(--text-primary)",
+            }}
           >
             <option value="en">English</option>
             <option value="tr">Turkce</option>
           </select>
-        </div>
+        </SettingCard>
 
         {/* Privacy Mode */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm">
-          <label
-            htmlFor="privacy-mode"
-            className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
-          >
-            {t("settings.privacyMode")}
-          </label>
+        <SettingCard>
+          <SettingLabel htmlFor="privacy-mode">{t("settings.privacyMode")}</SettingLabel>
           <select
             id="privacy-mode"
             value={config?.privacy_mode ?? "full"}
             onChange={(e) => handlePrivacyChange(e.target.value)}
-            className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full rounded-md px-3 py-1.5 transition-colors focus:outline-none"
+            style={{
+              fontSize: 13,
+              background: "var(--bg-app)",
+              border: "1px solid var(--border-default)",
+              color: "var(--text-primary)",
+            }}
           >
             <option value="full">Full</option>
           </select>
-        </div>
+        </SettingCard>
 
         {/* Checkpoint Interval */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm">
-          <label
-            htmlFor="checkpoint-interval"
-            className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
-          >
-            {t("settings.checkpointInterval")}
-          </label>
-          <div className="flex items-center gap-4">
+        <SettingCard>
+          <SettingLabel htmlFor="checkpoint-interval">{t("settings.checkpointInterval")}</SettingLabel>
+          <div className="flex items-center gap-3">
             <input
               id="checkpoint-interval"
               type="range"
@@ -167,92 +165,118 @@ export function Settings() {
               onChange={(e) => handleIntervalChange(Number(e.target.value))}
               onMouseUp={handleIntervalCommit}
               onTouchEnd={handleIntervalCommit}
-              className="flex-1 h-2 bg-gray-200 dark:bg-gray-600 rounded-lg appearance-none cursor-pointer accent-blue-500"
+              className="flex-1 h-1.5 rounded-lg appearance-none cursor-pointer"
+              style={{ accentColor: "var(--accent)" }}
             />
-            <span className="text-sm font-mono text-gray-700 dark:text-gray-300 min-w-[3ch] text-right">
+            <span
+              className="font-mono tabular-nums text-right"
+              style={{ fontSize: 13, color: "var(--text-secondary)", minWidth: 24 }}
+            >
               {config?.checkpoint_interval_minutes ?? 10}
             </span>
           </div>
-        </div>
+        </SettingCard>
 
         {/* Sanitize Secrets */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm">
+        <SettingCard>
           <div className="flex items-center justify-between">
-            <label
-              htmlFor="sanitize-secrets"
-              className="text-sm font-medium text-gray-700 dark:text-gray-300"
-            >
-              {t("settings.sanitizeSecrets")}
-            </label>
+            <SettingLabel htmlFor="sanitize-secrets">{t("settings.sanitizeSecrets")}</SettingLabel>
             <button
               id="sanitize-secrets"
               role="switch"
               aria-checked={config?.sanitize_secrets ?? true}
-              onClick={() =>
-                handleSanitizeChange(!(config?.sanitize_secrets ?? true))
-              }
-              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                config?.sanitize_secrets
-                  ? "bg-blue-500"
-                  : "bg-gray-300 dark:bg-gray-600"
-              }`}
+              onClick={() => handleSanitizeChange(!(config?.sanitize_secrets ?? true))}
+              className="relative inline-flex items-center rounded-full transition-colors"
+              style={{
+                width: 36,
+                height: 20,
+                background: config?.sanitize_secrets ? "var(--accent)" : "var(--border-default)",
+              }}
             >
               <span
-                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                  config?.sanitize_secrets ? "translate-x-6" : "translate-x-1"
-                }`}
+                className="inline-block rounded-full bg-white transition-transform"
+                style={{
+                  width: 14,
+                  height: 14,
+                  transform: config?.sanitize_secrets ? "translateX(18px)" : "translateX(2px)",
+                }}
               />
             </button>
           </div>
-        </div>
+        </SettingCard>
 
         {/* Theme */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm">
+        <SettingCard>
           <div className="flex items-center justify-between">
-            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+            <span style={{ fontSize: 13, fontWeight: 500, color: "var(--text-primary)" }}>
               {t("settings.theme")}
             </span>
             <ThemeToggle />
           </div>
-        </div>
+        </SettingCard>
 
         {/* Rebuild Cache */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm">
+        <SettingCard>
           <div className="flex items-center justify-between">
-            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+            <span style={{ fontSize: 13, fontWeight: 500, color: "var(--text-primary)" }}>
               {t("settings.rebuildCache")}
             </span>
             <button
               onClick={handleRebuildCache}
               disabled={rebuilding}
-              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-500 rounded-md hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="flex items-center gap-1.5 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              style={{
+                fontSize: 12,
+                fontWeight: 500,
+                color: "white",
+                background: "var(--accent)",
+                padding: "6px 12px",
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.background = "var(--accent-hover)"}
+              onMouseLeave={(e) => e.currentTarget.style.background = "var(--accent)"}
             >
-              <RefreshCw
-                size={16}
-                className={rebuilding ? "animate-spin" : ""}
-              />
+              <RefreshCw size={13} className={rebuilding ? "animate-spin" : ""} />
               {t("settings.rebuildCache")}
             </button>
           </div>
           {rebuildResult && (
-            <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+            <p className="mt-2" style={{ fontSize: 12, color: "var(--text-secondary)" }}>
               {rebuildResult}
             </p>
           )}
-        </div>
+        </SettingCard>
 
-        {/* Save confirmation */}
+        {/* Status messages */}
         {savedMessage && (
-          <p className="text-sm text-green-600 dark:text-green-400">
-            {savedMessage}
-          </p>
+          <p style={{ fontSize: 12, color: "#22c55e" }}>{savedMessage}</p>
         )}
         {saving && (
-          <p className="text-sm text-gray-500 dark:text-gray-400">
-            Saving...
-          </p>
+          <p style={{ fontSize: 12, color: "var(--text-muted)" }}>Saving...</p>
         )}
       </div>
     </div>
+  );
+}
+
+function SettingCard({ children }: { children: React.ReactNode }) {
+  return (
+    <div
+      className="rounded-lg px-4 py-3"
+      style={{ border: "1px solid var(--border-default)", background: "var(--bg-surface)" }}
+    >
+      {children}
+    </div>
+  );
+}
+
+function SettingLabel({ htmlFor, children }: { htmlFor?: string; children: React.ReactNode }) {
+  return (
+    <label
+      htmlFor={htmlFor}
+      className="block mb-1.5"
+      style={{ fontSize: 13, fontWeight: 500, color: "var(--text-primary)" }}
+    >
+      {children}
+    </label>
   );
 }

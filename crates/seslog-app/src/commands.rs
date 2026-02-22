@@ -80,6 +80,18 @@ pub struct RoadmapResponse {
 }
 
 #[derive(Debug, Clone, serde::Serialize)]
+pub struct OverviewRow {
+    pub id: String,
+    pub name: String,
+    pub status: String,
+    pub progress_percent: f64,
+    pub last_session_at: Option<String>,
+    pub session_count: i64,
+    pub total_minutes: i64,
+    pub total_cost: f64,
+}
+
+#[derive(Debug, Clone, serde::Serialize)]
 pub struct ProjectDetailResponse {
     #[serde(flatten)]
     pub summary: ProjectSummaryResponse,
@@ -313,6 +325,62 @@ pub fn rebuild_cache_inner(pool: &DbPool) -> anyhow::Result<crate::reconcile::Re
     crate::reconcile::full_rebuild(&conn, &seslog_dir)
 }
 
+pub fn get_overview_inner(pool: &DbPool, include_archived: bool) -> anyhow::Result<Vec<OverviewRow>> {
+    let conn = pool.get()?;
+
+    let query = if include_archived {
+        "SELECT p.id, p.name, p.status, p.progress_percent,
+                COUNT(s.id) AS session_count,
+                COALESCE(SUM(s.duration_minutes), 0) AS total_minutes,
+                COALESCE(SUM(s.estimated_cost_usd), 0.0) AS total_cost
+         FROM projects p
+         LEFT JOIN sessions s ON s.project_id = p.id
+         GROUP BY p.id
+         ORDER BY MAX(s.started_at) DESC NULLS LAST"
+    } else {
+        "SELECT p.id, p.name, p.status, p.progress_percent,
+                COUNT(s.id) AS session_count,
+                COALESCE(SUM(s.duration_minutes), 0) AS total_minutes,
+                COALESCE(SUM(s.estimated_cost_usd), 0.0) AS total_cost
+         FROM projects p
+         LEFT JOIN sessions s ON s.project_id = p.id
+         WHERE p.status = 'active'
+         GROUP BY p.id
+         ORDER BY MAX(s.started_at) DESC NULLS LAST"
+    };
+
+    let mut stmt = conn.prepare(query)?;
+    let rows = stmt.query_map([], |row| {
+        Ok(OverviewRow {
+            id: row.get(0)?,
+            name: row.get(1)?,
+            status: row.get(2)?,
+            progress_percent: row.get(3)?,
+            last_session_at: None, // filled below
+            session_count: row.get(4)?,
+            total_minutes: row.get(5)?,
+            total_cost: row.get(6)?,
+        })
+    })?;
+
+    let mut overview = Vec::new();
+    for row in rows {
+        let mut r = row?;
+        // Fill last_session_at
+        r.last_session_at = conn
+            .query_row(
+                "SELECT started_at FROM sessions WHERE project_id = ?1
+                 ORDER BY started_at DESC LIMIT 1",
+                params![r.id],
+                |row| row.get(0),
+            )
+            .ok();
+        overview.push(r);
+    }
+
+    Ok(overview)
+}
+
 // ---------------------------------------------------------------------------
 // Tauri command wrappers
 // ---------------------------------------------------------------------------
@@ -363,6 +431,15 @@ pub fn rebuild_cache(
         "Rebuild complete: added={}, removed={}, updated={}, errors={}",
         report.added, report.removed, report.updated, report.errors.len()
     ))
+}
+
+#[tauri::command]
+pub fn get_overview(
+    pool: tauri::State<'_, Mutex<DbPool>>,
+    include_archived: Option<bool>,
+) -> Result<Vec<OverviewRow>, String> {
+    let pool = pool.lock().map_err(|e| e.to_string())?;
+    get_overview_inner(&pool, include_archived.unwrap_or(false)).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -469,5 +546,29 @@ mod tests {
         let roadmap = get_roadmap_inner(&pool, "proj_1".into()).unwrap();
         assert!(roadmap.items.is_empty());
         assert_eq!(roadmap.progress_percent, 50.0); // from projects table
+    }
+
+    #[test]
+    fn test_get_overview_active_only() {
+        let (_tmp, pool) = setup();
+        let rows = get_overview_inner(&pool, false).unwrap();
+        assert_eq!(rows.len(), 1);
+        assert_eq!(rows[0].name, "Test Project");
+        assert_eq!(rows[0].session_count, 1);
+        assert_eq!(rows[0].total_minutes, 30);
+    }
+
+    #[test]
+    fn test_get_overview_includes_archived() {
+        let (_tmp, pool) = setup();
+        let conn = pool.get().unwrap();
+        conn.execute(
+            "INSERT INTO projects (id, name, status, created_at, progress_percent)
+             VALUES (?1, ?2, ?3, ?4, ?5)",
+            params!["proj_2", "Archived Project", "archived", "2025-06-01T00:00:00Z", 100.0],
+        )
+        .unwrap();
+        let rows = get_overview_inner(&pool, true).unwrap();
+        assert_eq!(rows.len(), 2);
     }
 }

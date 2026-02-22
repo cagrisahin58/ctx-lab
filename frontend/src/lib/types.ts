@@ -46,6 +46,17 @@ export interface RoadmapItem {
   depends_on: string[];
 }
 
+export interface OverviewRow {
+  id: string;
+  name: string;
+  status: "active" | "archived";
+  progress_percent: number;
+  last_session_at: string | null;
+  session_count: number;
+  total_minutes: number;
+  total_cost: number;
+}
+
 export interface Decision {
   date: string | null;
   title: string;

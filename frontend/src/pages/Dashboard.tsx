@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { RefreshCw, Settings, Layers } from "lucide-react";
+import { RefreshCw, Settings, Layers, BarChart3 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { api } from "../lib/tauri";
 import { useProjects } from "../hooks/useProjects";
@@ -9,6 +9,7 @@ import { ThemeToggle } from "../components/ThemeToggle";
 import { ZoomControl } from "../components/ZoomControl";
 import { RoadmapView } from "../components/RoadmapView";
 import { SessionList } from "../components/SessionList";
+import { OverviewTable } from "../components/OverviewTable";
 import type { ProjectDetail } from "../lib/types";
 
 function cleanSummary(text: string): string {
@@ -25,6 +26,7 @@ export function Dashboard() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [detail, setDetail] = useState<ProjectDetail | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
+  const [showOverview, setShowOverview] = useState(false);
 
   // Migration toast: show once after bundle-id rename if old keys exist
   const [showMigrationBanner, setShowMigrationBanner] = useState(() => {
@@ -95,29 +97,45 @@ export function Dashboard() {
               {t("dashboard.title")}
             </span>
           </div>
-          <button
-            onClick={async () => {
-              setRebuilding(true);
-              try {
-                await api.rebuildCache();
-                await refresh();
-              } finally {
-                setRebuilding(false);
-              }
-            }}
-            disabled={rebuilding}
-            className="flex items-center justify-center rounded-md transition-colors"
-            style={{
-              width: 28,
-              height: 28,
-              color: "var(--text-muted)",
-            }}
-            onMouseEnter={(e) => e.currentTarget.style.background = "var(--bg-surface-hover)"}
-            onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
-            title={t("dashboard.rebuildCache")}
-          >
-            <RefreshCw size={14} className={rebuilding ? "animate-spin" : ""} />
-          </button>
+          <div className="flex items-center gap-0.5">
+            <button
+              onClick={() => setShowOverview(!showOverview)}
+              className="flex items-center justify-center rounded-md transition-colors"
+              style={{
+                width: 28,
+                height: 28,
+                color: showOverview ? "var(--accent)" : "var(--text-muted)",
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.background = "var(--bg-surface-hover)"}
+              onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
+              title={t("overview.title")}
+            >
+              <BarChart3 size={14} />
+            </button>
+            <button
+              onClick={async () => {
+                setRebuilding(true);
+                try {
+                  await api.rebuildCache();
+                  await refresh();
+                } finally {
+                  setRebuilding(false);
+                }
+              }}
+              disabled={rebuilding}
+              className="flex items-center justify-center rounded-md transition-colors"
+              style={{
+                width: 28,
+                height: 28,
+                color: "var(--text-muted)",
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.background = "var(--bg-surface-hover)"}
+              onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
+              title={t("dashboard.rebuildCache")}
+            >
+              <RefreshCw size={14} className={rebuilding ? "animate-spin" : ""} />
+            </button>
+          </div>
         </div>
 
         {/* Project list */}
@@ -228,7 +246,22 @@ export function Dashboard() {
 
       {/* ─── Main content ─── */}
       <main className="flex-1 overflow-y-auto">
-        {!selectedId || !detail ? (
+        {showOverview ? (
+          <div className="max-w-5xl mx-auto px-8 py-6">
+            <h1
+              className="font-semibold mb-6"
+              style={{ fontSize: 20, color: "var(--text-primary)" }}
+            >
+              {t("overview.title")}
+            </h1>
+            <OverviewTable
+              onSelectProject={(id) => {
+                setSelectedId(id);
+                setShowOverview(false);
+              }}
+            />
+          </div>
+        ) : !selectedId || !detail ? (
           <div className="flex items-center justify-center h-full">
             <p style={{ color: "var(--text-muted)", fontSize: 13 }}>
               {active.length === 0 ? t("dashboard.noProjects") : t("common.loading")}

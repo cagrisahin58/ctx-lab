@@ -90,6 +90,7 @@ fn main() {
             commands::get_settings,
             commands::update_settings,
             commands::open_in_editor,
+            commands::get_overview,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

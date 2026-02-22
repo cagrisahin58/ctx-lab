@@ -65,12 +65,15 @@ pub struct RoadmapItemResponse {
     pub phase: Option<String>,
     pub item_text: String,
     pub status: String,
+    pub item_id: Option<String>,
+    pub depends_on: Vec<String>,
 }
 
 #[derive(Debug, Clone, serde::Serialize)]
 pub struct RoadmapResponse {
     pub items: Vec<RoadmapItemResponse>,
     pub progress_percent: f64,
+    pub warnings: Vec<String>,
 }
 
 #[derive(Debug, Clone, serde::Serialize)]
@@ -241,7 +244,7 @@ pub fn get_roadmap_inner(
 
     // Items
     let mut stmt = conn.prepare(
-        "SELECT phase, item_text, status
+        "SELECT phase, item_text, status, item_id, depends_on
          FROM roadmap_items
          WHERE project_id = ?1
          ORDER BY sort_order",
@@ -249,14 +252,37 @@ pub fn get_roadmap_inner(
 
     let items: Vec<RoadmapItemResponse> = stmt
         .query_map(params![project_id], |row| {
+            let depends_str: Option<String> = row.get(4)?;
+            let depends_on: Vec<String> = depends_str
+                .and_then(|s| serde_json::from_str(&s).ok())
+                .unwrap_or_default();
             Ok(RoadmapItemResponse {
                 phase: row.get(0)?,
                 item_text: row.get(1)?,
                 status: row.get(2)?,
+                item_id: row.get(3)?,
+                depends_on,
             })
         })?
         .filter_map(|r| r.ok())
         .collect();
+
+    // Validate dependencies: check that all depends_on references exist as item_ids
+    let known_ids: std::collections::HashSet<&str> = items.iter()
+        .filter_map(|i| i.item_id.as_deref())
+        .collect();
+    let mut warnings = Vec::new();
+    for item in &items {
+        for dep in &item.depends_on {
+            if !known_ids.contains(dep.as_str()) {
+                let label = item.item_id.as_deref().unwrap_or(&item.item_text);
+                warnings.push(format!(
+                    "Item '{}' depends on '{}' which does not exist",
+                    label, dep
+                ));
+            }
+        }
+    }
 
     // Progress percent from projects table
     let progress: f64 = conn
@@ -270,6 +296,7 @@ pub fn get_roadmap_inner(
     Ok(RoadmapResponse {
         items,
         progress_percent: progress,
+        warnings,
     })
 }
 

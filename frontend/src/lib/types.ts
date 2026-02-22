@@ -32,12 +32,15 @@ export interface SessionInfo {
 export interface RoadmapData {
   items: RoadmapItem[];
   progress_percent: number;
+  warnings: string[];
 }
 
 export interface RoadmapItem {
   phase: string | null;
   item_text: string;
   status: "done" | "active" | "pending" | "suspended" | "blocked";
+  item_id: string | null;
+  depends_on: string[];
 }
 
 export interface Decision {

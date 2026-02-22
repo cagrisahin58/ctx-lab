@@ -110,7 +110,7 @@ pub fn build_additional_context(last_summary: Option<&str>, active_step: Option<
     if let Some(s) = active_step { parts.push(format!("Active roadmap step: {}", s)); }
     if let Some(p) = progress { parts.push(format!("Progress: {}", p)); }
     if !has_roadmap {
-        parts.push("No roadmap yet. When the user says 'yol haritasi olustur' (create roadmap), analyze the project state and write a roadmap to ~/.seslog/projects/<slug>/roadmap.md where <slug> is the basename of the current working directory. Use this exact format:\n## Phase Name\n- [x] Completed item\n- [>] Active item (currently working on)\n- [ ] Pending item\n- [~] Suspended item\n- [!] Blocked item".into());
+        parts.push("No roadmap yet. When the user says 'yol haritasi olustur' (create roadmap), analyze the project state and write a roadmap to ~/.seslog/projects/<slug>/roadmap.md where <slug> is the basename of the current working directory. Use this exact format:\n## Phase Name\n- [x] Completed item\n- [>] Active item (currently working on)\n- [ ] Pending item\n- [~] Suspended item\n- [!] Blocked item\n\nOptional attributes for dependency tracking:\n- [ ] Train model {id: train}\n- [ ] Evaluate {id: eval, depends: train}\nIMPORTANT: Never remove or modify existing {id:...} or {depends:...} attributes.".into());
     }
     parts.push("When the user says 'oturum ozet' (session summary):\n1. Summarize what was done and remaining work in 3-4 sentences, then run: seslog summary \"<your summary>\"\n2. If ~/.seslog/projects/<slug>/roadmap.md exists (where <slug> is basename of cwd), update it: mark completed items as [x], the currently active item as [>], and pending items as [ ]. Write the updated file directly.".into());
     let mut result = parts.join("\n");

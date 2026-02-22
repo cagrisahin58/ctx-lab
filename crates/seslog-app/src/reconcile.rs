@@ -309,8 +309,9 @@ fn import_roadmap(conn: &Connection, roadmap_path: &Path, project_id: &str) -> R
     let content = fs::read_to_string(roadmap_path)
         .with_context(|| format!("Reading {}", roadmap_path.display()))?;
 
-    let items = roadmap::parse_roadmap(&content);
-    let progress = roadmap::progress_percent(&content) as i32;
+    let data = roadmap::parse_roadmap_data(&content);
+    let items = data.items;
+    let progress = data.progress_percent as i32;
 
     for (i, item) in items.iter().enumerate() {
         let status_str = match item.status {
@@ -320,10 +321,16 @@ fn import_roadmap(conn: &Connection, roadmap_path: &Path, project_id: &str) -> R
             ItemStatus::Suspended => "suspended",
             ItemStatus::Blocked => "blocked",
         };
+        let depends_on_json = if item.depends_on.is_empty() {
+            None
+        } else {
+            serde_json::to_string(&item.depends_on).ok()
+        };
         conn.execute(
-            "INSERT INTO roadmap_items (project_id, phase, item_text, status, sort_order)
-             VALUES (?1, ?2, ?3, ?4, ?5)",
-            params![project_id, item.phase, item.text, status_str, i as i32],
+            "INSERT INTO roadmap_items (project_id, phase, item_text, status, sort_order, item_id, depends_on)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+            params![project_id, item.phase, item.text, status_str, i as i32,
+                    item.id, depends_on_json],
         )?;
     }
 

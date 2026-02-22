@@ -6,7 +6,7 @@
 }
 
 :root {
-  --ctx-lab-zoom: 1;
+  --seslog-zoom: 1;
   --bg-app: #FAFAFA;
   --bg-surface: #FFFFFF;
   --bg-surface-hover: #F4F4F5;
@@ -36,7 +36,7 @@
 
 body {
   font-family: var(--font-sans);
-  font-size: calc(0.8125rem * var(--ctx-lab-zoom));
+  font-size: calc(0.8125rem * var(--seslog-zoom));
   line-height: 1.5;
   background: var(--bg-app);
   color: var(--text-primary);

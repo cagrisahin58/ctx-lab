@@ -118,7 +118,8 @@ export function Settings() {
             onChange={(e) => {
               const val = e.target.value;
               i18n.changeLanguage(val);
-              localStorage.setItem("ctx-lab-language", val);
+              localStorage.setItem("seslog-language", val);
+              localStorage.removeItem("ctx-lab-language");
             }}
             className="w-full rounded-md px-3 py-1.5 transition-colors focus:outline-none"
             style={{

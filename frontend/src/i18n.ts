@@ -62,7 +62,7 @@ i18n.use(initReactI18next).init({
       },
     },
   },
-  lng: localStorage.getItem("ctx-lab-language") || "en",
+  lng: localStorage.getItem("seslog-language") || localStorage.getItem("ctx-lab-language") || "en",
   fallbackLng: "en",
   interpolation: { escapeValue: false },
 });

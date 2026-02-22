@@ -1,5 +1,5 @@
 [workspace]
-members = ["crates/ctx-lab-core", "crates/ctx-lab-hook", "crates/ctx-lab-app"]
+members = ["crates/seslog-core", "crates/seslog-hook", "crates/seslog-app"]
 resolver = "2"
 
 [workspace.dependencies]

@@ -26,6 +26,20 @@ export function Dashboard() {
   const [detail, setDetail] = useState<ProjectDetail | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
 
+  // Migration toast: show once after bundle-id rename if old keys exist
+  const [showMigrationBanner, setShowMigrationBanner] = useState(() => {
+    if (localStorage.getItem("seslog-migrated")) return false;
+    const hasOldKeys =
+      localStorage.getItem("ctx-lab-zoom") !== null ||
+      localStorage.getItem("ctx-lab-language") !== null;
+    return hasOldKeys;
+  });
+
+  const dismissMigration = () => {
+    localStorage.setItem("seslog-migrated", "1");
+    setShowMigrationBanner(false);
+  };
+
   const active = projects.filter((p) => p.status === "active");
 
   // Auto-select first project
@@ -226,6 +240,27 @@ export function Dashboard() {
           </div>
         ) : (
           <div className="max-w-5xl mx-auto px-8 py-6">
+            {/* Migration toast banner */}
+            {showMigrationBanner && (
+              <div
+                className="flex items-center justify-between rounded-lg px-3 py-2 mb-3"
+                style={{
+                  background: "rgba(245, 158, 11, 0.1)",
+                  border: "1px solid rgba(245, 158, 11, 0.3)",
+                }}
+              >
+                <span style={{ fontSize: 12, color: "#f59e0b" }}>
+                  Seslog has been renamed. macOS permissions may need to be re-granted.
+                </span>
+                <button
+                  onClick={dismissMigration}
+                  style={{ color: "#f59e0b", fontSize: 12 }}
+                >
+                  &#10005;
+                </button>
+              </div>
+            )}
+
             {/* Project header */}
             <div className="flex items-baseline justify-between mb-6">
               <h1

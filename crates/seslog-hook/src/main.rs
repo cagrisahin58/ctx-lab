@@ -49,6 +49,20 @@ fn main() {
     };
     if let Err(e) = result {
         eprintln!("[seslog] ERROR: {}", e);
+        // Log error to file for debugging
+        if let Some(data_dir) = dirs::data_local_dir() {
+            let log_path = data_dir.join("seslog").join("error.log");
+            let timestamp = chrono::Local::now().format("%Y-%m-%d %H:%M:%S");
+            let log_entry = format!("[{}] ERROR: {}\n", timestamp, e);
+            let _ = std::fs::OpenOptions::new()
+                .create(true)
+                .append(true)
+                .open(&log_path)
+                .and_then(|mut f| {
+                    use std::io::Write;
+                    f.write_all(log_entry.as_bytes())
+                });
+        }
         std::process::exit(0); // Never block Claude Code
     }
 }

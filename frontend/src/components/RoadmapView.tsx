@@ -5,13 +5,13 @@ import type { RoadmapData, RoadmapItem } from "../lib/types";
 
 const statusConfig: Record<
   RoadmapItem["status"],
-  { icon: typeof Check; color: string }
+  { icon: typeof Check; color: string; glow: string }
 > = {
-  done: { icon: Check, color: "#22c55e" },
-  active: { icon: PlayCircle, color: "var(--accent)" },
-  pending: { icon: Circle, color: "var(--text-muted)" },
-  suspended: { icon: PauseCircle, color: "#f59e0b" },
-  blocked: { icon: AlertCircle, color: "#ef4444" },
+  done: { icon: Check, color: "#22c55e", glow: "rgba(34, 197, 94, 0.25)" },
+  active: { icon: PlayCircle, color: "var(--accent)", glow: "rgba(99, 102, 241, 0.3)" },
+  pending: { icon: Circle, color: "var(--text-muted)", glow: "transparent" },
+  suspended: { icon: PauseCircle, color: "#f59e0b", glow: "rgba(245, 158, 11, 0.2)" },
+  blocked: { icon: AlertCircle, color: "#ef4444", glow: "rgba(239, 68, 68, 0.2)" },
 };
 
 // ---------------------------------------------------------------------------
@@ -107,24 +107,34 @@ function flattenTree(nodes: TreeNode[]): { item: RoadmapItem; depth: number }[] 
 function RoadmapItemRow({ item, depth = 0 }: { item: RoadmapItem; depth?: number }) {
   const cfg = statusConfig[item.status];
   const Icon = cfg.icon;
+  const isActive = item.status === "active";
 
   return (
     <div
-      className="flex items-start gap-1.5 py-0.5"
-      style={{ paddingLeft: depth * 16 }}
+      className="flex items-start gap-2 py-1.5 px-2 rounded-lg transition-all duration-200"
+      style={{
+        paddingLeft: depth * 16 + 8,
+        background: isActive ? cfg.glow : "transparent",
+        boxShadow: isActive ? `0 0 12px ${cfg.glow}` : "none",
+      }}
     >
-      <Icon size={13} className="mt-0.5 flex-shrink-0" style={{ color: cfg.color }} />
+      <div
+        className="mt-0.5 flex-shrink-0 transition-transform duration-200"
+        style={{ color: cfg.color }}
+      >
+        <Icon size={14} />
+      </div>
       <span
+        className="leading-snug"
         style={{
-          fontSize: 12,
-          lineHeight: "1.4",
+          fontSize: 13,
           color: item.status === "done" ? "var(--text-muted)" : "var(--text-primary)",
           textDecoration: item.status === "done" ? "line-through" : "none",
         }}
       >
         {item.item_text}
         {item.item_id && (
-          <span style={{ fontSize: 10, color: "var(--text-muted)", marginLeft: 4 }}>
+          <span style={{ fontSize: 10, color: "var(--text-muted)", marginLeft: 6, opacity: 0.7 }}>
             [{item.item_id}]
           </span>
         )}
@@ -137,20 +147,20 @@ function WarningBanner({ warnings }: { warnings: string[] }) {
   if (warnings.length === 0) return null;
   return (
     <div
-      className="rounded-md px-3 py-2 mb-2"
+      className="rounded-lg px-3 py-2.5 mb-3"
       style={{
-        background: "rgba(245, 158, 11, 0.1)",
-        border: "1px solid rgba(245, 158, 11, 0.3)",
+        background: "rgba(245, 158, 11, 0.12)",
+        border: "1px solid rgba(245, 158, 11, 0.25)",
       }}
     >
-      <div className="flex items-center gap-1.5 mb-1">
-        <AlertTriangle size={12} style={{ color: "#f59e0b" }} />
+      <div className="flex items-center gap-2 mb-1">
+        <AlertTriangle size={13} style={{ color: "#f59e0b" }} />
         <span style={{ fontSize: 11, fontWeight: 600, color: "#f59e0b" }}>
           Dependency warnings
         </span>
       </div>
       {warnings.map((w, i) => (
-        <p key={i} style={{ fontSize: 11, color: "#f59e0b", margin: 0, paddingLeft: 18 }}>
+        <p key={i} style={{ fontSize: 12, color: "#f59e0b", margin: 0, paddingLeft: 20, opacity: 0.85 }}>
           {w}
         </p>
       ))}
@@ -176,11 +186,11 @@ export function RoadmapView({ roadmap }: { roadmap: RoadmapData }) {
   if (roadmap.items.length === 0) {
     return (
       <div
-        className="flex items-center gap-2 rounded-lg px-3 py-3"
-        style={{ border: "1px solid var(--border-default)", background: "var(--bg-surface)" }}
+        className="flex items-center gap-2 rounded-xl px-4 py-4 glass-card"
+        style={{ border: "1px solid var(--border-subtle)", background: "var(--bg-surface)" }}
       >
-        <MapPin size={14} style={{ color: "var(--text-muted)" }} />
-        <span style={{ fontSize: 12, color: "var(--text-muted)" }}>
+        <MapPin size={15} style={{ color: "var(--text-muted)" }} />
+        <span style={{ fontSize: 13, color: "var(--text-muted)" }}>
           {t("project.noRoadmap")}
         </span>
       </div>
@@ -205,8 +215,8 @@ export function RoadmapView({ roadmap }: { roadmap: RoadmapData }) {
 
   return (
     <div
-      className="rounded-lg p-3"
-      style={{ border: "1px solid var(--border-default)", background: "var(--bg-surface)" }}
+      className="rounded-xl p-4 glass-card"
+      style={{ border: "1px solid var(--border-subtle)", background: "var(--bg-surface)" }}
     >
       <WarningBanner warnings={warnings} />
       <div className="mb-3">

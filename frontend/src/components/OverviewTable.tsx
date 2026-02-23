@@ -66,8 +66,8 @@ export function OverviewTable({
   return (
     <div>
       {/* Show archived toggle */}
-      <div className="flex items-center justify-end mb-3">
-        <label className="flex items-center gap-2 cursor-pointer">
+      <div className="flex items-center justify-end mb-4">
+        <label className="flex items-center gap-2.5 cursor-pointer group">
           <input
             type="checkbox"
             checked={includeArchived}
@@ -75,23 +75,23 @@ export function OverviewTable({
             className="rounded"
             style={{ accentColor: "var(--accent)" }}
           />
-          <span style={{ fontSize: 12, color: "var(--text-muted)" }}>
+          <span style={{ fontSize: 13, color: "var(--text-muted)" }}>
             {t("overview.showArchived")}
           </span>
         </label>
       </div>
 
       <div
-        className="rounded-lg overflow-hidden"
-        style={{ border: "1px solid var(--border-default)", background: "var(--bg-surface)" }}
+        className="rounded-xl overflow-hidden glass-card"
+        style={{ border: "1px solid var(--border-subtle)", background: "var(--bg-surface)" }}
       >
         {/* Header row */}
         <div
-          className="grid gap-2 px-3 py-2"
+          className="grid gap-2 px-4 py-3"
           style={{
             gridTemplateColumns: "2fr 1fr 1fr 80px 80px 80px",
-            borderBottom: "1px solid var(--border-default)",
-            background: "var(--bg-app)",
+            borderBottom: "1px solid var(--border-subtle)",
+            background: "var(--bg-surface-elevated)",
           }}
         >
           {(
@@ -107,18 +107,28 @@ export function OverviewTable({
             <button
               key={field}
               onClick={() => toggleSort(field)}
-              className="flex items-center gap-1 font-semibold uppercase tracking-wider text-left"
-              style={{ fontSize: 10, color: sortField === field ? "var(--accent)" : "var(--text-muted)" }}
+              className="flex items-center gap-1.5 font-semibold uppercase tracking-wider text-left transition-colors duration-150 rounded-md px-1 py-0.5"
+              style={{
+                fontSize: 10,
+                color: sortField === field ? "var(--accent)" : "var(--text-muted)",
+                background: sortField === field ? "var(--accent-subtle)" : "transparent",
+              }}
             >
               {label}
-              <ArrowUpDown size={10} />
+              <ArrowUpDown
+                size={10}
+                style={{
+                  opacity: sortField === field ? 1 : 0.4,
+                  transform: sortField === field && sortDir === "asc" ? "scaleY(-1)" : "none",
+                }}
+              />
             </button>
           ))}
         </div>
 
         {/* Data rows */}
         {sorted.length === 0 ? (
-          <p className="py-6 text-center" style={{ color: "var(--text-muted)", fontSize: 12 }}>
+          <p className="py-8 text-center" style={{ color: "var(--text-muted)", fontSize: 13 }}>
             {t("dashboard.noProjects")}
           </p>
         ) : (
@@ -126,21 +136,21 @@ export function OverviewTable({
             <button
               key={row.id}
               onClick={() => onSelectProject(row.id)}
-              className="grid gap-2 px-3 py-2.5 w-full text-left transition-colors"
+              className="grid gap-2 px-4 py-3.5 w-full text-left transition-all duration-200 hover:bg-surface-elevated"
               style={{
                 gridTemplateColumns: "2fr 1fr 1fr 80px 80px 80px",
-                borderBottom: "1px solid var(--border-default)",
+                borderBottom: "1px solid var(--border-subtle)",
               }}
               onMouseEnter={(e) => e.currentTarget.style.background = "var(--bg-surface-hover)"}
               onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
             >
               {/* Project name */}
               <div>
-                <span style={{ fontSize: 13, color: "var(--text-primary)", fontWeight: 500 }}>
+                <span style={{ fontSize: 14, color: "var(--text-primary)", fontWeight: 500 }}>
                   {row.name}
                 </span>
                 {row.status === "archived" && (
-                  <span style={{ fontSize: 10, color: "var(--text-muted)", marginLeft: 6 }}>
+                  <span style={{ fontSize: 11, color: "var(--text-muted)", marginLeft: 8, opacity: 0.7 }}>
                     {t("overview.archived")}
                   </span>
                 )}
@@ -154,7 +164,7 @@ export function OverviewTable({
               </span>
 
               {/* Progress */}
-              <div style={{ paddingTop: 2 }}>
+              <div style={{ paddingTop: 3 }}>
                 <ProgressBar percent={row.progress_percent} />
               </div>
 

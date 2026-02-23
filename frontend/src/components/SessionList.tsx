@@ -23,11 +23,11 @@ function SessionRow({
   const nextSteps = session.next_steps ? cleanSummary(session.next_steps) : "";
 
   return (
-    <div style={{ borderBottom: "1px solid var(--border-default)" }}>
+    <div className="border-b border-border-subtle" style={{ borderBottomColor: "var(--border-subtle)" }}>
       {/* Clickable row */}
       <button
         onClick={onToggle}
-        className="w-full text-left flex items-center gap-3 px-3 py-2.5 transition-colors duration-100"
+        className="w-full text-left flex items-center gap-3 px-4 py-3 transition-all duration-200 hover:bg-surface-elevated"
         style={{ background: isOpen ? "var(--bg-surface-hover)" : "transparent" }}
         onMouseEnter={(e) => {
           if (!isOpen) e.currentTarget.style.background = "var(--bg-surface-hover)";
@@ -164,13 +164,13 @@ export function SessionList({ sessions }: { sessions: SessionInfo[] }) {
 
   return (
     <div
-      className="rounded-lg overflow-hidden"
-      style={{ border: "1px solid var(--border-default)", background: "var(--bg-surface)" }}
+      className="rounded-xl overflow-hidden glass-card"
+      style={{ border: "1px solid var(--border-subtle)", background: "var(--bg-surface)" }}
     >
       {/* Table header */}
       <div
-        className="flex items-center gap-3 px-3 py-2"
-        style={{ borderBottom: "1px solid var(--border-default)", background: "var(--bg-app)" }}
+        className="flex items-center gap-3 px-4 py-3"
+        style={{ borderBottom: "1px solid var(--border-subtle)", background: "var(--bg-surface-elevated)" }}
       >
         <span style={{ width: 14 }} />
         <span

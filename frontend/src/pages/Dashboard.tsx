@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { RefreshCw, Settings, Layers, BarChart3 } from "lucide-react";
+import { RefreshCw, Settings, Layers, BarChart3, Sparkles } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { api } from "../lib/tauri";
 import { useProjects } from "../hooks/useProjects";
@@ -73,10 +73,10 @@ export function Dashboard() {
     <div className="flex h-screen" style={{ background: "var(--bg-app)" }}>
       {/* ─── Sidebar ─── */}
       <aside
-        className="flex flex-col flex-shrink-0"
+        className="flex flex-col flex-shrink-0 glass-panel"
         style={{
-          width: 260,
-          borderRight: "1px solid var(--border-default)",
+          width: 280,
+          borderRight: "1px solid var(--border-subtle)",
           background: "var(--bg-surface)",
         }}
       >
@@ -84,15 +84,22 @@ export function Dashboard() {
         <div
           className="flex items-center justify-between px-4"
           style={{
-            height: 48,
-            borderBottom: "1px solid var(--border-default)",
+            height: 56,
+            borderBottom: "1px solid var(--border-subtle)",
           }}
         >
-          <div className="flex items-center gap-2">
-            <Layers size={16} style={{ color: "var(--accent)" }} />
+          <div className="flex items-center gap-2.5">
+            <div className="relative">
+              <Layers size={18} style={{ color: "var(--accent)" }} />
+              <Sparkles
+                size={8}
+                className="absolute -top-0.5 -right-0.5"
+                style={{ color: "var(--accent-glow)" }}
+              />
+            </div>
             <span
               className="font-semibold tracking-tight"
-              style={{ fontSize: 14, color: "var(--text-primary)" }}
+              style={{ fontSize: 15, color: "var(--text-primary)" }}
             >
               {t("dashboard.title")}
             </span>
@@ -100,17 +107,22 @@ export function Dashboard() {
           <div className="flex items-center gap-0.5">
             <button
               onClick={() => setShowOverview(!showOverview)}
-              className="flex items-center justify-center rounded-md transition-colors"
+              className="flex items-center justify-center rounded-lg transition-all duration-200 hover:scale-105"
               style={{
-                width: 28,
-                height: 28,
+                width: 32,
+                height: 32,
                 color: showOverview ? "var(--accent)" : "var(--text-muted)",
+                background: showOverview ? "var(--accent-subtle)" : "transparent",
               }}
-              onMouseEnter={(e) => e.currentTarget.style.background = "var(--bg-surface-hover)"}
-              onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
+              onMouseEnter={(e) => {
+                if (!showOverview) e.currentTarget.style.background = "var(--bg-surface-hover)";
+              }}
+              onMouseLeave={(e) => {
+                if (!showOverview) e.currentTarget.style.background = "transparent";
+              }}
               title={t("overview.title")}
             >
-              <BarChart3 size={14} />
+              <BarChart3 size={15} />
             </button>
             <button
               onClick={async () => {
@@ -123,17 +135,17 @@ export function Dashboard() {
                 }
               }}
               disabled={rebuilding}
-              className="flex items-center justify-center rounded-md transition-colors"
+              className="flex items-center justify-center rounded-lg transition-all duration-200 hover:scale-105"
               style={{
-                width: 28,
-                height: 28,
+                width: 32,
+                height: 32,
                 color: "var(--text-muted)",
               }}
               onMouseEnter={(e) => e.currentTarget.style.background = "var(--bg-surface-hover)"}
               onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
               title={t("dashboard.rebuildCache")}
             >
-              <RefreshCw size={14} className={rebuilding ? "animate-spin" : ""} />
+              <RefreshCw size={15} className={rebuilding ? "animate-spin" : ""} />
             </button>
           </div>
         </div>
@@ -158,10 +170,10 @@ export function Dashboard() {
                 <button
                   key={p.id}
                   onClick={() => setSelectedId(p.id)}
-                  className="w-full text-left px-3 py-2.5 flex items-start gap-2 transition-all duration-150 relative"
+                  className="w-full text-left px-3 py-3 flex items-start gap-2.5 transition-all duration-200 relative hover:bg-surface-elevated group"
                   style={{
                     background: isSelected ? "var(--bg-sidebar-active)" : "transparent",
-                    borderLeft: isSelected ? "2px solid var(--accent)" : "2px solid transparent",
+                    borderLeft: isSelected ? "3px solid var(--accent)" : "3px solid transparent",
                   }}
                   onMouseEnter={(e) => {
                     if (!isSelected) e.currentTarget.style.background = "var(--bg-surface-hover)";
@@ -223,22 +235,22 @@ export function Dashboard() {
         <div
           className="flex items-center justify-between px-3"
           style={{
-            height: 40,
-            borderTop: "1px solid var(--border-default)",
+            height: 48,
+            borderTop: "1px solid var(--border-subtle)",
           }}
         >
           <ZoomControl />
-          <div className="flex items-center gap-0.5">
+          <div className="flex items-center gap-1">
             <ThemeToggle />
             <Link
               to="/settings"
-              className="flex items-center justify-center rounded-md transition-colors"
-              style={{ width: 28, height: 28, color: "var(--text-muted)" }}
+              className="flex items-center justify-center rounded-lg transition-all duration-200 hover:scale-105"
+              style={{ width: 32, height: 32, color: "var(--text-muted)" }}
               onMouseEnter={(e) => e.currentTarget.style.background = "var(--bg-surface-hover)"}
               onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
               title={t("settings.title")}
             >
-              <Settings size={15} />
+              <Settings size={16} />
             </Link>
           </div>
         </div>
@@ -276,18 +288,18 @@ export function Dashboard() {
             {/* Migration toast banner */}
             {showMigrationBanner && (
               <div
-                className="flex items-center justify-between rounded-lg px-3 py-2 mb-3"
+                className="flex items-center justify-between rounded-xl px-4 py-3 mb-4 glass-card"
                 style={{
-                  background: "rgba(245, 158, 11, 0.1)",
-                  border: "1px solid rgba(245, 158, 11, 0.3)",
+                  background: "rgba(245, 158, 11, 0.12)",
+                  border: "1px solid rgba(245, 158, 11, 0.25)",
                 }}
               >
-                <span style={{ fontSize: 12, color: "#f59e0b" }}>
+                <span style={{ fontSize: 13, color: "#f59e0b" }}>
                   Seslog has been renamed. macOS permissions may need to be re-granted.
                 </span>
                 <button
                   onClick={dismissMigration}
-                  style={{ color: "#f59e0b", fontSize: 12 }}
+                  style={{ color: "#f59e0b", fontSize: 14 }}
                 >
                   &#10005;
                 </button>
@@ -298,7 +310,7 @@ export function Dashboard() {
             <div className="flex items-baseline justify-between mb-6">
               <h1
                 className="font-semibold"
-                style={{ fontSize: 20, color: "var(--text-primary)" }}
+                style={{ fontSize: 24, color: "var(--text-primary)", letterSpacing: "-0.02em" }}
               >
                 {detail.name}
               </h1>
@@ -317,21 +329,24 @@ export function Dashboard() {
             {detail.recent_sessions.length > 0 &&
               detail.recent_sessions[0].next_steps && (
                 <div
-                  className="mb-6 flex items-start gap-3 rounded-lg px-4 py-3"
+                  className="mb-6 flex items-start gap-3 rounded-xl px-4 py-3.5 glass-card"
                   style={{
                     background: "var(--accent-subtle)",
                     border: "1px solid color-mix(in srgb, var(--accent) 20%, transparent)",
                   }}
                 >
-                  <span
-                    className="font-semibold uppercase tracking-wider flex-shrink-0 mt-px"
-                    style={{ fontSize: 10, color: "var(--accent)" }}
-                  >
-                    {t("project.nextSteps")}
-                  </span>
-                  <p style={{ fontSize: 13, color: "var(--text-primary)", lineHeight: "1.5" }}>
-                    {cleanSummary(detail.recent_sessions[0].next_steps)}
-                  </p>
+                  <Sparkles size={14} className="flex-shrink-0 mt-0.5" style={{ color: "var(--accent)" }} />
+                  <div>
+                    <span
+                      className="font-semibold uppercase tracking-wider"
+                      style={{ fontSize: 10, color: "var(--accent)" }}
+                    >
+                      {t("project.nextSteps")}
+                    </span>
+                    <p style={{ fontSize: 13, color: "var(--text-primary)", lineHeight: "1.5", marginTop: 2 }}>
+                      {cleanSummary(detail.recent_sessions[0].next_steps)}
+                    </p>
+                  </div>
                 </div>
               )}
 

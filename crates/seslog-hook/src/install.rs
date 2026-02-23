@@ -65,8 +65,27 @@ fn read_settings(path: &Path) -> Result<serde_json::Value> {
 
 pub fn patch_hooks_into_settings(settings: &serde_json::Value, binary_path: &str) -> serde_json::Value {
     let mut patched = settings.clone();
-    let hooks = patched.as_object_mut().unwrap()
-        .entry("hooks").or_insert_with(|| serde_json::json!({}));
+
+    // Use checked access instead of unwrap to avoid panic
+    let obj = match patched.as_object_mut() {
+        Some(o) => o,
+        None => {
+            // If settings is not an object, create a new one
+            patched = serde_json::json!({});
+            patched.as_object_mut().expect("Failed to create object")
+        }
+    };
+
+    let hooks = obj.entry("hooks").or_insert_with(|| serde_json::json!({}));
+
+    // Ensure hooks is an object
+    let hooks_obj = match hooks.as_object_mut() {
+        Some(o) => o,
+        None => {
+            *hooks = serde_json::json!({});
+            hooks.as_object_mut().expect("Failed to create hooks object")
+        }
+    };
 
     let hook_defs = [
         ("SessionStart", "session-start"),
@@ -76,9 +95,16 @@ pub fn patch_hooks_into_settings(settings: &serde_json::Value, binary_path: &str
     ];
 
     for (event, subcommand) in &hook_defs {
-        let event_hooks = hooks.as_object_mut().unwrap()
-            .entry(*event).or_insert_with(|| serde_json::json!([]));
-        let arr = event_hooks.as_array_mut().unwrap();
+        let event_hooks = hooks_obj.entry(*event).or_insert_with(|| serde_json::json!([]));
+
+        // Ensure event_hooks is an array
+        let arr = match event_hooks.as_array_mut() {
+            Some(a) => a,
+            None => {
+                *event_hooks = serde_json::json!([]);
+                event_hooks.as_array_mut().expect("Failed to create array")
+            }
+        };
 
         // Remove existing seslog/ctx-lab hooks — handles both old and new managed keys
         arr.retain(|entry| !is_seslog_managed(entry));

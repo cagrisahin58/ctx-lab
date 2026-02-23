@@ -7,10 +7,10 @@ const statusConfig: Record<
   RoadmapItem["status"],
   { icon: typeof Check; color: string }
 > = {
-  done: { icon: Check, color: "#22c55e" },
-  active: { icon: PlayCircle, color: "var(--accent)" },
-  pending: { icon: Circle, color: "var(--text-muted)" },
-  suspended: { icon: PauseCircle, color: "#f59e0b" },
+  done: { icon: Check, color: "hsl(var(--success))" },
+  active: { icon: PlayCircle, color: "hsl(var(--primary))" },
+  pending: { icon: Circle, color: "hsl(var(--muted-foreground))" },
+  suspended: { icon: PauseCircle, color: "hsl(var(--warning))" },
   blocked: { icon: AlertCircle, color: "#ef4444" },
 };
 
@@ -118,13 +118,13 @@ function RoadmapItemRow({ item, depth = 0 }: { item: RoadmapItem; depth?: number
         style={{
           fontSize: 12,
           lineHeight: "1.4",
-          color: item.status === "done" ? "var(--text-muted)" : "var(--text-primary)",
+          color: item.status === "done" ? "hsl(var(--muted-foreground))" : "hsl(var(--foreground))",
           textDecoration: item.status === "done" ? "line-through" : "none",
         }}
       >
         {item.item_text}
         {item.item_id && (
-          <span style={{ fontSize: 10, color: "var(--text-muted)", marginLeft: 4 }}>
+          <span style={{ fontSize: 10, color: "hsl(var(--muted-foreground))", marginLeft: 4 }}>
             [{item.item_id}]
           </span>
         )}
@@ -139,18 +139,18 @@ function WarningBanner({ warnings }: { warnings: string[] }) {
     <div
       className="rounded-md px-3 py-2 mb-2"
       style={{
-        background: "rgba(245, 158, 11, 0.1)",
-        border: "1px solid rgba(245, 158, 11, 0.3)",
+        background: "hsl(var(--warning) / 0.1)",
+        border: "1px solid hsl(var(--warning) / 0.3)",
       }}
     >
       <div className="flex items-center gap-1.5 mb-1">
-        <AlertTriangle size={12} style={{ color: "#f59e0b" }} />
-        <span style={{ fontSize: 11, fontWeight: 600, color: "#f59e0b" }}>
+        <AlertTriangle size={12} style={{ color: "hsl(var(--warning))" }} />
+        <span style={{ fontSize: 11, fontWeight: 600, color: "hsl(var(--warning))" }}>
           Dependency warnings
         </span>
       </div>
       {warnings.map((w, i) => (
-        <p key={i} style={{ fontSize: 11, color: "#f59e0b", margin: 0, paddingLeft: 18 }}>
+        <p key={i} style={{ fontSize: 11, color: "hsl(var(--warning))", margin: 0, paddingLeft: 18 }}>
           {w}
         </p>
       ))}
@@ -177,10 +177,10 @@ export function RoadmapView({ roadmap }: { roadmap: RoadmapData }) {
     return (
       <div
         className="flex items-center gap-2 rounded-lg px-3 py-3"
-        style={{ border: "1px solid var(--border-default)", background: "var(--bg-surface)" }}
+        style={{ border: "1px solid hsl(var(--border))", background: "hsl(var(--card))" }}
       >
-        <MapPin size={14} style={{ color: "var(--text-muted)" }} />
-        <span style={{ fontSize: 12, color: "var(--text-muted)" }}>
+        <MapPin size={14} style={{ color: "hsl(var(--muted-foreground))" }} />
+        <span style={{ fontSize: 12, color: "hsl(var(--muted-foreground))" }}>
           {t("project.noRoadmap")}
         </span>
       </div>
@@ -206,7 +206,7 @@ export function RoadmapView({ roadmap }: { roadmap: RoadmapData }) {
   return (
     <div
       className="rounded-lg p-3"
-      style={{ border: "1px solid var(--border-default)", background: "var(--bg-surface)" }}
+      style={{ border: "1px solid hsl(var(--border))", background: "hsl(var(--card))" }}
     >
       <WarningBanner warnings={warnings} />
       <div className="mb-3">
@@ -216,7 +216,7 @@ export function RoadmapView({ roadmap }: { roadmap: RoadmapData }) {
         <div key={phase} className="mb-2">
           <h3
             className="font-semibold uppercase tracking-wider mb-0.5"
-            style={{ fontSize: 10, color: "var(--text-muted)" }}
+            style={{ fontSize: 10, color: "hsl(var(--muted-foreground))" }}
           >
             {phase}
           </h3>

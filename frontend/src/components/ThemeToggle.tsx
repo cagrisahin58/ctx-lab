@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Sun, Moon } from "lucide-react";
+import { Button } from "./ui/button";
 
 export function ThemeToggle() {
   const [dark, setDark] = useState(() => {
@@ -16,15 +17,14 @@ export function ThemeToggle() {
   }, [dark]);
 
   return (
-    <button
+    <Button
+      variant="ghost"
+      size="icon"
+      className="h-7 w-7"
       onClick={() => setDark(!dark)}
-      className="flex items-center justify-center rounded-md transition-colors"
-      style={{ width: 28, height: 28, color: "var(--text-muted)" }}
-      onMouseEnter={(e) => e.currentTarget.style.background = "var(--bg-surface-hover)"}
-      onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
       title="Toggle theme"
     >
       {dark ? <Sun size={15} /> : <Moon size={15} />}
-    </button>
+    </Button>
   );
 }

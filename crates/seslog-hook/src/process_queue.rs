@@ -7,15 +7,25 @@ pub fn run() -> Result<()> {
     Ok(())
 }
 
+/// Dispatch a queue item to the appropriate handler based on the `event` field.
+///
+/// Called by `seslog_core::queue::process_all` for each queued JSON file.
 fn handle_queue_item(_event_name: &str, payload: serde_json::Value) -> Result<()> {
+    dispatch_event(&payload)
+}
+
+/// Extract the `event` field from a queue payload and dispatch to the matching handler.
+///
+/// Exposed as a testable function separate from the `process_all` callback.
+pub fn dispatch_event(payload: &serde_json::Value) -> Result<()> {
     let event = payload
         .get("event")
         .and_then(|e| e.as_str())
         .unwrap_or("unknown");
     match event {
-        "checkpoint" => process_checkpoint(payload),
-        "stop" => process_stop(payload),
-        "session_end_enrich" => process_session_enrichment(payload),
+        "checkpoint" => process_checkpoint(payload.clone()),
+        "stop" => process_stop(payload.clone()),
+        "session_end_enrich" => process_session_enrichment(payload.clone()),
         _ => {
             eprintln!("[seslog] Unknown queue event: {}", event);
             Ok(())
@@ -29,7 +39,7 @@ fn process_checkpoint(payload: serde_json::Value) -> Result<()> {
     let cwd_path = std::path::Path::new(cwd);
 
     let base = seslog_core::storage::seslog_dir()?;
-    let slug = crate::session_start::project_slug_from_cwd(cwd);
+    let slug = crate::utils::project_slug_from_cwd(cwd);
     let checkpoints_dir = base.join("projects").join(&slug).join("checkpoints");
     std::fs::create_dir_all(&checkpoints_dir)?;
 
@@ -40,7 +50,7 @@ fn process_checkpoint(payload: serde_json::Value) -> Result<()> {
         schema_version: seslog_core::models::SCHEMA_VERSION,
         id: chk_id.clone(),
         session_id: format!("ses_{}", session_id),
-        project_id: crate::session_start::read_project_id(&slug),
+        project_id: crate::utils::read_project_id(&slug),
         machine: hostname::get()
             .map(|h| h.to_string_lossy().to_string())
             .unwrap_or_else(|_| "unknown".into()),
@@ -113,13 +123,13 @@ fn process_session_enrichment(payload: serde_json::Value) -> Result<()> {
     session.transcript_highlights = highlights.user_messages;
 
     // Manual summary (from `seslog summary`) takes priority
-    if session.summary_source != "manual" {
-        if !transcript_summary.what_was_done.is_empty() {
-            session.summary = transcript_summary.what_was_done;
-            session.summary_source = "transcript+git".into();
-        }
-        // else: keep existing summary (e.g. git diff fallback)
+    if session.summary_source != Some(seslog_core::models::SummarySource::Manual)
+        && !transcript_summary.what_was_done.is_empty()
+    {
+        session.summary = transcript_summary.what_was_done;
+        session.summary_source = Some(seslog_core::models::SummarySource::TranscriptGit);
     }
+    // else: keep existing summary (e.g. git diff fallback or manual)
     if session.next_steps.is_empty() {
         session.next_steps = transcript_summary.next_steps;
     }
@@ -140,7 +150,7 @@ fn process_session_enrichment(payload: serde_json::Value) -> Result<()> {
     }
 
     // Update CLAUDE.md
-    let slug = crate::session_start::project_slug_from_cwd(cwd);
+    let slug = crate::utils::project_slug_from_cwd(cwd);
     let roadmap_path = base.join("projects").join(&slug).join("roadmap.md");
     let roadmap_content = std::fs::read_to_string(&roadmap_path).unwrap_or_default();
     let active_step = seslog_core::roadmap::active_item(&roadmap_content).map(|i| i.text);
@@ -152,9 +162,62 @@ fn process_session_enrichment(payload: serde_json::Value) -> Result<()> {
         session.summary,
         active_step.map_or(String::new(), |s| format!("**Active Step:** {}", s)),
     );
-    let _ = seslog_core::claude_md::update_claude_md(std::path::Path::new(cwd), &block);
+    if let Err(e) = seslog_core::claude_md::update_claude_md(std::path::Path::new(cwd), &block) {
+        eprintln!("[seslog] WARN: update_claude_md failed: {}", e);
+    }
 
     seslog_core::storage::write_json(session_path, &session)?;
     eprintln!("[seslog] Session enriched: {}", session.id);
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_dispatch_stop_event() {
+        let payload = serde_json::json!({
+            "event": "stop",
+            "session_id": "abc-123",
+            "transcript_path": "/tmp/t.jsonl",
+            "timestamp": "2026-01-01T00:00:00Z"
+        });
+        // process_stop just prints and returns Ok
+        let result = dispatch_event(&payload);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_dispatch_unknown_event() {
+        let payload = serde_json::json!({
+            "event": "some_future_event",
+            "session_id": "abc"
+        });
+        // Unknown events are logged but not an error
+        let result = dispatch_event(&payload);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_dispatch_missing_event_field() {
+        let payload = serde_json::json!({
+            "session_id": "abc"
+        });
+        // Missing event => "unknown" => handled gracefully
+        let result = dispatch_event(&payload);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_dispatch_enrichment_missing_session_file() {
+        let payload = serde_json::json!({
+            "event": "session_end_enrich",
+            "session_id": "abc"
+        });
+        // Missing session_file field causes an error
+        let result = dispatch_event(&payload);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("missing session_file"));
+    }
 }

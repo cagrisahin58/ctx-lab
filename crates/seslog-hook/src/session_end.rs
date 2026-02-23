@@ -1,13 +1,20 @@
 use anyhow::Result;
 use std::io::Read;
 
+/// Parse raw JSON input into a `SessionEndPayload`.
+///
+/// Extracted from `run()` so it can be unit-tested without stdin.
+pub fn parse_payload(input: &str) -> Result<seslog_core::models::SessionEndPayload> {
+    Ok(serde_json::from_str(input)?)
+}
+
 pub fn run() -> Result<()> {
     let mut input = String::new();
     std::io::stdin().read_to_string(&mut input)?;
-    let payload: seslog_core::models::SessionEndPayload = serde_json::from_str(&input)?;
+    let payload = parse_payload(&input)?;
 
     let base = seslog_core::storage::seslog_dir()?;
-    let slug = crate::session_start::project_slug_from_cwd(&payload.cwd);
+    let slug = crate::utils::project_slug_from_cwd(&payload.cwd);
     let project_dir = base.join("projects").join(&slug);
     let sessions_dir = project_dir.join("sessions");
     std::fs::create_dir_all(&sessions_dir)?;
@@ -26,14 +33,14 @@ pub fn run() -> Result<()> {
     let session = seslog_core::models::Session {
         schema_version: seslog_core::models::SCHEMA_VERSION,
         id: format!("ses_{}", &payload.session_id),
-        project_id: crate::session_start::read_project_id(&slug),
+        project_id: crate::utils::read_project_id(&slug),
         machine: hostname,
         started_at: now,
         ended_at: Some(now),
         duration_minutes: None,
         end_reason: payload.reason.clone(),
         summary: diff_stat.unwrap_or_else(|| "Session ended".into()),
-        summary_source: "minimal".into(),
+        summary_source: Some(seslog_core::models::SummarySource::Minimal),
         transcript_highlights: vec![],
         roadmap_changes: vec![],
         decisions: vec![],
@@ -59,7 +66,9 @@ pub fn run() -> Result<()> {
     seslog_core::storage::write_json(&session_file, &session)?;
 
     // Emit event via shared bridge
-    crate::event_bridge::emit_event("session_ended", &payload.session_id, &slug).ok();
+    if let Err(e) = crate::event_bridge::emit_event("session_ended", &payload.session_id, &slug) {
+        eprintln!("[seslog] WARN: emit_event(session_ended) failed: {}", e);
+    }
 
     // Enqueue enrichment
     let queue_payload = serde_json::json!({
@@ -83,4 +92,60 @@ pub fn run() -> Result<()> {
     }
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_parse_payload_valid() {
+        let json = r#"{
+            "session_id": "abc-123",
+            "transcript_path": "/tmp/transcript.jsonl",
+            "cwd": "/home/user/project",
+            "reason": "user_exit"
+        }"#;
+        let payload = parse_payload(json).unwrap();
+        assert_eq!(payload.session_id, "abc-123");
+        assert_eq!(payload.cwd, "/home/user/project");
+        assert_eq!(payload.reason, Some("user_exit".into()));
+    }
+
+    #[test]
+    fn test_parse_payload_minimal() {
+        let json = r#"{
+            "session_id": "def-456",
+            "transcript_path": "/tmp/t.jsonl",
+            "cwd": "/tmp"
+        }"#;
+        let payload = parse_payload(json).unwrap();
+        assert_eq!(payload.session_id, "def-456");
+        assert!(payload.reason.is_none());
+    }
+
+    #[test]
+    fn test_parse_payload_invalid_json() {
+        let result = parse_payload("not json {{{");
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_parse_payload_missing_required_field() {
+        let json = r#"{"session_id": "abc"}"#;
+        let result = parse_payload(json);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_parse_payload_ignores_unknown_fields() {
+        let json = r#"{
+            "session_id": "abc-123",
+            "transcript_path": "/tmp/t.jsonl",
+            "cwd": "/tmp",
+            "future_field": true
+        }"#;
+        let payload = parse_payload(json).unwrap();
+        assert_eq!(payload.session_id, "abc-123");
+    }
 }

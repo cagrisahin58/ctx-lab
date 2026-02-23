@@ -5,8 +5,8 @@ use std::path::Path;
 /// Current schema version. Bump when adding migrations.
 pub const CURRENT_SCHEMA_VERSION: u32 = 2;
 
-/// DDL for schema version 1.
-pub const SCHEMA_V1: &str = r#"
+/// DDL for the current schema. Applied when initializing a fresh database.
+pub const SCHEMA_DDL: &str = r#"
 CREATE TABLE IF NOT EXISTS projects (
     id                      TEXT PRIMARY KEY NOT NULL,
     name                    TEXT NOT NULL,
@@ -33,7 +33,7 @@ CREATE TABLE IF NOT EXISTS sessions (
     summary             TEXT,
     summary_source      TEXT,
     next_steps          TEXT,
-    files_changed       TEXT,
+    files_changed       INTEGER DEFAULT 0,
     recovered           INTEGER NOT NULL DEFAULT 0,
     redaction_count     INTEGER NOT NULL DEFAULT 0,
     source_path         TEXT,
@@ -129,8 +129,8 @@ pub fn initialize_db(db_path: &Path) -> Result<Connection> {
 
     if version == 0 {
         // Fresh database — apply the initial schema.
-        conn.execute_batch(SCHEMA_V1)
-            .context("Failed to apply SCHEMA_V1")?;
+        conn.execute_batch(SCHEMA_DDL)
+            .context("Failed to apply SCHEMA_DDL")?;
         conn.pragma_update(None, "user_version", CURRENT_SCHEMA_VERSION)?;
     } else if version < CURRENT_SCHEMA_VERSION {
         // Incremental migration path.
@@ -299,7 +299,7 @@ CREATE TABLE IF NOT EXISTS sessions (
     summary             TEXT,
     summary_source      TEXT,
     next_steps          TEXT,
-    files_changed       TEXT,
+    files_changed       INTEGER DEFAULT 0,
     recovered           INTEGER NOT NULL DEFAULT 0,
     redaction_count     INTEGER NOT NULL DEFAULT 0,
     source_path         TEXT,

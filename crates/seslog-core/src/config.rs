@@ -3,12 +3,19 @@ use serde::{Deserialize, Serialize};
 use std::path::Path;
 use crate::models::SCHEMA_VERSION;
 
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum PrivacyMode {
+    #[default]
+    Full,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AppConfig {
     #[serde(default = "default_schema_version")]
     pub schema_version: u32,
-    #[serde(default = "default_privacy_mode")]
-    pub privacy_mode: String,
+    #[serde(default)]
+    pub privacy_mode: PrivacyMode,
     #[serde(default = "default_checkpoint_interval")]
     pub checkpoint_interval_minutes: u32,
     #[serde(default = "default_additional_context_max")]
@@ -22,7 +29,6 @@ pub struct AppConfig {
 }
 
 fn default_schema_version() -> u32 { SCHEMA_VERSION }
-fn default_privacy_mode() -> String { "full".into() }
 fn default_checkpoint_interval() -> u32 { 10 }
 fn default_additional_context_max() -> u32 { 1500 }
 fn default_transcript_max_messages() -> u32 { 100 }
@@ -33,7 +39,7 @@ impl Default for AppConfig {
     fn default() -> Self {
         Self {
             schema_version: SCHEMA_VERSION,
-            privacy_mode: default_privacy_mode(),
+            privacy_mode: PrivacyMode::default(),
             checkpoint_interval_minutes: default_checkpoint_interval(),
             additional_context_max_chars: default_additional_context_max(),
             transcript_max_messages: default_transcript_max_messages(),
@@ -64,7 +70,7 @@ mod tests {
     #[test]
     fn test_default_config_values() {
         let cfg = AppConfig::default();
-        assert_eq!(cfg.privacy_mode, "full");
+        assert_eq!(cfg.privacy_mode, PrivacyMode::Full);
         assert_eq!(cfg.checkpoint_interval_minutes, 10);
         assert_eq!(cfg.additional_context_max_chars, 1500);
         assert!(cfg.sanitize_secrets);
@@ -85,7 +91,7 @@ mod tests {
     fn test_config_missing_file_returns_default() {
         let tmp = TempDir::new().unwrap();
         let cfg = load_config(&tmp.path().join("nonexistent.toml")).unwrap();
-        assert_eq!(cfg.privacy_mode, "full");
+        assert_eq!(cfg.privacy_mode, PrivacyMode::Full);
     }
 
     #[test]

@@ -1,5 +1,9 @@
 use thiserror::Error;
 
+/// Seslog error types.
+///
+/// Convention: `SeslogError` is used at the crate boundary (public API).
+/// Internal modules use `anyhow::Result` for convenience with `.context()`.
 #[derive(Debug, Error)]
 pub enum SeslogError {
     #[error("storage error: {0}")]

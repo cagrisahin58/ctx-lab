@@ -4,6 +4,38 @@ use std::collections::HashMap;
 
 pub const SCHEMA_VERSION: u32 = 1;
 
+// --- Summary Source ---
+
+/// How the session summary was generated.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum SummarySource {
+    /// User explicitly wrote the summary via `seslog summary "text"`.
+    Manual,
+    /// Summary was derived from the Claude Code transcript combined with git diff data.
+    #[serde(rename = "transcript+git")]
+    TranscriptGit,
+    /// Summary was derived solely from git diff/commit data (no transcript available).
+    GitOnly,
+    /// Fallback summary when no transcript or meaningful git data was available.
+    Minimal,
+}
+
+/// Deserialize `Option<SummarySource>` leniently: unknown string values
+/// are treated as `None` instead of causing a deserialization error.
+/// This ensures backward compatibility with older session files that
+/// may contain arbitrary summary_source strings.
+fn deserialize_summary_source<'de, D>(deserializer: D) -> Result<Option<SummarySource>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    let opt: Option<serde_json::Value> = Option::deserialize(deserializer)?;
+    match opt {
+        None => Ok(None),
+        Some(v) => Ok(serde_json::from_value(v).ok()),
+    }
+}
+
 // --- Session ---
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -17,7 +49,10 @@ pub struct Session {
     pub duration_minutes: Option<u32>,
     pub end_reason: Option<String>,
     pub summary: String,
-    pub summary_source: String,
+    /// How the summary text was produced. See [`SummarySource`] for valid values:
+    /// `Manual`, `TranscriptGit`, `GitOnly`, `Minimal`.
+    #[serde(default, deserialize_with = "deserialize_summary_source")]
+    pub summary_source: Option<SummarySource>,
     #[serde(default)]
     pub transcript_highlights: Vec<String>,
     #[serde(default)]
@@ -36,8 +71,12 @@ pub struct Session {
     pub git_commits: Vec<String>,
     #[serde(default)]
     pub checkpoints_merged: Vec<String>,
+    /// Whether this session record was reconstructed from partial data
+    /// (e.g. after a crash or interrupted enrichment pipeline).
     #[serde(default)]
     pub recovered: bool,
+    /// Number of secrets (API keys, tokens, passwords) that were redacted
+    /// from the summary and transcript highlights by the sanitizer.
     #[serde(default)]
     pub redaction_count: u32,
     #[serde(default)]
@@ -180,7 +219,7 @@ mod tests {
             duration_minutes: None,
             end_reason: None,
             summary: "test session".into(),
-            summary_source: "transcript+git".into(),
+            summary_source: Some(SummarySource::TranscriptGit),
             transcript_highlights: vec![],
             roadmap_changes: vec![],
             decisions: vec![],

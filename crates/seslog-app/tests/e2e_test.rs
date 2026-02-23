@@ -7,7 +7,7 @@
 use std::fs;
 use std::path::Path;
 
-use seslog_app::commands::DbPool;
+use seslog_app::commands::DbConnector;
 use seslog_app::db;
 use seslog_app::events;
 use seslog_app::reconcile;
@@ -203,9 +203,9 @@ fn test_rebuild_cache_via_commands() {
     create_project_structure(root);
     write_session_file(root);
 
-    // Create DbPool pointing at the temp DB
+    // Create DbConnector pointing at the temp DB
     let db_path = root.join("cache.db");
-    let pool = DbPool::new(&db_path).unwrap();
+    let pool = DbConnector::new(&db_path).unwrap();
 
     // Rebuild by directly calling full_rebuild (rebuild_cache_inner uses the
     // real ~/.seslog/ directory, so we bypass it for testing).
@@ -255,7 +255,7 @@ fn test_roadmap_shows_in_project_detail() {
 
     // Initialize DB and run full rebuild
     let db_path = root.join("cache.db");
-    let pool = DbPool::new(&db_path).unwrap();
+    let pool = DbConnector::new(&db_path).unwrap();
     {
         let conn = pool.get().unwrap();
         let report = reconcile::full_rebuild(&conn, root).unwrap();

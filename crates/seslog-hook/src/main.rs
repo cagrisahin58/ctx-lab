@@ -10,6 +10,7 @@ mod session_start;
 mod stop;
 mod summary;
 mod uninstall;
+mod utils;
 
 #[derive(Parser)]
 #[command(name = "seslog", version, about = "Seslog Claude Code hook binary")]

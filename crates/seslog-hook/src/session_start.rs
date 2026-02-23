@@ -61,37 +61,22 @@ pub fn run() -> Result<()> {
 
     // Update CLAUDE.md
     let block = build_claude_md_block(last_summary.as_deref(), active_step.as_deref(), &roadmap_content);
-    let _ = seslog_core::claude_md::update_claude_md(std::path::Path::new(&payload.cwd), &block);
+    if let Err(e) = seslog_core::claude_md::update_claude_md(std::path::Path::new(&payload.cwd), &block) {
+        eprintln!("[seslog] WARN: update_claude_md failed: {}", e);
+    }
 
     // Emit event via shared bridge
-    crate::event_bridge::emit_event("session_started", &payload.session_id, &slug).ok();
+    if let Err(e) = crate::event_bridge::emit_event("session_started", &payload.session_id, &slug) {
+        eprintln!("[seslog] WARN: emit_event(session_started) failed: {}", e);
+    }
 
     // Output to stdout
     print!("{}", format_output(&context));
     Ok(())
 }
 
-pub fn project_slug_from_cwd(cwd: &str) -> String {
-    std::path::Path::new(cwd).file_name().map(|f| f.to_string_lossy().to_string()).unwrap_or_else(|| "unknown-project".into())
-}
-
-/// Read the real project ID from meta.toml (falls back to `proj_{slug}` if missing).
-pub fn read_project_id(slug: &str) -> String {
-    let base = match seslog_core::storage::seslog_dir() {
-        Ok(b) => b,
-        Err(_) => return format!("proj_{}", slug),
-    };
-    let meta_path = base.join("projects").join(slug).join("meta.toml");
-    let content = match std::fs::read_to_string(&meta_path) {
-        Ok(c) => c,
-        Err(_) => return format!("proj_{}", slug),
-    };
-    let meta: seslog_core::models::ProjectMeta = match toml::from_str(&content) {
-        Ok(m) => m,
-        Err(_) => return format!("proj_{}", slug),
-    };
-    meta.project.id
-}
+// Re-export from utils — used locally in this module
+pub use crate::utils::project_slug_from_cwd;
 
 fn read_last_session_summary(project_dir: &std::path::Path) -> Option<String> {
     let sessions_dir = project_dir.join("sessions");
@@ -144,18 +129,18 @@ pub fn format_output(context: &str) -> String {
             additional_context: context.into(),
         },
     };
-    serde_json::to_string(&output).unwrap_or_default()
+    match serde_json::to_string(&output) {
+        Ok(json) => json,
+        Err(e) => {
+            eprintln!("[seslog] ERROR: failed to serialize output: {}", e);
+            String::new()
+        }
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn test_project_slug_from_cwd() {
-        assert_eq!(project_slug_from_cwd("/home/user/projects/my-project"), "my-project");
-        assert_eq!(project_slug_from_cwd("/Users/cagri/PROJELER/adeb-sci"), "adeb-sci");
-    }
 
     #[test]
     fn test_build_context_with_summary() {

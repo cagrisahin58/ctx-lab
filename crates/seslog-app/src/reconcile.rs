@@ -16,105 +16,121 @@ pub struct ReconcileReport {
 }
 
 /// Wipe all tables and re-import everything from the filesystem.
+///
+/// The entire operation is wrapped in a transaction so that a failure
+/// mid-import leaves the database unchanged (automatic rollback on drop).
 pub fn full_rebuild(conn: &Connection, data_dir: &Path) -> Result<ReconcileReport> {
-    let mut report = ReconcileReport::default();
+    conn.execute_batch("BEGIN IMMEDIATE")?;
 
-    // 1. Clear all tables in reverse FK order.
-    conn.execute_batch(
-        "DELETE FROM transcript_highlights;
-         DELETE FROM decisions;
-         DELETE FROM roadmap_items;
-         DELETE FROM sessions;
-         DELETE FROM projects;
-         DELETE FROM machines;",
-    )
-    .context("Failed to clear tables")?;
+    match (|| -> Result<ReconcileReport> {
+        let mut report = ReconcileReport::default();
 
-    // 2. Scan projects/{slug}/meta.toml
-    let projects_dir = data_dir.join("projects");
-    if projects_dir.is_dir() {
-        let mut entries: Vec<_> = fs::read_dir(&projects_dir)
-            .context("Failed to read projects dir")?
-            .filter_map(|e| e.ok())
-            .filter(|e| e.file_type().map(|ft| ft.is_dir()).unwrap_or(false))
-            .collect();
-        entries.sort_by_key(|e| e.file_name());
+        // 1. Clear all tables in reverse FK order.
+        conn.execute_batch(
+            "DELETE FROM transcript_highlights;
+             DELETE FROM decisions;
+             DELETE FROM roadmap_items;
+             DELETE FROM sessions;
+             DELETE FROM projects;
+             DELETE FROM machines;",
+        )
+        .context("Failed to clear tables")?;
 
-        for entry in entries {
-            let slug_dir = entry.path();
-            let meta_path = slug_dir.join("meta.toml");
+        // 2. Scan projects/{slug}/meta.toml
+        let projects_dir = data_dir.join("projects");
+        if projects_dir.is_dir() {
+            let mut entries: Vec<_> = fs::read_dir(&projects_dir)
+                .context("Failed to read projects dir")?
+                .filter_map(|e| e.ok())
+                .filter(|e| e.file_type().map(|ft| ft.is_dir()).unwrap_or(false))
+                .collect();
+            entries.sort_by_key(|e| e.file_name());
 
-            if !meta_path.exists() {
-                continue;
-            }
+            for entry in entries {
+                let slug_dir = entry.path();
+                let meta_path = slug_dir.join("meta.toml");
 
-            match import_project(conn, &meta_path) {
-                Ok(project_id) => {
-                    report.added += 1;
+                if !meta_path.exists() {
+                    continue;
+                }
 
-                    // 3. Scan sessions/*.json for this project
-                    let sessions_dir = slug_dir.join("sessions");
-                    if sessions_dir.is_dir() {
-                        match import_sessions(conn, &sessions_dir, &project_id) {
-                            Ok(count) => report.added += count,
-                            Err(e) => report.errors.push(format!(
-                                "sessions import for {}: {}",
-                                project_id, e
-                            )),
+                match import_project(conn, &meta_path) {
+                    Ok(project_id) => {
+                        report.added += 1;
+
+                        // 3. Scan sessions/*.json for this project
+                        let sessions_dir = slug_dir.join("sessions");
+                        if sessions_dir.is_dir() {
+                            match import_sessions(conn, &sessions_dir, &project_id) {
+                                Ok(count) => report.added += count,
+                                Err(e) => report.errors.push(format!(
+                                    "sessions import for {}: {}",
+                                    project_id, e
+                                )),
+                            }
+                        }
+
+                        // 4. Parse roadmap.md if it exists
+                        let roadmap_path = slug_dir.join("roadmap.md");
+                        if roadmap_path.exists() {
+                            match import_roadmap(conn, &roadmap_path, &project_id) {
+                                Ok(count) => report.added += count,
+                                Err(e) => report.errors.push(format!(
+                                    "roadmap import for {}: {}",
+                                    project_id, e
+                                )),
+                            }
                         }
                     }
-
-                    // 4. Parse roadmap.md if it exists
-                    let roadmap_path = slug_dir.join("roadmap.md");
-                    if roadmap_path.exists() {
-                        match import_roadmap(conn, &roadmap_path, &project_id) {
-                            Ok(count) => report.added += count,
-                            Err(e) => report.errors.push(format!(
-                                "roadmap import for {}: {}",
-                                project_id, e
-                            )),
-                        }
+                    Err(e) => {
+                        report.errors.push(format!(
+                            "project import from {}: {}",
+                            meta_path.display(),
+                            e
+                        ));
                     }
                 }
-                Err(e) => {
-                    report.errors.push(format!(
-                        "project import from {}: {}",
-                        meta_path.display(),
+            }
+        }
+
+        // 5. Scan machines/*.toml
+        let machines_dir = data_dir.join("machines");
+        if machines_dir.is_dir() {
+            let mut entries: Vec<_> = fs::read_dir(&machines_dir)
+                .context("Failed to read machines dir")?
+                .filter_map(|e| e.ok())
+                .filter(|e| {
+                    e.path()
+                        .extension()
+                        .map(|ext| ext == "toml")
+                        .unwrap_or(false)
+                })
+                .collect();
+            entries.sort_by_key(|e| e.file_name());
+
+            for entry in entries {
+                match import_machine(conn, &entry.path()) {
+                    Ok(()) => report.added += 1,
+                    Err(e) => report.errors.push(format!(
+                        "machine import from {}: {}",
+                        entry.path().display(),
                         e
-                    ));
+                    )),
                 }
             }
         }
-    }
 
-    // 5. Scan machines/*.toml
-    let machines_dir = data_dir.join("machines");
-    if machines_dir.is_dir() {
-        let mut entries: Vec<_> = fs::read_dir(&machines_dir)
-            .context("Failed to read machines dir")?
-            .filter_map(|e| e.ok())
-            .filter(|e| {
-                e.path()
-                    .extension()
-                    .map(|ext| ext == "toml")
-                    .unwrap_or(false)
-            })
-            .collect();
-        entries.sort_by_key(|e| e.file_name());
-
-        for entry in entries {
-            match import_machine(conn, &entry.path()) {
-                Ok(()) => report.added += 1,
-                Err(e) => report.errors.push(format!(
-                    "machine import from {}: {}",
-                    entry.path().display(),
-                    e
-                )),
-            }
+        Ok(report)
+    })() {
+        Ok(report) => {
+            conn.execute_batch("COMMIT")?;
+            Ok(report)
+        }
+        Err(e) => {
+            let _ = conn.execute_batch("ROLLBACK");
+            Err(e)
         }
     }
-
-    Ok(report)
 }
 
 /// Incrementally update a single changed file.
@@ -258,8 +274,10 @@ fn import_sessions(conn: &Connection, sessions_dir: &Path, _project_id: &str) ->
 
 /// INSERT OR REPLACE a single session and its transcript_highlights.
 fn upsert_session(conn: &Connection, session: &Session, source_path: &Path) -> Result<()> {
-    let files_changed_str = session.files_changed.to_string();
     let next_steps = &session.next_steps;
+    let summary_source_str: Option<String> = session.summary_source.as_ref()
+        .and_then(|s| serde_json::to_value(s).ok())
+        .and_then(|v| v.as_str().map(|s| s.to_string()));
 
     conn.execute(
         "INSERT OR REPLACE INTO sessions
@@ -277,9 +295,9 @@ fn upsert_session(conn: &Connection, session: &Session, source_path: &Path) -> R
             session.duration_minutes,
             session.end_reason,
             session.summary,
-            session.summary_source,
+            summary_source_str,
             next_steps,
-            files_changed_str,
+            session.files_changed,
             session.recovered as i32,
             session.redaction_count,
             source_path.to_string_lossy().to_string(),

@@ -1,15 +1,20 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { Dashboard } from "./pages/Dashboard";
-import { ProjectDetail } from "./pages/ProjectDetail";
+import { AppLayout } from "./components/AppLayout";
+import { Overview } from "./pages/Overview";
+import { ProjectPage } from "./pages/ProjectPage";
+import { SessionPage } from "./pages/SessionPage";
 import { Settings } from "./pages/Settings";
 
 function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<Dashboard />} />
-        <Route path="/project/:id" element={<ProjectDetail />} />
-        <Route path="/settings" element={<Settings />} />
+        <Route element={<AppLayout />}>
+          <Route path="/" element={<Overview />} />
+          <Route path="/project/:id" element={<ProjectPage />} />
+          <Route path="/project/:id/session/:sessionId" element={<SessionPage />} />
+          <Route path="/settings" element={<Settings />} />
+        </Route>
       </Routes>
     </BrowserRouter>
   );

@@ -1,6 +1,6 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use seslog_app::commands::DbPool;
+use seslog_app::commands::DbConnector;
 use seslog_app::{commands, events, reconcile, tray, watcher};
 
 use std::sync::Mutex;
@@ -15,7 +15,7 @@ fn main() {
             let db_path = data_dir.join("cache.db");
 
             // Initialize DB + full rebuild
-            let pool = DbPool::new(&db_path)
+            let pool = DbConnector::new(&db_path)
                 .map_err(|e| Box::new(std::io::Error::other(e.to_string())))?;
             {
                 let conn = pool.get()
@@ -37,7 +37,7 @@ fn main() {
             watcher::start_watcher(data_dir.clone(), tx);
 
             // Watcher consumer thread
-            let pool_for_watcher = DbPool::new(&db_path)
+            let pool_for_watcher = DbConnector::new(&db_path)
                 .map_err(|e| Box::new(std::io::Error::other(e.to_string())))?;
             let dir_for_watcher = data_dir.clone();
             let app_handle = app.handle().clone();
@@ -61,7 +61,7 @@ fn main() {
             });
 
             // Periodic reconcile (every 10 minutes)
-            let pool_for_reconcile = DbPool::new(&db_path)
+            let pool_for_reconcile = DbConnector::new(&db_path)
                 .map_err(|e| Box::new(std::io::Error::other(e.to_string())))?;
             let dir_for_reconcile = data_dir.clone();
             std::thread::spawn(move || {

@@ -82,9 +82,70 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_check_result_display() {
-        assert!(format!("{}", CheckResult::Ok("test".into())).contains("[OK]"));
-        assert!(format!("{}", CheckResult::Warn("test".into())).contains("[WARN]"));
-        assert!(format!("{}", CheckResult::Fail("test".into())).contains("[FAIL]"));
+    fn test_check_result_display_ok() {
+        let r = CheckResult::Ok("data dir exists".into());
+        let s = format!("{}", r);
+        assert!(s.contains("[OK]"));
+        assert!(s.contains("data dir exists"));
+    }
+
+    #[test]
+    fn test_check_result_display_warn() {
+        let r = CheckResult::Warn("hooks not found".into());
+        let s = format!("{}", r);
+        assert!(s.contains("[WARN]"));
+        assert!(s.contains("hooks not found"));
+    }
+
+    #[test]
+    fn test_check_result_display_fail() {
+        let r = CheckResult::Fail("config broken".into());
+        let s = format!("{}", r);
+        assert!(s.contains("[FAIL]"));
+        assert!(s.contains("config broken"));
+    }
+
+    #[test]
+    fn test_check_result_matches_pattern() {
+        let ok = CheckResult::Ok("test".into());
+        assert!(matches!(ok, CheckResult::Ok(_)));
+        assert!(!matches!(ok, CheckResult::Fail(_)));
+    }
+
+    #[test]
+    fn test_check_data_dir_does_not_panic() {
+        // Exercises the real path; result depends on environment
+        let result = check_data_dir();
+        // Should always return one of the variants, never panic
+        let display = format!("{}", result);
+        assert!(!display.is_empty());
+    }
+
+    #[test]
+    fn test_check_config_does_not_panic() {
+        let result = check_config();
+        let display = format!("{}", result);
+        assert!(!display.is_empty());
+    }
+
+    #[test]
+    fn test_check_hooks_registered_does_not_panic() {
+        let result = check_hooks_registered();
+        let display = format!("{}", result);
+        assert!(!display.is_empty());
+    }
+
+    #[test]
+    fn test_check_quarantine_does_not_panic() {
+        let result = check_quarantine();
+        let display = format!("{}", result);
+        assert!(!display.is_empty());
+    }
+
+    #[test]
+    fn test_run_does_not_fail() {
+        // The `run()` function prints to stderr and should never return Err
+        let result = run();
+        assert!(result.is_ok());
     }
 }

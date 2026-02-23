@@ -4,14 +4,14 @@ use std::sync::Mutex;
 use rusqlite::params;
 
 // ---------------------------------------------------------------------------
-// DbPool — lightweight connection factory for SQLite
+// DbConnector — lightweight connection factory for SQLite
 // ---------------------------------------------------------------------------
 
-pub struct DbPool {
+pub struct DbConnector {
     db_path: PathBuf,
 }
 
-impl DbPool {
+impl DbConnector {
     pub fn new(db_path: &Path) -> anyhow::Result<Self> {
         // Initialize DB to ensure schema exists
         crate::db::initialize_db(db_path)?;
@@ -103,57 +103,61 @@ pub struct ProjectDetailResponse {
 // Inner functions (testable without Tauri)
 // ---------------------------------------------------------------------------
 
-pub fn get_projects_inner(pool: &DbPool) -> anyhow::Result<Vec<ProjectSummaryResponse>> {
+pub fn get_projects_inner(pool: &DbConnector) -> anyhow::Result<Vec<ProjectSummaryResponse>> {
     let conn = pool.get()?;
     let mut stmt = conn.prepare(
-        "SELECT id, name, status, progress_percent,
-                last_machine, last_summary, session_count, total_minutes
-         FROM project_summary",
+        "SELECT p.id, p.name, p.status, p.progress_percent,
+                MAX(s.started_at) AS last_session_at,
+                (SELECT s3.machine FROM sessions s3
+                 WHERE s3.project_id = p.id ORDER BY s3.started_at DESC LIMIT 1) AS last_machine,
+                (SELECT s2.summary FROM sessions s2
+                 WHERE s2.project_id = p.id ORDER BY s2.started_at DESC LIMIT 1) AS last_summary,
+                COUNT(s.id) AS session_count,
+                COALESCE(SUM(s.duration_minutes), 0) AS total_minutes
+         FROM projects p
+         LEFT JOIN sessions s ON s.project_id = p.id
+         WHERE p.status = 'active'
+         GROUP BY p.id
+         ORDER BY last_session_at DESC NULLS LAST",
     )?;
 
-    let rows = stmt.query_map([], |row| {
+    let projects = stmt.query_map([], |row| {
         Ok(ProjectSummaryResponse {
             id: row.get(0)?,
             name: row.get(1)?,
             status: row.get(2)?,
             progress_percent: row.get(3)?,
-            last_session_at: None, // view does not include this; filled below
-            last_machine: row.get(4)?,
-            last_summary: row.get(5)?,
-            session_count: row.get(6)?,
-            total_minutes: row.get(7)?,
+            last_session_at: row.get(4)?,
+            last_machine: row.get(5)?,
+            last_summary: row.get(6)?,
+            session_count: row.get(7)?,
+            total_minutes: row.get(8)?,
         })
-    })?;
-
-    let mut projects = Vec::new();
-    for row in rows {
-        let mut p = row?;
-        // Fetch last_session_at from the sessions table.
-        let last_at: Option<String> = conn
-            .query_row(
-                "SELECT started_at FROM sessions WHERE project_id = ?1
-                 ORDER BY started_at DESC LIMIT 1",
-                params![p.id],
-                |r| r.get(0),
-            )
-            .ok();
-        p.last_session_at = last_at;
-        projects.push(p);
-    }
+    })?.collect::<Result<Vec<_>, _>>()?;
 
     Ok(projects)
 }
 
 pub fn get_project_detail_inner(
-    pool: &DbPool,
+    pool: &DbConnector,
     project_id: String,
 ) -> anyhow::Result<ProjectDetailResponse> {
-    // 1. Project summary
     let conn = pool.get()?;
+
+    // 1. Project summary (single query, no N+1)
     let summary = conn.query_row(
-        "SELECT id, name, status, progress_percent,
-                last_machine, last_summary, session_count, total_minutes
-         FROM project_summary WHERE id = ?1",
+        "SELECT p.id, p.name, p.status, p.progress_percent,
+                MAX(s.started_at) AS last_session_at,
+                (SELECT s3.machine FROM sessions s3
+                 WHERE s3.project_id = p.id ORDER BY s3.started_at DESC LIMIT 1) AS last_machine,
+                (SELECT s2.summary FROM sessions s2
+                 WHERE s2.project_id = p.id ORDER BY s2.started_at DESC LIMIT 1) AS last_summary,
+                COUNT(s.id) AS session_count,
+                COALESCE(SUM(s.duration_minutes), 0) AS total_minutes
+         FROM projects p
+         LEFT JOIN sessions s ON s.project_id = p.id
+         WHERE p.id = ?1
+         GROUP BY p.id",
         params![project_id],
         |row| {
             Ok(ProjectSummaryResponse {
@@ -161,34 +165,20 @@ pub fn get_project_detail_inner(
                 name: row.get(1)?,
                 status: row.get(2)?,
                 progress_percent: row.get(3)?,
-                last_session_at: None,
-                last_machine: row.get(4)?,
-                last_summary: row.get(5)?,
-                session_count: row.get(6)?,
-                total_minutes: row.get(7)?,
+                last_session_at: row.get(4)?,
+                last_machine: row.get(5)?,
+                last_summary: row.get(6)?,
+                session_count: row.get(7)?,
+                total_minutes: row.get(8)?,
             })
         },
     )?;
-    drop(conn);
 
-    // Fill last_session_at
-    let mut summary = summary;
-    let conn2 = pool.get()?;
-    summary.last_session_at = conn2
-        .query_row(
-            "SELECT started_at FROM sessions WHERE project_id = ?1
-             ORDER BY started_at DESC LIMIT 1",
-            params![project_id],
-            |r| r.get(0),
-        )
-        .ok();
-    drop(conn2);
+    // 2. Roadmap (reuse same connection)
+    let roadmap = get_roadmap_with_conn(&conn, project_id.clone())?;
 
-    // 2. Roadmap
-    let roadmap = get_roadmap_inner(pool, project_id.clone())?;
-
-    // 3. Recent sessions (last 20)
-    let recent_sessions = get_sessions_inner(pool, project_id, 20)?;
+    // 3. Recent sessions (last 20, reuse same connection)
+    let recent_sessions = get_sessions_with_conn(&conn, project_id, 20)?;
 
     Ok(ProjectDetailResponse {
         summary,
@@ -198,11 +188,19 @@ pub fn get_project_detail_inner(
 }
 
 pub fn get_sessions_inner(
-    pool: &DbPool,
+    pool: &DbConnector,
     project_id: String,
     limit: u32,
 ) -> anyhow::Result<Vec<SessionResponse>> {
     let conn = pool.get()?;
+    get_sessions_with_conn(&conn, project_id, limit)
+}
+
+fn get_sessions_with_conn(
+    conn: &rusqlite::Connection,
+    project_id: String,
+    limit: u32,
+) -> anyhow::Result<Vec<SessionResponse>> {
     let mut stmt = conn.prepare(
         "SELECT id, project_id, machine, started_at, ended_at,
                 duration_minutes, summary, next_steps, files_changed, recovered,
@@ -214,8 +212,7 @@ pub fn get_sessions_inner(
     )?;
 
     let rows = stmt.query_map(params![project_id, limit], |row| {
-        let files_str: String = row.get::<_, Option<String>>(8)?.unwrap_or_default();
-        let files_changed: i64 = files_str.parse().unwrap_or(0);
+        let files_changed: i64 = row.get::<_, Option<i64>>(8)?.unwrap_or(0);
         let recovered_int: i32 = row.get(9)?;
 
         Ok(SessionResponse {
@@ -256,11 +253,17 @@ pub fn get_sessions_inner(
 }
 
 pub fn get_roadmap_inner(
-    pool: &DbPool,
+    pool: &DbConnector,
     project_id: String,
 ) -> anyhow::Result<RoadmapResponse> {
     let conn = pool.get()?;
+    get_roadmap_with_conn(&conn, project_id)
+}
 
+fn get_roadmap_with_conn(
+    conn: &rusqlite::Connection,
+    project_id: String,
+) -> anyhow::Result<RoadmapResponse> {
     // Items
     let mut stmt = conn.prepare(
         "SELECT phase, item_text, status, item_id, depends_on
@@ -319,26 +322,28 @@ pub fn get_roadmap_inner(
     })
 }
 
-pub fn rebuild_cache_inner(pool: &DbPool) -> anyhow::Result<crate::reconcile::ReconcileReport> {
+pub fn rebuild_cache_inner(pool: &DbConnector) -> anyhow::Result<crate::reconcile::ReconcileReport> {
     let conn = pool.get()?;
     let seslog_dir = seslog_core::storage::seslog_dir()?;
     crate::reconcile::full_rebuild(&conn, &seslog_dir)
 }
 
-pub fn get_overview_inner(pool: &DbPool, include_archived: bool) -> anyhow::Result<Vec<OverviewRow>> {
+pub fn get_overview_inner(pool: &DbConnector, include_archived: bool) -> anyhow::Result<Vec<OverviewRow>> {
     let conn = pool.get()?;
 
     let query = if include_archived {
         "SELECT p.id, p.name, p.status, p.progress_percent,
+                MAX(s.started_at) AS last_session_at,
                 COUNT(s.id) AS session_count,
                 COALESCE(SUM(s.duration_minutes), 0) AS total_minutes,
                 COALESCE(SUM(s.estimated_cost_usd), 0.0) AS total_cost
          FROM projects p
          LEFT JOIN sessions s ON s.project_id = p.id
          GROUP BY p.id
-         ORDER BY MAX(s.started_at) DESC NULLS LAST"
+         ORDER BY last_session_at DESC NULLS LAST"
     } else {
         "SELECT p.id, p.name, p.status, p.progress_percent,
+                MAX(s.started_at) AS last_session_at,
                 COUNT(s.id) AS session_count,
                 COALESCE(SUM(s.duration_minutes), 0) AS total_minutes,
                 COALESCE(SUM(s.estimated_cost_usd), 0.0) AS total_cost
@@ -346,37 +351,22 @@ pub fn get_overview_inner(pool: &DbPool, include_archived: bool) -> anyhow::Resu
          LEFT JOIN sessions s ON s.project_id = p.id
          WHERE p.status = 'active'
          GROUP BY p.id
-         ORDER BY MAX(s.started_at) DESC NULLS LAST"
+         ORDER BY last_session_at DESC NULLS LAST"
     };
 
     let mut stmt = conn.prepare(query)?;
-    let rows = stmt.query_map([], |row| {
+    let overview = stmt.query_map([], |row| {
         Ok(OverviewRow {
             id: row.get(0)?,
             name: row.get(1)?,
             status: row.get(2)?,
             progress_percent: row.get(3)?,
-            last_session_at: None, // filled below
-            session_count: row.get(4)?,
-            total_minutes: row.get(5)?,
-            total_cost: row.get(6)?,
+            last_session_at: row.get(4)?,
+            session_count: row.get(5)?,
+            total_minutes: row.get(6)?,
+            total_cost: row.get(7)?,
         })
-    })?;
-
-    let mut overview = Vec::new();
-    for row in rows {
-        let mut r = row?;
-        // Fill last_session_at
-        r.last_session_at = conn
-            .query_row(
-                "SELECT started_at FROM sessions WHERE project_id = ?1
-                 ORDER BY started_at DESC LIMIT 1",
-                params![r.id],
-                |row| row.get(0),
-            )
-            .ok();
-        overview.push(r);
-    }
+    })?.collect::<Result<Vec<_>, _>>()?;
 
     Ok(overview)
 }
@@ -387,7 +377,7 @@ pub fn get_overview_inner(pool: &DbPool, include_archived: bool) -> anyhow::Resu
 
 #[tauri::command]
 pub fn get_projects(
-    pool: tauri::State<'_, Mutex<DbPool>>,
+    pool: tauri::State<'_, Mutex<DbConnector>>,
 ) -> Result<Vec<ProjectSummaryResponse>, String> {
     let pool = pool.lock().map_err(|e| e.to_string())?;
     get_projects_inner(&pool).map_err(|e| e.to_string())
@@ -395,7 +385,7 @@ pub fn get_projects(
 
 #[tauri::command]
 pub fn get_project_detail(
-    pool: tauri::State<'_, Mutex<DbPool>>,
+    pool: tauri::State<'_, Mutex<DbConnector>>,
     project_id: String,
 ) -> Result<ProjectDetailResponse, String> {
     let pool = pool.lock().map_err(|e| e.to_string())?;
@@ -404,7 +394,7 @@ pub fn get_project_detail(
 
 #[tauri::command]
 pub fn get_sessions(
-    pool: tauri::State<'_, Mutex<DbPool>>,
+    pool: tauri::State<'_, Mutex<DbConnector>>,
     project_id: String,
     limit: u32,
 ) -> Result<Vec<SessionResponse>, String> {
@@ -414,7 +404,7 @@ pub fn get_sessions(
 
 #[tauri::command]
 pub fn get_roadmap(
-    pool: tauri::State<'_, Mutex<DbPool>>,
+    pool: tauri::State<'_, Mutex<DbConnector>>,
     project_id: String,
 ) -> Result<RoadmapResponse, String> {
     let pool = pool.lock().map_err(|e| e.to_string())?;
@@ -423,7 +413,7 @@ pub fn get_roadmap(
 
 #[tauri::command]
 pub fn rebuild_cache(
-    pool: tauri::State<'_, Mutex<DbPool>>,
+    pool: tauri::State<'_, Mutex<DbConnector>>,
 ) -> Result<String, String> {
     let pool = pool.lock().map_err(|e| e.to_string())?;
     let report = rebuild_cache_inner(&pool).map_err(|e| e.to_string())?;
@@ -435,7 +425,7 @@ pub fn rebuild_cache(
 
 #[tauri::command]
 pub fn get_overview(
-    pool: tauri::State<'_, Mutex<DbPool>>,
+    pool: tauri::State<'_, Mutex<DbConnector>>,
     include_archived: Option<bool>,
 ) -> Result<Vec<OverviewRow>, String> {
     let pool = pool.lock().map_err(|e| e.to_string())?;
@@ -443,10 +433,43 @@ pub fn get_overview(
 }
 
 #[tauri::command]
-pub fn open_in_editor(_project_id: String) -> Result<(), String> {
-    // TODO: Read meta.toml, find path for current machine hostname,
-    // run `code {path}` or `open -a "Visual Studio Code" {path}`
-    Ok(())
+pub fn open_in_editor(project_id: String) -> Result<String, String> {
+    open_in_editor_inner(&project_id).map_err(|e| e.to_string())
+}
+
+fn open_in_editor_inner(project_id: &str) -> anyhow::Result<String> {
+    let data_dir = seslog_core::storage::seslog_dir()?;
+    let meta_path = data_dir.join("projects").join(project_id).join("meta.toml");
+    let content = std::fs::read_to_string(&meta_path)
+        .map_err(|_| anyhow::anyhow!("Project meta.toml not found for {}", project_id))?;
+    let meta: seslog_core::models::ProjectMeta = toml::from_str(&content)?;
+
+    // Look up the path for the current hostname in the paths map
+    let hostname = hostname::get()
+        .map_err(|e| anyhow::anyhow!("Failed to get hostname: {}", e))?
+        .into_string()
+        .map_err(|_| anyhow::anyhow!("Hostname contains invalid UTF-8"))?;
+
+    let path = meta.paths.get(&hostname)
+        .or_else(|| {
+            // Fall back to the first available path if only one machine is registered
+            if meta.paths.len() == 1 {
+                meta.paths.values().next()
+            } else {
+                None
+            }
+        })
+        .ok_or_else(|| anyhow::anyhow!(
+            "No path found in meta.toml for project {} on machine {}",
+            project_id, hostname
+        ))?;
+
+    std::process::Command::new("code")
+        .arg(path)
+        .spawn()
+        .map_err(|e| anyhow::anyhow!("Failed to open editor: {}", e))?;
+
+    Ok(format!("Opened {} in editor", path))
 }
 
 #[tauri::command]
@@ -470,8 +493,10 @@ pub fn update_settings(config: serde_json::Value) -> Result<(), String> {
         seslog_core::config::load_config(&config_path).map_err(|e| e.to_string())?;
 
     // Apply only the fields the frontend sends
-    if let Some(v) = config.get("privacy_mode").and_then(|v| v.as_str()) {
-        app_config.privacy_mode = v.to_string();
+    if let Some(v) = config.get("privacy_mode") {
+        if let Ok(mode) = serde_json::from_value::<seslog_core::config::PrivacyMode>(v.clone()) {
+            app_config.privacy_mode = mode;
+        }
     }
     if let Some(v) = config
         .get("checkpoint_interval_minutes")
@@ -494,10 +519,10 @@ mod tests {
     use super::*;
     use tempfile::TempDir;
 
-    fn setup() -> (TempDir, DbPool) {
+    fn setup() -> (TempDir, DbConnector) {
         let tmp = TempDir::new().unwrap();
         let db_path = tmp.path().join("test.db");
-        let pool = DbPool::new(&db_path).unwrap();
+        let pool = DbConnector::new(&db_path).unwrap();
         let conn = pool.get().unwrap();
         // Insert test project
         conn.execute(

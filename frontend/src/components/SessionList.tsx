@@ -23,25 +23,19 @@ function SessionRow({
   const nextSteps = session.next_steps ? cleanSummary(session.next_steps) : "";
 
   return (
-    <div style={{ borderBottom: "1px solid var(--border-default)" }}>
+    <div style={{ borderBottom: "1px solid hsl(var(--border))" }}>
       {/* Clickable row */}
       <button
         onClick={onToggle}
-        className="w-full text-left flex items-center gap-3 px-3 py-2.5 transition-colors duration-100"
-        style={{ background: isOpen ? "var(--bg-surface-hover)" : "transparent" }}
-        onMouseEnter={(e) => {
-          if (!isOpen) e.currentTarget.style.background = "var(--bg-surface-hover)";
-        }}
-        onMouseLeave={(e) => {
-          if (!isOpen) e.currentTarget.style.background = "transparent";
-        }}
+        className="w-full text-left flex items-center gap-3 px-3 py-2.5 transition-colors duration-100 hover:bg-[hsl(var(--muted))]/50"
+        style={{ background: isOpen ? "hsl(var(--muted))" : "transparent" }}
       >
         {/* Chevron */}
         <ChevronRight
           size={14}
           className="flex-shrink-0 transition-transform duration-200"
           style={{
-            color: "var(--text-muted)",
+            color: "hsl(var(--muted-foreground))",
             transform: isOpen ? "rotate(90deg)" : "rotate(0deg)",
           }}
         />
@@ -49,11 +43,11 @@ function SessionRow({
         {/* Date */}
         <span
           className="font-mono tabular-nums flex-shrink-0"
-          style={{ fontSize: 12, color: "var(--text-secondary)", width: 100 }}
+          style={{ fontSize: 12, color: "hsl(var(--muted-foreground))", width: 100 }}
         >
           {format(new Date(session.started_at), "MMM d, HH:mm")}
           {session.duration_minutes != null && (
-            <span style={{ color: "var(--text-muted)", marginLeft: 4 }}>
+            <span style={{ color: "hsl(var(--muted-foreground))", marginLeft: 4 }}>
               {session.duration_minutes}m
             </span>
           )}
@@ -62,7 +56,7 @@ function SessionRow({
         {/* Summary (truncated) */}
         <span
           className="flex-1 truncate"
-          style={{ fontSize: 13, color: "var(--text-primary)" }}
+          style={{ fontSize: 13, color: "hsl(var(--foreground))" }}
         >
           {summary}
         </span>
@@ -70,11 +64,11 @@ function SessionRow({
         {/* Machine */}
         <span
           className="font-mono flex-shrink-0"
-          style={{ fontSize: 11, color: "var(--text-muted)" }}
+          style={{ fontSize: 11, color: "hsl(var(--muted-foreground))" }}
         >
           {session.machine.split(".")[0]}
           {session.recovered && (
-            <span style={{ color: "#f59e0b", marginLeft: 4 }}>{"\u25cf"}</span>
+            <span style={{ color: "hsl(var(--warning))", marginLeft: 4 }}>{"\u25cf"}</span>
           )}
         </span>
       </button>
@@ -84,7 +78,7 @@ function SessionRow({
         <div className="accordion-inner">
           <div className="px-3 pb-3 pt-1" style={{ paddingLeft: 38 }}>
             {/* Full summary */}
-            <p style={{ fontSize: 13, color: "var(--text-primary)", lineHeight: "1.6" }}>
+            <p style={{ fontSize: 13, color: "hsl(var(--foreground))", lineHeight: "1.6" }}>
               {summary}
             </p>
 
@@ -93,13 +87,13 @@ function SessionRow({
               <div className="mt-2">
                 <span
                   className="font-semibold uppercase tracking-wider"
-                  style={{ fontSize: 10, color: "var(--accent)" }}
+                  style={{ fontSize: 10, color: "hsl(var(--primary))" }}
                 >
                   Next Steps
                 </span>
                 <p
                   className="mt-0.5"
-                  style={{ fontSize: 12, color: "var(--text-secondary)", lineHeight: "1.5" }}
+                  style={{ fontSize: 12, color: "hsl(var(--muted-foreground))", lineHeight: "1.5" }}
                 >
                   {nextSteps}
                 </p>
@@ -109,12 +103,12 @@ function SessionRow({
             {/* Meta row */}
             <div className="flex items-center gap-4 mt-2">
               {session.files_changed > 0 && (
-                <span className="font-mono" style={{ fontSize: 11, color: "var(--text-muted)" }}>
+                <span className="font-mono" style={{ fontSize: 11, color: "hsl(var(--muted-foreground))" }}>
                   {session.files_changed} files changed
                 </span>
               )}
               {session.transcript_highlights.length > 0 && (
-                <span className="font-mono" style={{ fontSize: 11, color: "var(--text-muted)" }}>
+                <span className="font-mono" style={{ fontSize: 11, color: "hsl(var(--muted-foreground))" }}>
                   {session.transcript_highlights.length} highlights
                 </span>
               )}
@@ -123,14 +117,14 @@ function SessionRow({
                   className="font-mono"
                   style={{
                     fontSize: 11,
-                    color: session.estimated_cost_usd > 1 ? "#f59e0b" : "#22c55e",
+                    color: session.estimated_cost_usd > 1 ? "hsl(var(--warning))" : "hsl(var(--success))",
                   }}
                 >
                   ${session.estimated_cost_usd.toFixed(4)}
                 </span>
               )}
               {session.model && (
-                <span className="font-mono" style={{ fontSize: 11, color: "var(--text-muted)" }}>
+                <span className="font-mono" style={{ fontSize: 11, color: "hsl(var(--muted-foreground))" }}>
                   {session.model.replace(/^claude-/, "").replace(/-\d{8}$/, "")}
                 </span>
               )}
@@ -147,7 +141,7 @@ export function SessionList({ sessions }: { sessions: SessionInfo[] }) {
 
   if (sessions.length === 0) {
     return (
-      <p className="py-6 text-center" style={{ color: "var(--text-muted)", fontSize: 12 }}>
+      <p className="py-6 text-center text-xs" style={{ color: "hsl(var(--muted-foreground))" }}>
         No sessions recorded yet.
       </p>
     );
@@ -165,29 +159,29 @@ export function SessionList({ sessions }: { sessions: SessionInfo[] }) {
   return (
     <div
       className="rounded-lg overflow-hidden"
-      style={{ border: "1px solid var(--border-default)", background: "var(--bg-surface)" }}
+      style={{ border: "1px solid hsl(var(--border))", background: "hsl(var(--card))" }}
     >
       {/* Table header */}
       <div
         className="flex items-center gap-3 px-3 py-2"
-        style={{ borderBottom: "1px solid var(--border-default)", background: "var(--bg-app)" }}
+        style={{ borderBottom: "1px solid hsl(var(--border))", background: "hsl(var(--background))" }}
       >
         <span style={{ width: 14 }} />
         <span
           className="font-semibold uppercase tracking-wider"
-          style={{ fontSize: 10, color: "var(--text-muted)", width: 100 }}
+          style={{ fontSize: 10, color: "hsl(var(--muted-foreground))", width: 100 }}
         >
           Date
         </span>
         <span
           className="font-semibold uppercase tracking-wider flex-1"
-          style={{ fontSize: 10, color: "var(--text-muted)" }}
+          style={{ fontSize: 10, color: "hsl(var(--muted-foreground))" }}
         >
           Summary
         </span>
         <span
           className="font-semibold uppercase tracking-wider"
-          style={{ fontSize: 10, color: "var(--text-muted)" }}
+          style={{ fontSize: 10, color: "hsl(var(--muted-foreground))" }}
         >
           Machine
         </span>

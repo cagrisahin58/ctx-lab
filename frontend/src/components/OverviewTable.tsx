@@ -58,7 +58,7 @@ export function OverviewTable({
   if (loading) {
     return (
       <div className="flex items-center justify-center py-10">
-        <p style={{ color: "var(--text-muted)", fontSize: 12 }}>{t("common.loading")}</p>
+        <p className="text-xs" style={{ color: "hsl(var(--muted-foreground))" }}>{t("common.loading")}</p>
       </div>
     );
   }
@@ -73,9 +73,9 @@ export function OverviewTable({
             checked={includeArchived}
             onChange={(e) => setIncludeArchived(e.target.checked)}
             className="rounded"
-            style={{ accentColor: "var(--accent)" }}
+            style={{ accentColor: "hsl(var(--primary))" }}
           />
-          <span style={{ fontSize: 12, color: "var(--text-muted)" }}>
+          <span className="text-xs" style={{ color: "hsl(var(--muted-foreground))" }}>
             {t("overview.showArchived")}
           </span>
         </label>
@@ -83,15 +83,15 @@ export function OverviewTable({
 
       <div
         className="rounded-lg overflow-hidden"
-        style={{ border: "1px solid var(--border-default)", background: "var(--bg-surface)" }}
+        style={{ border: "1px solid hsl(var(--border))", background: "hsl(var(--card))" }}
       >
         {/* Header row */}
         <div
           className="grid gap-2 px-3 py-2"
           style={{
             gridTemplateColumns: "2fr 1fr 1fr 80px 80px 80px",
-            borderBottom: "1px solid var(--border-default)",
-            background: "var(--bg-app)",
+            borderBottom: "1px solid hsl(var(--border))",
+            background: "hsl(var(--background))",
           }}
         >
           {(
@@ -108,7 +108,7 @@ export function OverviewTable({
               key={field}
               onClick={() => toggleSort(field)}
               className="flex items-center gap-1 font-semibold uppercase tracking-wider text-left"
-              style={{ fontSize: 10, color: sortField === field ? "var(--accent)" : "var(--text-muted)" }}
+              style={{ fontSize: 10, color: sortField === field ? "hsl(var(--primary))" : "hsl(var(--muted-foreground))" }}
             >
               {label}
               <ArrowUpDown size={10} />
@@ -118,7 +118,7 @@ export function OverviewTable({
 
         {/* Data rows */}
         {sorted.length === 0 ? (
-          <p className="py-6 text-center" style={{ color: "var(--text-muted)", fontSize: 12 }}>
+          <p className="py-6 text-center text-xs" style={{ color: "hsl(var(--muted-foreground))" }}>
             {t("dashboard.noProjects")}
           </p>
         ) : (
@@ -126,28 +126,26 @@ export function OverviewTable({
             <button
               key={row.id}
               onClick={() => onSelectProject(row.id)}
-              className="grid gap-2 px-3 py-2.5 w-full text-left transition-colors"
+              className="grid gap-2 px-3 py-2.5 w-full text-left transition-colors hover:bg-[hsl(var(--muted))]/50"
               style={{
                 gridTemplateColumns: "2fr 1fr 1fr 80px 80px 80px",
-                borderBottom: "1px solid var(--border-default)",
+                borderBottom: "1px solid hsl(var(--border))",
               }}
-              onMouseEnter={(e) => e.currentTarget.style.background = "var(--bg-surface-hover)"}
-              onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
             >
               {/* Project name */}
               <div>
-                <span style={{ fontSize: 13, color: "var(--text-primary)", fontWeight: 500 }}>
+                <span className="text-sm font-medium" style={{ color: "hsl(var(--foreground))" }}>
                   {row.name}
                 </span>
                 {row.status === "archived" && (
-                  <span style={{ fontSize: 10, color: "var(--text-muted)", marginLeft: 6 }}>
+                  <span className="text-[10px] ml-1.5" style={{ color: "hsl(var(--muted-foreground))" }}>
                     {t("overview.archived")}
                   </span>
                 )}
               </div>
 
               {/* Last activity */}
-              <span className="font-mono tabular-nums" style={{ fontSize: 12, color: "var(--text-secondary)" }}>
+              <span className="font-mono tabular-nums text-xs" style={{ color: "hsl(var(--muted-foreground))" }}>
                 {row.last_session_at
                   ? formatDistanceToNow(new Date(row.last_session_at), { addSuffix: true })
                   : "\u2014"}
@@ -159,21 +157,20 @@ export function OverviewTable({
               </div>
 
               {/* Sessions */}
-              <span className="font-mono tabular-nums" style={{ fontSize: 12, color: "var(--text-secondary)" }}>
+              <span className="font-mono tabular-nums text-xs" style={{ color: "hsl(var(--muted-foreground))" }}>
                 {row.session_count}
               </span>
 
               {/* Time */}
-              <span className="font-mono tabular-nums" style={{ fontSize: 12, color: "var(--text-secondary)" }}>
+              <span className="font-mono tabular-nums text-xs" style={{ color: "hsl(var(--muted-foreground))" }}>
                 {row.total_minutes > 0 ? `${row.total_minutes}m` : "\u2014"}
               </span>
 
               {/* Cost */}
               <span
-                className="font-mono tabular-nums"
+                className="font-mono tabular-nums text-xs"
                 style={{
-                  fontSize: 12,
-                  color: row.total_cost > 1 ? "#f59e0b" : row.total_cost > 0 ? "#22c55e" : "var(--text-muted)",
+                  color: row.total_cost > 1 ? "hsl(var(--warning))" : row.total_cost > 0 ? "hsl(var(--success))" : "hsl(var(--muted-foreground))",
                 }}
               >
                 {row.total_cost > 0 ? `$${row.total_cost.toFixed(2)}` : "\u2014"}

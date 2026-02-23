@@ -5,14 +5,12 @@ use std::time::{Duration, SystemTime};
 use anyhow::Result;
 
 pub fn atomic_write(path: &Path, content: &[u8]) -> Result<()> {
-    if let Some(parent) = path.parent() {
-        fs::create_dir_all(parent)?;
-    }
-    let tmp_path = path.with_extension("tmp");
-    let mut file = fs::File::create(&tmp_path)?;
-    file.write_all(content)?;
-    file.sync_all()?;
-    fs::rename(&tmp_path, path)?;
+    let parent = path.parent().unwrap_or(Path::new("."));
+    fs::create_dir_all(parent)?;
+    let mut tmp = tempfile::NamedTempFile::new_in(parent)?;
+    tmp.write_all(content)?;
+    tmp.as_file().sync_all()?;
+    tmp.persist(path).map_err(|e| e.error)?;
     Ok(())
 }
 
@@ -81,11 +79,11 @@ pub fn seslog_dir_with_home(home: &Path) -> Result<PathBuf> {
 fn has_active_queue(data_dir: &Path) -> bool {
     let queue_dir = data_dir.join("queue");
     let cutoff = SystemTime::now() - Duration::from_secs(30);
-    queue_dir.read_dir().ok().map_or(false, |entries| {
+    queue_dir.read_dir().ok().is_some_and(|entries| {
         entries.filter_map(|e| e.ok())
             .any(|e| e.metadata().ok()
                 .and_then(|m| m.modified().ok())
-                .map_or(false, |t| t > cutoff))
+                .is_some_and(|t| t > cutoff))
     })
 }
 

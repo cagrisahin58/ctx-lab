@@ -25,3 +25,4 @@ tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 notify = "7"
 sysinfo = "0.32"
 fd-lock = "4"
+dirs = "5"

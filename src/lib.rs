@@ -4,6 +4,18 @@
 use dioxus::prelude::*;
 
 mod state;
+mod db;
+
+use db::{Database, get_default_db_path, get_projects_from_db, get_all_projects_from_db, get_sessions_from_db, ProjectRow, SessionRow};
+
+use std::sync::OnceLock;
+
+/// Global database instance
+static DATABASE: OnceLock<Database> = OnceLock::new();
+
+fn get_db() -> &'static Database {
+    DATABASE.get().expect("Database not initialized")
+}
 
 use state::{get_demo_projects, get_demo_sessions, Project, ProjectStatus};
 
@@ -18,8 +30,95 @@ pub fn main() {
 
     tracing::info!("Starting ctx-lab desktop app");
 
+    // Initialize database
+    let db_path = get_default_db_path();
+    tracing::info!("Database path: {:?}", db_path);
+
+    match Database::new(&db_path) {
+        Ok(db) => {
+            tracing::info!("Database initialized successfully");
+
+            // Seed demo data if empty
+            seed_demo_data(&db);
+
+            // Store in global for UI access
+            let _ = DATABASE.set(db);
+        }
+        Err(e) => {
+            tracing::error!("Failed to initialize database: {}", e);
+        }
+    }
+
     // Build and run the Dioxus desktop app
     dioxus::launch(App);
+}
+
+/// Seed demo data if database is empty
+fn seed_demo_data(db: &Database) {
+    let conn = db.connection();
+
+    // Check if projects exist
+    let count: i64 = conn
+        .query_row("SELECT COUNT(*) FROM projects", [], |row| row.get(0))
+        .unwrap_or(0);
+
+    if count > 0 {
+        return; // Already has data
+    }
+
+    tracing::info!("Seeding demo data...");
+
+    // Insert demo projects
+    let demo_projects = get_demo_projects();
+    for p in &demo_projects {
+        conn.execute(
+            "INSERT OR IGNORE INTO projects (id, name, status, created_at, total_sessions, total_duration_minutes, last_session_at, last_machine, progress_percent, description)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
+            rusqlite::params![
+                p.id,
+                p.name,
+                format!("{:?}", p.status).to_lowercase(),
+                chrono::Utc::now().to_rfc3339(),
+                p.session_count,
+                p.total_minutes,
+                p.last_session_at,
+                p.last_machine,
+                p.progress_percent,
+                p.last_summary.clone().unwrap_or_default()
+            ],
+        ).ok();
+    }
+
+    // Insert demo sessions
+    let demo_sessions = get_demo_sessions();
+    for s in &demo_sessions {
+        conn.execute(
+            "INSERT OR IGNORE INTO sessions (id, project_id, machine, started_at, ended_at, duration_minutes, summary, next_steps, files_changed, recovered)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
+            rusqlite::params![
+                s.id,
+                s.project_id,
+                s.machine,
+                s.started_at,
+                s.ended_at,
+                s.duration_minutes,
+                s.summary,
+                s.next_steps,
+                s.files_changed,
+                s.recovered as i32
+            ],
+        ).ok();
+
+        // Insert transcript highlights
+        for (i, highlight) in s.transcript_highlights.iter().enumerate() {
+            conn.execute(
+                "INSERT OR IGNORE INTO transcript_highlights (session_id, content, sort_order) VALUES (?1, ?2, ?3)",
+                rusqlite::params![s.id, highlight, i as i32],
+            ).ok();
+        }
+    }
+
+    tracing::info!("Demo data seeded successfully");
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -71,20 +170,24 @@ fn App() -> Element {
 }
 
 fn render_dashboard() -> Element {
-    let projects = get_demo_projects();
-    let active: Vec<_> = projects.iter().filter(|p| p.status == ProjectStatus::Active).collect();
-    let archived: Vec<_> = projects.iter().filter(|p| p.status == ProjectStatus::Archived).collect();
+    // Load projects from database
+    let db = get_db();
+    let conn = db.connection();
+    let projects = get_all_projects_from_db(&conn).unwrap_or_default();
+
+    let active: Vec<_> = projects.iter().filter(|p| p.status == "active").collect();
+    let archived: Vec<_> = projects.iter().filter(|p| p.status == "archived").collect();
     let recent = active.first();
     let count = active.len();
 
-    let recent_name = recent.as_ref().map(|p| p.name.clone());
+    let recent_name = recent.map(|p| p.name.clone());
     let recent_summary = recent.and_then(|p| p.last_summary.clone());
 
     rsx! {
         div { class: "dashboard",
             div { class: "page-header", h1 { class: "page-title", "Dashboard" } p { class: "page-subtitle", "Welcome back!" } }
 
-            if let (Some(name), Some(summary)) = (recent_name.as_ref(), recent_summary.as_ref()) {
+            if let (Some(name), Some(summary)) = (&recent_name, &recent_summary) {
                 div { class: "hero-card glass-panel",
                     div { class: "hero-card-header", div { class: "hero-label", "Quick Resume" } div { class: "project-status", span { class: "status-dot" } "Active" } }
                     h2 { class: "hero-project-name", "{name}" }
@@ -96,7 +199,7 @@ fn render_dashboard() -> Element {
             div { style: "margin-top: 32px;",
                 div { style: "display: flex; justify-content: space-between; margin-bottom: 20px;", h2 { style: "font-size: 20px; font-weight: 600;", "Active Projects" } span { style: "font-size: 14px; color: var(--text-muted);", "{count} projects" } }
                 div { class: "projects-grid",
-                    for p in active.iter() {
+                    for p in &active {
                         div { class: "project-card glass-panel",
                             div { class: "project-card-header",
                                 h3 { class: "project-name", "{p.name}" }
@@ -117,7 +220,7 @@ fn render_dashboard() -> Element {
                 div { style: "margin-top: 40px;",
                     div { style: "display: flex; justify-content: space-between; margin-bottom: 20px;", h2 { style: "font-size: 20px; font-weight: 600; color: var(--text-muted);", "Archived Projects" } }
                     div { class: "projects-grid",
-                        for p in archived.iter() {
+                        for p in &archived {
                             div { class: "project-card glass-panel",
                                 div { class: "project-card-header",
                                     h3 { class: "project-name", "{p.name}" }
@@ -165,8 +268,11 @@ fn render_card_item(p: &Project, active: bool) -> Element {
 }
 
 fn render_project_detail(project_id: String) -> Element {
-    let projects = get_demo_projects();
-    let sessions = get_demo_sessions();
+    // Load project and sessions from database
+    let db = get_db();
+    let conn = db.connection();
+    let projects = get_all_projects_from_db(&conn).unwrap_or_default();
+    let sessions = get_sessions_from_db(&conn, &project_id, 20).unwrap_or_default();
 
     if let Some(p) = projects.iter().find(|p| p.id == project_id) {
         let name = p.name.clone();

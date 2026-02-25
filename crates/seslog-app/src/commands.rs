@@ -1,5 +1,4 @@
 use std::path::{Path, PathBuf};
-use std::sync::Mutex;
 
 use rusqlite::params;
 
@@ -7,6 +6,7 @@ use rusqlite::params;
 // DbConnector — lightweight connection factory for SQLite
 // ---------------------------------------------------------------------------
 
+#[derive(Debug)]
 pub struct DbConnector {
     db_path: PathBuf,
 }
@@ -371,80 +371,13 @@ pub fn get_overview_inner(pool: &DbConnector, include_archived: bool) -> anyhow:
     Ok(overview)
 }
 
-// ---------------------------------------------------------------------------
-// Tauri command wrappers
-// ---------------------------------------------------------------------------
-
-#[tauri::command]
-pub fn get_projects(
-    pool: tauri::State<'_, Mutex<DbConnector>>,
-) -> Result<Vec<ProjectSummaryResponse>, String> {
-    let pool = pool.lock().map_err(|e| e.to_string())?;
-    get_projects_inner(&pool).map_err(|e| e.to_string())
-}
-
-#[tauri::command]
-pub fn get_project_detail(
-    pool: tauri::State<'_, Mutex<DbConnector>>,
-    project_id: String,
-) -> Result<ProjectDetailResponse, String> {
-    let pool = pool.lock().map_err(|e| e.to_string())?;
-    get_project_detail_inner(&pool, project_id).map_err(|e| e.to_string())
-}
-
-#[tauri::command]
-pub fn get_sessions(
-    pool: tauri::State<'_, Mutex<DbConnector>>,
-    project_id: String,
-    limit: u32,
-) -> Result<Vec<SessionResponse>, String> {
-    let pool = pool.lock().map_err(|e| e.to_string())?;
-    get_sessions_inner(&pool, project_id, limit).map_err(|e| e.to_string())
-}
-
-#[tauri::command]
-pub fn get_roadmap(
-    pool: tauri::State<'_, Mutex<DbConnector>>,
-    project_id: String,
-) -> Result<RoadmapResponse, String> {
-    let pool = pool.lock().map_err(|e| e.to_string())?;
-    get_roadmap_inner(&pool, project_id).map_err(|e| e.to_string())
-}
-
-#[tauri::command]
-pub fn rebuild_cache(
-    pool: tauri::State<'_, Mutex<DbConnector>>,
-) -> Result<String, String> {
-    let pool = pool.lock().map_err(|e| e.to_string())?;
-    let report = rebuild_cache_inner(&pool).map_err(|e| e.to_string())?;
-    Ok(format!(
-        "Rebuild complete: added={}, removed={}, updated={}, errors={}",
-        report.added, report.removed, report.updated, report.errors.len()
-    ))
-}
-
-#[tauri::command]
-pub fn get_overview(
-    pool: tauri::State<'_, Mutex<DbConnector>>,
-    include_archived: Option<bool>,
-) -> Result<Vec<OverviewRow>, String> {
-    let pool = pool.lock().map_err(|e| e.to_string())?;
-    get_overview_inner(&pool, include_archived.unwrap_or(false)).map_err(|e| e.to_string())
-}
-
-#[tauri::command]
-pub fn open_in_editor(project_id: String) -> Result<String, String> {
-    open_in_editor_inner(&project_id).map_err(|e| e.to_string())
-}
-
-fn open_in_editor_inner(project_id: &str) -> anyhow::Result<String> {
+pub fn open_in_editor_inner(project_id: &str) -> anyhow::Result<String> {
     let data_dir = seslog_core::storage::seslog_dir()?;
     let meta_path = data_dir.join("projects").join(project_id).join("meta.toml");
     let content = std::fs::read_to_string(&meta_path)
         .map_err(|_| anyhow::anyhow!("Project meta.toml not found for {}", project_id))?;
     let meta: seslog_core::models::ProjectMeta = toml::from_str(&content)?;
 
-    // Look up the path for the current hostname in the paths map
     let hostname = hostname::get()
         .map_err(|e| anyhow::anyhow!("Failed to get hostname: {}", e))?
         .into_string()
@@ -452,7 +385,6 @@ fn open_in_editor_inner(project_id: &str) -> anyhow::Result<String> {
 
     let path = meta.paths.get(&hostname)
         .or_else(|| {
-            // Fall back to the first available path if only one machine is registered
             if meta.paths.len() == 1 {
                 meta.paths.values().next()
             } else {
@@ -472,43 +404,28 @@ fn open_in_editor_inner(project_id: &str) -> anyhow::Result<String> {
     Ok(format!("Opened {} in editor", path))
 }
 
-#[tauri::command]
-pub fn get_settings() -> Result<serde_json::Value, String> {
-    let config_path = seslog_core::storage::seslog_dir()
-        .map_err(|e| e.to_string())?
-        .join("config.toml");
-    let config =
-        seslog_core::config::load_config(&config_path).map_err(|e| e.to_string())?;
-    serde_json::to_value(&config).map_err(|e| e.to_string())
+pub fn get_settings_inner() -> anyhow::Result<seslog_core::config::AppConfig> {
+    let config_path = seslog_core::storage::seslog_dir()?.join("config.toml");
+    seslog_core::config::load_config(&config_path)
 }
 
-#[tauri::command]
-pub fn update_settings(config: serde_json::Value) -> Result<(), String> {
-    let config_path = seslog_core::storage::seslog_dir()
-        .map_err(|e| e.to_string())?
-        .join("config.toml");
+pub fn update_settings_inner(config: serde_json::Value) -> anyhow::Result<()> {
+    let config_path = seslog_core::storage::seslog_dir()?.join("config.toml");
+    let mut app_config = seslog_core::config::load_config(&config_path)?;
 
-    // Load existing config so non-exposed fields retain their values
-    let mut app_config =
-        seslog_core::config::load_config(&config_path).map_err(|e| e.to_string())?;
-
-    // Apply only the fields the frontend sends
     if let Some(v) = config.get("privacy_mode") {
         if let Ok(mode) = serde_json::from_value::<seslog_core::config::PrivacyMode>(v.clone()) {
             app_config.privacy_mode = mode;
         }
     }
-    if let Some(v) = config
-        .get("checkpoint_interval_minutes")
-        .and_then(|v| v.as_u64())
-    {
+    if let Some(v) = config.get("checkpoint_interval_minutes").and_then(|v| v.as_u64()) {
         app_config.checkpoint_interval_minutes = v as u32;
     }
     if let Some(v) = config.get("sanitize_secrets").and_then(|v| v.as_bool()) {
         app_config.sanitize_secrets = v;
     }
 
-    seslog_core::config::write_config(&config_path, &app_config).map_err(|e| e.to_string())
+    seslog_core::config::write_config(&config_path, &app_config)
 }
 
 // ---------------------------------------------------------------------------

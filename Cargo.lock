@@ -575,61 +575,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "ctx-lab-app"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "chrono",
- "ctx-lab-core",
- "notify",
- "rusqlite",
- "serde",
- "serde_json",
- "sysinfo",
- "tauri",
- "tauri-build",
- "tauri-plugin-shell",
- "tempfile",
- "toml 0.8.2",
-]
-
-[[package]]
-name = "ctx-lab-core"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "chrono",
- "dirs",
- "fd-lock",
- "git2",
- "once_cell",
- "regex",
- "serde",
- "serde_json",
- "tempfile",
- "thiserror 2.0.18",
- "toml 0.8.2",
- "uuid",
-]
-
-[[package]]
-name = "ctx-lab-hook"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "chrono",
- "clap",
- "ctx-lab-core",
- "dirs",
- "hostname",
- "serde",
- "serde_json",
- "tempfile",
- "toml 0.8.2",
- "uuid",
-]
-
-[[package]]
 name = "darling"
 version = "0.21.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3465,6 +3410,61 @@ checksum = "d52aa42f8fdf0fed91e5ce7f23d8138441002fa31dca008acf47e6fd4721f741"
 dependencies = [
  "nodrop",
  "stable_deref_trait",
+]
+
+[[package]]
+name = "seslog"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "chrono",
+ "clap",
+ "dirs",
+ "hostname",
+ "serde",
+ "serde_json",
+ "seslog-core",
+ "tempfile",
+ "toml 0.8.2",
+ "uuid",
+]
+
+[[package]]
+name = "seslog-app"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "chrono",
+ "notify",
+ "rusqlite",
+ "serde",
+ "serde_json",
+ "seslog-core",
+ "sysinfo",
+ "tauri",
+ "tauri-build",
+ "tauri-plugin-shell",
+ "tempfile",
+ "toml 0.8.2",
+]
+
+[[package]]
+name = "seslog-core"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "chrono",
+ "dirs",
+ "fd-lock",
+ "git2",
+ "once_cell",
+ "regex",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "thiserror 2.0.18",
+ "toml 0.8.2",
+ "uuid",
 ]
 
 [[package]]

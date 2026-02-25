@@ -22,7 +22,7 @@ export function useRoadmap(projectId: string | undefined) {
   useEffect(() => {
     refresh();
   }, [refresh]);
-  useTauriEvent("ctx-lab-refresh", refresh);
+  useTauriEvent("seslog-refresh", refresh);
 
   return { roadmap, loading, refresh };
 }

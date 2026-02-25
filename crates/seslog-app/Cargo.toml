@@ -1,0 +1,23 @@
+[package]
+name = "seslog-app"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+seslog-core = { path = "../seslog-core" }
+tauri = { version = "2", features = ["tray-icon"] }
+tauri-plugin-shell = "2"
+serde.workspace = true
+serde_json.workspace = true
+chrono.workspace = true
+anyhow.workspace = true
+rusqlite = { version = "0.32", features = ["bundled"] }
+toml.workspace = true
+notify = "7"
+sysinfo = "0.33"
+
+[dev-dependencies]
+tempfile.workspace = true
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }

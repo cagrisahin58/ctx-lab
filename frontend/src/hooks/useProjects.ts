@@ -23,7 +23,7 @@ export function useProjects() {
   useEffect(() => {
     refresh();
   }, [refresh]);
-  useTauriEvent("ctx-lab-refresh", refresh);
+  useTauriEvent("seslog-refresh", refresh);
 
   return { projects, loading, error, refresh };
 }

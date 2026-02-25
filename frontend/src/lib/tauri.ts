@@ -5,6 +5,7 @@ import type {
   SessionInfo,
   RoadmapData,
   AppConfig,
+  OverviewRow,
 } from "./types";
 
 export const api = {
@@ -24,4 +25,6 @@ export const api = {
   getSettings: () => invoke<AppConfig>("get_settings"),
   updateSettings: (config: AppConfig) =>
     invoke<void>("update_settings", { config }),
+  getOverview: (includeArchived?: boolean) =>
+    invoke<OverviewRow[]>("get_overview", { includeArchived }),
 };

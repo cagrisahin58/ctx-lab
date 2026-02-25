@@ -3,13 +3,14 @@ import { ZoomIn, ZoomOut } from "lucide-react";
 
 export function ZoomControl() {
   const [zoom, setZoom] = useState(() => {
-    const saved = localStorage.getItem("ctx-lab-zoom");
+    const saved = localStorage.getItem("seslog-zoom") || localStorage.getItem("ctx-lab-zoom");
     return saved ? parseFloat(saved) : 1;
   });
 
   useEffect(() => {
-    document.documentElement.style.setProperty("--ctx-lab-zoom", String(zoom));
-    localStorage.setItem("ctx-lab-zoom", String(zoom));
+    document.documentElement.style.setProperty("--seslog-zoom", String(zoom));
+    localStorage.setItem("seslog-zoom", String(zoom));
+    localStorage.removeItem("ctx-lab-zoom");
   }, [zoom]);
 
   return (

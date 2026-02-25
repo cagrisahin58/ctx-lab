@@ -25,7 +25,7 @@ export function useSessions(
   useEffect(() => {
     refresh();
   }, [refresh]);
-  useTauriEvent("ctx-lab-refresh", refresh);
+  useTauriEvent("seslog-refresh", refresh);
 
   return { sessions, loading, refresh };
 }

@@ -1,0 +1,21 @@
+[package]
+name = "seslog-core"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+chrono.workspace = true
+uuid.workspace = true
+toml.workspace = true
+git2.workspace = true
+anyhow.workspace = true
+thiserror.workspace = true
+fd-lock.workspace = true
+dirs.workspace = true
+regex.workspace = true
+once_cell.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true

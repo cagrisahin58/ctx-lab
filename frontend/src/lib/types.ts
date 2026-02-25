@@ -27,17 +27,34 @@ export interface SessionInfo {
   files_changed: number;
   recovered: boolean;
   transcript_highlights: string[];
+  token_count: number | null;
+  estimated_cost_usd: number | null;
+  model: string | null;
 }
 
 export interface RoadmapData {
   items: RoadmapItem[];
   progress_percent: number;
+  warnings: string[];
 }
 
 export interface RoadmapItem {
   phase: string | null;
   item_text: string;
   status: "done" | "active" | "pending" | "suspended" | "blocked";
+  item_id: string | null;
+  depends_on: string[];
+}
+
+export interface OverviewRow {
+  id: string;
+  name: string;
+  status: "active" | "archived";
+  progress_percent: number;
+  last_session_at: string | null;
+  session_count: number;
+  total_minutes: number;
+  total_cost: number;
 }
 
 export interface Decision {

@@ -1,6 +1,7 @@
 use dioxus::prelude::*;
-use crate::state::{View, Theme};
+use crate::state::{View, Theme, Toast};
 use super::sidebar::Sidebar;
+use super::components::ToastContainer;
 use super::dashboard::Dashboard;
 use super::project_detail::ProjectDetail;
 use super::session_detail::SessionDetail;
@@ -11,6 +12,7 @@ use super::overview::OverviewPage;
 pub fn App() -> Element {
     let _view = use_context_provider(|| Signal::new(View::Dashboard));
     let theme = use_context_provider(|| Signal::new(Theme::Dark));
+    let _toasts = use_context_provider(|| Signal::new(Vec::<Toast>::new()));
 
     // Refresh signal for watcher reactivity
     let _refresh = use_context_provider(|| Signal::new(0u64));
@@ -35,8 +37,32 @@ pub fn App() -> Element {
         "app-container"
     };
 
+    let mut view_for_keys: Signal<View> = use_context();
+
     rsx! {
-        div { class: "{theme_class}",
+        div {
+            class: "{theme_class}",
+            tabindex: "0",
+            onkeydown: move |evt: KeyboardEvent| {
+                let key = evt.key();
+                match key {
+                    Key::Escape => {
+                        // Navigate back
+                        let new_view = match view_for_keys.read().clone() {
+                            View::Session { project_id, .. } => Some(View::Project(project_id)),
+                            View::Project(_) => Some(View::Dashboard),
+                            _ => None,
+                        };
+                        if let Some(v) = new_view {
+                            view_for_keys.set(v);
+                        }
+                    }
+                    Key::Character(ref c) if c == "1" => view_for_keys.set(View::Dashboard),
+                    Key::Character(ref c) if c == "2" => view_for_keys.set(View::Overview),
+                    Key::Character(ref c) if c == "3" => view_for_keys.set(View::Settings),
+                    _ => {}
+                }
+            },
             style { {css} }
             Sidebar {}
             div { class: "main-content",
@@ -48,6 +74,7 @@ pub fn App() -> Element {
                     View::Overview => rsx! { OverviewPage {} },
                 }
             }
+            ToastContainer {}
         }
     }
 }

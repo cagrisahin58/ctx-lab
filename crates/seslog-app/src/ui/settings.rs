@@ -1,10 +1,12 @@
 use dioxus::prelude::*;
 use crate::commands;
-use super::components::GlassPanel;
+use crate::state::{Toast, ToastKind};
+use super::components::{GlassPanel, show_toast};
 
 #[allow(non_snake_case)]
 pub fn SettingsPage() -> Element {
     let _refresh: Signal<u64> = use_context();
+    let mut toasts: Signal<Vec<Toast>> = use_context();
 
     // Load current config
     let config = commands::get_settings_inner().ok();
@@ -26,7 +28,6 @@ pub fn SettingsPage() -> Element {
         .map(|o| o.status.success())
         .unwrap_or(false);
 
-    let mut status_msg = use_signal(String::new);
     let mut privacy_val = use_signal(|| privacy_mode.clone());
     let mut sanitize_val = use_signal(|| sanitize_secrets);
 
@@ -43,8 +44,8 @@ pub fn SettingsPage() -> Element {
                 GlassPanel {
                     div { class: "settings-item",
                         div {
-                            div { style: "font-weight: 600; color: var(--text-primary);", "Privacy Mode" }
-                            div { style: "font-size: 13px; color: var(--text-muted); margin-top: 4px;",
+                            div { class: "settings-label", "Privacy Mode" }
+                            div { class: "settings-description",
                                 "Controls what data is collected from sessions."
                             }
                         }
@@ -56,8 +57,8 @@ pub fn SettingsPage() -> Element {
                                 privacy_val.set(val.clone());
                                 let json = serde_json::json!({ "privacy_mode": val });
                                 match commands::update_settings_inner(json) {
-                                    Ok(_) => status_msg.set("Privacy mode updated.".to_string()),
-                                    Err(e) => status_msg.set(format!("Error: {}", e)),
+                                    Ok(_) => show_toast(&mut toasts, "Privacy mode updated.".into(), ToastKind::Success),
+                                    Err(e) => show_toast(&mut toasts, format!("Error: {}", e), ToastKind::Error),
                                 }
                             },
                             option { value: "full", selected: privacy_val() == "full", "Full" }
@@ -68,8 +69,8 @@ pub fn SettingsPage() -> Element {
 
                     div { class: "settings-item", style: "margin-top: 16px;",
                         div {
-                            div { style: "font-weight: 600; color: var(--text-primary);", "Sanitize Secrets" }
-                            div { style: "font-size: 13px; color: var(--text-muted); margin-top: 4px;",
+                            div { class: "settings-label", "Sanitize Secrets" }
+                            div { class: "settings-description",
                                 "Strip API keys and tokens from transcripts before storing."
                             }
                         }
@@ -82,56 +83,76 @@ pub fn SettingsPage() -> Element {
                                     sanitize_val.set(val);
                                     let json = serde_json::json!({ "sanitize_secrets": val });
                                     match commands::update_settings_inner(json) {
-                                        Ok(_) => status_msg.set("Sanitize setting updated.".to_string()),
-                                        Err(e) => status_msg.set(format!("Error: {}", e)),
+                                        Ok(_) => show_toast(&mut toasts, "Sanitize setting updated.".into(), ToastKind::Success),
+                                        Err(e) => show_toast(&mut toasts, format!("Error: {}", e), ToastKind::Error),
                                     }
                                 },
                             }
-                            span { class: "toggle-slider" }
+                            span { class: "toggle-knob" }
                         }
                     }
 
                     div { class: "settings-item", style: "margin-top: 16px;",
                         div {
-                            div { style: "font-weight: 600; color: var(--text-primary);", "Checkpoint Interval" }
-                            div { style: "font-size: 13px; color: var(--text-muted); margin-top: 4px;",
+                            div { class: "settings-label", "Checkpoint Interval" }
+                            div { class: "settings-description",
                                 "How often session data is checkpointed (in minutes)."
                             }
                         }
-                        span { style: "font-size: 16px; font-weight: 600; color: var(--text-primary); font-family: monospace;",
-                            "{checkpoint_interval} min"
-                        }
+                        span { class: "checkpoint-value", "{checkpoint_interval} min" }
                     }
                 }
             }
 
             // Hook Status section
-            div { class: "settings-section", style: "margin-top: 24px;",
+            div { class: "settings-section section-gap",
                 h3 { class: "section-header", "Hook Status" }
                 GlassPanel {
                     div { class: "settings-item",
-                        div { style: "display: flex; align-items: center; gap: 8px;",
+                        div { class: "settings-status-row",
                             span {
                                 class: if hook_installed { "status-dot" } else { "status-dot archived" },
                             }
-                            span { style: "font-weight: 600; color: var(--text-primary);",
+                            span { class: "settings-label",
                                 if hook_installed { "Hook installed" } else { "Hook not detected" }
                             }
                         }
                     }
 
-                    div { style: "display: flex; gap: 8px; margin-top: 16px;",
+                    div { class: "settings-action-row",
                         button {
                             class: "btn btn-secondary",
                             onclick: move |_| {
-                                status_msg.set("Doctor check: not yet implemented.".to_string());
+                                match std::process::Command::new("seslog").arg("doctor").output() {
+                                    Ok(output) => {
+                                        let stdout = String::from_utf8_lossy(&output.stdout);
+                                        let stderr = String::from_utf8_lossy(&output.stderr);
+                                        if output.status.success() {
+                                            show_toast(&mut toasts, format!("Doctor: {}", stdout.trim()), ToastKind::Success);
+                                        } else {
+                                            show_toast(&mut toasts, format!("Doctor failed: {}{}", stdout.trim(), stderr.trim()), ToastKind::Error);
+                                        }
+                                    }
+                                    Err(e) => show_toast(&mut toasts, format!("Could not run seslog doctor: {}", e), ToastKind::Error),
+                                }
                             },
                             "Run Doctor"
                         }
                         button {
                             class: "btn btn-secondary",
                             onclick: move |_| {
-                                status_msg.set("Reinstall: not yet implemented.".to_string());
+                                match std::process::Command::new("seslog").arg("install").output() {
+                                    Ok(output) => {
+                                        let stdout = String::from_utf8_lossy(&output.stdout);
+                                        let stderr = String::from_utf8_lossy(&output.stderr);
+                                        if output.status.success() {
+                                            show_toast(&mut toasts, format!("Reinstalled: {}", stdout.trim()), ToastKind::Success);
+                                        } else {
+                                            show_toast(&mut toasts, format!("Reinstall failed: {}{}", stdout.trim(), stderr.trim()), ToastKind::Error);
+                                        }
+                                    }
+                                    Err(e) => show_toast(&mut toasts, format!("Could not run seslog install: {}", e), ToastKind::Error),
+                                }
                             },
                             "Reinstall Hook"
                         }
@@ -140,7 +161,7 @@ pub fn SettingsPage() -> Element {
             }
 
             // Sync section
-            div { class: "settings-section", style: "margin-top: 24px;",
+            div { class: "settings-section section-gap",
                 h3 { class: "section-header", "Sync" }
                 GlassPanel {
                     SyncStatusPanel {}
@@ -148,13 +169,13 @@ pub fn SettingsPage() -> Element {
             }
 
             // Cache section
-            div { class: "settings-section", style: "margin-top: 24px;",
+            div { class: "settings-section section-gap",
                 h3 { class: "section-header", "Cache" }
                 GlassPanel {
                     div { class: "settings-item",
                         div {
-                            div { style: "font-weight: 600; color: var(--text-primary);", "Rebuild Cache" }
-                            div { style: "font-size: 13px; color: var(--text-muted); margin-top: 4px;",
+                            div { class: "settings-label", "Rebuild Cache" }
+                            div { class: "settings-description",
                                 "Re-scan all project files and rebuild the SQLite cache."
                             }
                         }
@@ -175,9 +196,9 @@ pub fn SettingsPage() -> Element {
                                                 format!(", {} errors", report.errors.len())
                                             }
                                         );
-                                        status_msg.set(msg);
+                                        show_toast(&mut toasts, msg, ToastKind::Success);
                                     }
-                                    Err(e) => status_msg.set(format!("Rebuild failed: {}", e)),
+                                    Err(e) => show_toast(&mut toasts, format!("Rebuild failed: {}", e), ToastKind::Error),
                                 }
                             },
                             "Rebuild Cache"
@@ -187,13 +208,13 @@ pub fn SettingsPage() -> Element {
             }
 
             // Diagnostics section
-            div { class: "settings-section", style: "margin-top: 24px;",
+            div { class: "settings-section section-gap",
                 h3 { class: "section-header", "Diagnostics" }
                 GlassPanel {
                     div { class: "settings-item",
                         div {
-                            div { style: "font-weight: 600; color: var(--text-primary);", "Support Bundle" }
-                            div { style: "font-size: 13px; color: var(--text-muted); margin-top: 4px;",
+                            div { class: "settings-label", "Support Bundle" }
+                            div { class: "settings-description",
                                 "Generate a ZIP with system info, logs, and config for troubleshooting."
                             }
                         }
@@ -203,8 +224,8 @@ pub fn SettingsPage() -> Element {
                                 let data_dir = seslog_core::storage::seslog_dir().unwrap_or_default();
                                 let output_dir = dirs::download_dir().unwrap_or_else(|| data_dir.clone());
                                 match crate::bundle::generate_support_bundle(&output_dir, &data_dir, 200) {
-                                    Ok(path) => status_msg.set(format!("Bundle saved: {}", path.display())),
-                                    Err(e) => status_msg.set(format!("Bundle failed: {}", e)),
+                                    Ok(path) => show_toast(&mut toasts, format!("Bundle saved: {}", path.display()), ToastKind::Success),
+                                    Err(e) => show_toast(&mut toasts, format!("Bundle failed: {}", e), ToastKind::Error),
                                 }
                             },
                             "Generate Bundle"
@@ -213,13 +234,6 @@ pub fn SettingsPage() -> Element {
                 }
             }
 
-            // Status message
-            if !status_msg().is_empty() {
-                div {
-                    style: "margin-top: 16px; padding: 12px 16px; background: var(--bg-tertiary); border-radius: 8px; font-size: 13px; color: var(--text-secondary);",
-                    "{status_msg}"
-                }
-            }
         }
     }
 }
@@ -243,25 +257,23 @@ fn SyncStatusPanel() -> Element {
 
     rsx! {
         div { class: "settings-item",
-            div { style: "display: flex; align-items: center; gap: 8px;",
+            div { class: "settings-status-row",
                 span {
                     class: if is_ok { "status-dot" } else { "status-dot archived" },
                 }
-                span { style: "font-weight: 600; color: var(--text-primary);",
+                span { class: "settings-label",
                     "{status_text}"
                 }
             }
             if let Some(last) = &status.last_sync {
-                div { style: "font-size: 12px; color: var(--text-muted); margin-top: 4px;",
-                    "Last commit: {last}"
-                }
+                div { class: "settings-description", "Last commit: {last}" }
             }
         }
 
         div { class: "settings-item", style: "margin-top: 12px;",
             div {
-                div { style: "font-weight: 600; color: var(--text-primary);", "Machine" }
-                div { style: "font-size: 13px; color: var(--text-muted); margin-top: 4px;",
+                div { class: "settings-label", "Machine" }
+                div { class: "settings-description",
                     {
                         let profile = crate::sync::get_machine_profile();
                         format!("{} ({}/{})", profile.hostname, profile.platform, profile.arch)

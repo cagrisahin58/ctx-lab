@@ -1,15 +1,23 @@
 use dioxus::prelude::*;
 use crate::commands;
 use crate::state::View;
-use super::components::{EmptyState, ProgressBar, StatusDot};
+use super::components::{DashboardSkeleton, EmptyState, ProgressBar, StatusDot, format_minutes};
 
 #[allow(non_snake_case)]
 pub fn Dashboard() -> Element {
     let mut current_view: Signal<View> = use_context();
-    let _refresh: Signal<u64> = use_context();
+    let refresh: Signal<u64> = use_context();
 
-    let pool = crate::get_db_pool();
-    let projects = commands::get_projects_inner(pool).unwrap_or_default();
+    let resource = use_resource(move || async move {
+        refresh(); // track refresh dependency
+        let pool = crate::get_db_pool();
+        commands::get_projects_inner(pool).unwrap_or_default()
+    });
+
+    let projects = match resource() {
+        None => return rsx! { DashboardSkeleton {} },
+        Some(p) => p,
+    };
 
     // Split into active and archived
     let active: Vec<_> = projects
@@ -25,7 +33,7 @@ pub fn Dashboard() -> Element {
         return rsx! {
             div { class: "dashboard",
                 EmptyState {
-                    icon: "\u{1F4C2}".to_string(),
+                    icon: super::icons::SVG_FOLDER.to_string(),
                     title: "No Projects Yet".to_string(),
                     message: "Start a Claude Code session in any project to see it here.".to_string(),
                 }
@@ -62,24 +70,30 @@ pub fn Dashboard() -> Element {
 
             // Hero Card
             if let Some((hero_id, hero_name, hero_summary, hero_progress)) = hero {
-                div { class: "hero-card",
-                    onclick: move |_| {
-                        current_view.set(View::Project(hero_id.clone()));
-                    },
-                    div { class: "hero-card-header",
-                        span { class: "hero-badge", "Quick Resume" }
-                    }
-                    h2 { class: "hero-card-title", "{hero_name}" }
-                    if !hero_summary.is_empty() {
-                        p { class: "hero-card-summary", "{hero_summary}" }
-                    }
-                    ProgressBar { percent: hero_progress }
-                    div { style: "margin-top: 16px;",
-                        button { class: "btn btn-primary",
-                            onclick: move |evt| {
-                                evt.stop_propagation();
+                {
+                    let hero_id_for_btn = hero_id.clone();
+                    rsx! {
+                        div { class: "hero-card glass-panel",
+                            onclick: move |_| {
+                                current_view.set(View::Project(hero_id.clone()));
                             },
-                            "View Details"
+                            div { class: "hero-card-header",
+                                span { class: "hero-label", "Quick Resume" }
+                            }
+                            h2 { class: "hero-project-name", "{hero_name}" }
+                            if !hero_summary.is_empty() {
+                                p { class: "hero-summary", "{hero_summary}" }
+                            }
+                            ProgressBar { percent: hero_progress }
+                            div { style: "margin-top: 16px;",
+                                button { class: "btn btn-primary",
+                                    onclick: move |evt| {
+                                        evt.stop_propagation();
+                                        current_view.set(View::Project(hero_id_for_btn.clone()));
+                                    },
+                                    "View Details"
+                                }
+                            }
                         }
                     }
                 }
@@ -149,17 +163,14 @@ fn ProjectCard(
                 current_view.set(View::Project(id.clone()));
             },
             div { class: "project-card-header",
-                span { class: "project-card-name", "{name}" }
+                span { class: "project-name", "{name}" }
                 StatusDot { active: active }
             }
             if !summary.is_empty() {
-                p { class: "project-card-summary",
-                    style: "display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;",
-                    "{summary}"
-                }
+                p { class: "project-summary", "{summary}" }
             }
             ProgressBar { percent: progress }
-            div { class: "project-card-meta",
+            div { class: "project-meta",
                 span { "{meta_text}" }
                 span { "\u{00B7}" }
                 span { "{time_str}" }
@@ -168,12 +179,3 @@ fn ProjectCard(
     }
 }
 
-fn format_minutes(total: i64) -> String {
-    let hours = total / 60;
-    let mins = total % 60;
-    if hours > 0 {
-        format!("{}h {}m", hours, mins)
-    } else {
-        format!("{}m", mins)
-    }
-}

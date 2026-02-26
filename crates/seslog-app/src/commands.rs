@@ -1,6 +1,7 @@
 use std::path::{Path, PathBuf};
 
 use rusqlite::params;
+use rusqlite::OptionalExtension;
 
 // ---------------------------------------------------------------------------
 // DbConnector — lightweight connection factory for SQLite
@@ -43,6 +44,7 @@ pub struct ProjectSummaryResponse {
     pub last_summary: Option<String>,
     pub session_count: i64,
     pub total_minutes: i64,
+    pub total_cost: f64,
 }
 
 #[derive(Debug, Clone, serde::Serialize)]
@@ -113,10 +115,10 @@ pub fn get_projects_inner(pool: &DbConnector) -> anyhow::Result<Vec<ProjectSumma
                 (SELECT s2.summary FROM sessions s2
                  WHERE s2.project_id = p.id ORDER BY s2.started_at DESC LIMIT 1) AS last_summary,
                 COUNT(s.id) AS session_count,
-                COALESCE(SUM(s.duration_minutes), 0) AS total_minutes
+                COALESCE(SUM(s.duration_minutes), 0) AS total_minutes,
+                COALESCE(SUM(s.estimated_cost_usd), 0.0) AS total_cost
          FROM projects p
          LEFT JOIN sessions s ON s.project_id = p.id
-         WHERE p.status = 'active'
          GROUP BY p.id
          ORDER BY last_session_at DESC NULLS LAST",
     )?;
@@ -132,6 +134,7 @@ pub fn get_projects_inner(pool: &DbConnector) -> anyhow::Result<Vec<ProjectSumma
             last_summary: row.get(6)?,
             session_count: row.get(7)?,
             total_minutes: row.get(8)?,
+            total_cost: row.get(9)?,
         })
     })?.collect::<Result<Vec<_>, _>>()?;
 
@@ -153,7 +156,8 @@ pub fn get_project_detail_inner(
                 (SELECT s2.summary FROM sessions s2
                  WHERE s2.project_id = p.id ORDER BY s2.started_at DESC LIMIT 1) AS last_summary,
                 COUNT(s.id) AS session_count,
-                COALESCE(SUM(s.duration_minutes), 0) AS total_minutes
+                COALESCE(SUM(s.duration_minutes), 0) AS total_minutes,
+                COALESCE(SUM(s.estimated_cost_usd), 0.0) AS total_cost
          FROM projects p
          LEFT JOIN sessions s ON s.project_id = p.id
          WHERE p.id = ?1
@@ -170,6 +174,7 @@ pub fn get_project_detail_inner(
                 last_summary: row.get(6)?,
                 session_count: row.get(7)?,
                 total_minutes: row.get(8)?,
+                total_cost: row.get(9)?,
             })
         },
     )?;
@@ -326,6 +331,59 @@ pub fn rebuild_cache_inner(pool: &DbConnector) -> anyhow::Result<crate::reconcil
     let conn = pool.get()?;
     let seslog_dir = seslog_core::storage::seslog_dir()?;
     crate::reconcile::full_rebuild(&conn, &seslog_dir)
+}
+
+pub fn get_session_by_id(
+    pool: &DbConnector,
+    project_id: &str,
+    session_id: &str,
+) -> anyhow::Result<Option<SessionResponse>> {
+    let conn = pool.get()?;
+    let mut stmt = conn.prepare(
+        "SELECT id, project_id, machine, started_at, ended_at,
+                duration_minutes, summary, next_steps, files_changed, recovered,
+                token_count, estimated_cost_usd, model
+         FROM sessions
+         WHERE project_id = ?1 AND id = ?2",
+    )?;
+
+    let mut session = stmt.query_row(rusqlite::params![project_id, session_id], |row| {
+        let files_changed: i64 = row.get::<_, Option<i64>>(8)?.unwrap_or(0);
+        let recovered_int: i32 = row.get(9)?;
+
+        Ok(SessionResponse {
+            id: row.get(0)?,
+            project_id: row.get(1)?,
+            machine: row.get(2)?,
+            started_at: row.get(3)?,
+            ended_at: row.get(4)?,
+            duration_minutes: row.get(5)?,
+            summary: row.get::<_, Option<String>>(6)?.unwrap_or_default(),
+            next_steps: row.get::<_, Option<String>>(7)?.unwrap_or_default(),
+            files_changed,
+            recovered: recovered_int != 0,
+            transcript_highlights: Vec::new(),
+            token_count: row.get(10)?,
+            estimated_cost_usd: row.get(11)?,
+            model: row.get(12)?,
+        })
+    }).optional()?;
+
+    // Fetch transcript highlights
+    if let Some(ref mut s) = session {
+        let mut hl_stmt = conn.prepare(
+            "SELECT content FROM transcript_highlights
+             WHERE session_id = ?1
+             ORDER BY sort_order",
+        )?;
+        let highlights: Vec<String> = hl_stmt
+            .query_map(rusqlite::params![s.id], |row| row.get(0))?
+            .filter_map(|r| r.ok())
+            .collect();
+        s.transcript_highlights = highlights;
+    }
+
+    Ok(session)
 }
 
 pub fn get_overview_inner(pool: &DbConnector, include_archived: bool) -> anyhow::Result<Vec<OverviewRow>> {

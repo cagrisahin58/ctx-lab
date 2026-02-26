@@ -1,23 +1,30 @@
 use dioxus::prelude::*;
 use crate::commands;
-use crate::state::View;
-use super::components::{CostBadge, EmptyState, GlassPanel, ProgressBar, StatusDot};
+use crate::state::{View, Toast, ToastKind};
+use super::components::{Breadcrumb, CostBadge, Crumb, EmptyState, GlassPanel, ProjectDetailSkeleton, ProgressBar, StatusDot, show_toast, format_minutes, format_date};
 
 #[component]
 pub fn ProjectDetail(project_id: String) -> Element {
     let mut current_view: Signal<View> = use_context();
-    let _refresh: Signal<u64> = use_context();
+    let refresh: Signal<u64> = use_context();
 
-    let pool = crate::get_db_pool();
-    let detail = commands::get_project_detail_inner(pool, project_id.clone());
+    let pid = project_id.clone();
+    let resource = use_resource(move || {
+        let pid = pid.clone();
+        async move {
+            refresh(); // track refresh dependency
+            let pool = crate::get_db_pool();
+            commands::get_project_detail_inner(pool, pid).ok()
+        }
+    });
 
-    let detail = match detail {
-        Ok(d) => d,
-        Err(_) => {
+    let detail = match resource() {
+        None => return rsx! { ProjectDetailSkeleton {} },
+        Some(None) => {
             return rsx! {
                 div { class: "project-detail",
                     EmptyState {
-                        icon: "\u{1F50D}".to_string(),
+                        icon: super::icons::SVG_SEARCH.to_string(),
                         title: "Project Not Found".to_string(),
                         message: format!("Could not load project '{}'.", project_id),
                     }
@@ -30,6 +37,7 @@ pub fn ProjectDetail(project_id: String) -> Element {
                 }
             };
         }
+        Some(Some(d)) => d,
     };
 
     let summary = &detail.summary;
@@ -44,11 +52,8 @@ pub fn ProjectDetail(project_id: String) -> Element {
     let last_machine = summary.last_machine.clone().unwrap_or_else(|| "N/A".to_string());
     let last_active = summary.last_session_at.clone().unwrap_or_else(|| "Never".to_string());
 
-    // Calculate total cost from sessions
-    let total_cost: f64 = sessions
-        .iter()
-        .filter_map(|s| s.estimated_cost_usd)
-        .sum();
+    // Total cost from all sessions (aggregated in SQL, not just recent 20)
+    let total_cost = summary.total_cost;
 
     // Group roadmap items by phase into flat structs for rendering
     let mut phase_items: Vec<RoadmapItemRow> = Vec::new();
@@ -94,21 +99,19 @@ pub fn ProjectDetail(project_id: String) -> Element {
     let has_warnings = !roadmap.warnings.is_empty();
     let warnings: Vec<String> = roadmap.warnings.clone();
 
-    // Actions state
-    let mut action_msg = use_signal(String::new);
+    let mut toasts: Signal<Vec<Toast>> = use_context();
     let pid_for_editor = project_id.clone();
 
     let last_active_formatted = format_date(&last_active);
 
+    let breadcrumbs = vec![
+        Crumb { label: "Dashboard".into(), view: Some(View::Dashboard) },
+        Crumb { label: project_name.clone(), view: None },
+    ];
+
     rsx! {
         div { class: "project-detail",
-            // Back button
-            button {
-                class: "btn btn-secondary",
-                style: "margin-bottom: 16px;",
-                onclick: move |_| current_view.set(View::Dashboard),
-                "\u{2190} Back to Dashboard"
-            }
+            Breadcrumb { crumbs: breadcrumbs }
 
             // Page header
             div { class: "page-header",
@@ -119,12 +122,12 @@ pub fn ProjectDetail(project_id: String) -> Element {
             }
 
             // Two-column layout
-            div { style: "display: grid; grid-template-columns: 2fr 1fr; gap: 24px; align-items: start;",
+            div { class: "project-layout",
                 // Left column
                 div {
                     // Roadmap section
                     if has_roadmap {
-                        div { class: "roadmap glass-panel",
+                        div { class: "roadmap glass-panel", style: "padding: 24px;",
                             h3 { class: "section-header", "Roadmap" }
                             for ri in phase_items.iter() {
                                 RoadmapRow {
@@ -175,15 +178,9 @@ pub fn ProjectDetail(project_id: String) -> Element {
                     // Progress panel
                     GlassPanel {
                         div { style: "text-align: center;",
-                            div {
-                                style: "font-size: 48px; font-weight: 700; color: var(--accent-color); line-height: 1;",
-                                "{progress_pct_text}"
-                            }
+                            div { class: "progress-hero", "{progress_pct_text}" }
                             if total_items > 0 {
-                                p {
-                                    style: "color: var(--text-secondary); margin-top: 8px; font-size: 14px;",
-                                    "{progress_text}"
-                                }
+                                p { class: "progress-hero-text", "{progress_text}" }
                             }
                             div { style: "margin-top: 12px;",
                                 ProgressBar { percent: progress }
@@ -192,56 +189,49 @@ pub fn ProjectDetail(project_id: String) -> Element {
                     }
 
                     // Statistics panel
-                    div { class: "glass-panel", style: "margin-top: 16px; padding: 24px;",
+                    div { class: "glass-panel section-gap-sm", style: "padding: 24px;",
                         h3 { class: "section-header", "Statistics" }
-                        div { style: "display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 12px;",
+                        div { class: "stat-grid",
                             StatItem { label: "Total Sessions".to_string(), value: format!("{}", session_count) }
                             StatItem { label: "Time Invested".to_string(), value: format_minutes(total_minutes) }
                             StatItem { label: "Last Machine".to_string(), value: last_machine }
                             StatItem { label: "Last Active".to_string(), value: last_active_formatted }
                         }
                         if total_cost > 0.0 {
-                            div { style: "margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;",
-                                span { style: "font-size: 13px; color: var(--text-secondary);", "Total Cost" }
+                            div { class: "cost-divider",
+                                span { class: "cost-divider-label", "Total Cost" }
                                 CostBadge { cost: total_cost }
                             }
                         }
                     }
 
                     // Actions panel
-                    div { class: "glass-panel", style: "margin-top: 16px; padding: 24px;",
+                    div { class: "glass-panel section-gap-sm", style: "padding: 24px;",
                         h3 { class: "section-header", "Actions" }
-                        div { style: "display: flex; flex-direction: column; gap: 8px; margin-top: 12px;",
+                        div { class: "actions-column",
                             button {
-                                class: "btn btn-primary",
-                                style: "width: 100%;",
+                                class: "btn btn-primary btn-full",
                                 onclick: move |_| {
                                     match commands::open_in_editor_inner(&pid_for_editor) {
-                                        Ok(msg) => action_msg.set(msg),
-                                        Err(e) => action_msg.set(format!("Error: {}", e)),
+                                        Ok(msg) => show_toast(&mut toasts, msg, ToastKind::Success),
+                                        Err(e) => show_toast(&mut toasts, format!("Error: {}", e), ToastKind::Error),
                                     }
                                 },
                                 "Open in VS Code"
                             }
                             button {
-                                class: "btn btn-secondary",
-                                style: "width: 100%;",
+                                class: "btn btn-secondary btn-full",
                                 onclick: move |_| {
                                     let pool = crate::get_db_pool();
                                     match commands::rebuild_cache_inner(pool) {
-                                        Ok(report) => action_msg.set(
-                                            format!("Rebuilt: +{} -{} ~{}", report.added, report.removed, report.updated)
+                                        Ok(report) => show_toast(&mut toasts,
+                                            format!("Rebuilt: +{} -{} ~{}", report.added, report.removed, report.updated),
+                                            ToastKind::Success,
                                         ),
-                                        Err(e) => action_msg.set(format!("Error: {}", e)),
+                                        Err(e) => show_toast(&mut toasts, format!("Error: {}", e), ToastKind::Error),
                                     }
                                 },
                                 "Rebuild Cache"
-                            }
-                        }
-                        if !action_msg().is_empty() {
-                            p {
-                                style: "font-size: 12px; color: var(--text-muted); margin-top: 8px;",
-                                "{action_msg}"
                             }
                         }
                     }
@@ -285,17 +275,16 @@ fn RoadmapRow(
     let is_done = status == "done";
     let indent_class = if has_deps { "roadmap-item dependency-indent" } else { "roadmap-item" };
     let checkbox_class = if is_done { "roadmap-checkbox checked" } else { "roadmap-checkbox" };
+    let text_class = if is_done { "roadmap-text done" } else { "roadmap-text" };
     let id_badge = item_id.map(|id| format!("[{}]", id)).unwrap_or_default();
 
     rsx! {
         if let Some(heading) = phase_heading {
-            h4 { style: "color: var(--text-secondary); margin-bottom: 8px; margin-top: 16px; font-size: 14px;",
-                "{heading}"
-            }
+            h4 { class: "roadmap-phase-heading", "{heading}" }
         }
         div { class: "{indent_class}",
             span { class: "{checkbox_class}" }
-            span { class: "roadmap-item-text", "{text}" }
+            span { class: "{text_class}", "{text}" }
             if !id_badge.is_empty() {
                 span {
                     style: "font-size: 11px; color: var(--text-muted); background: var(--bg-tertiary); padding: 2px 6px; border-radius: 4px; margin-left: 8px; font-family: monospace;",
@@ -329,6 +318,7 @@ fn TimelineItem(
                     session_id: session_id.clone(),
                 });
             },
+            div { class: "timeline-dot" }
             div { class: "timeline-date", "{date}" }
             div { class: "timeline-content",
                 p { class: "timeline-summary", "{summary_text}" }
@@ -350,33 +340,10 @@ fn TimelineItem(
 fn StatItem(label: String, value: String) -> Element {
     rsx! {
         div {
-            div { style: "font-size: 12px; color: var(--text-muted); margin-bottom: 4px;", "{label}" }
-            div { style: "font-size: 16px; font-weight: 600; color: var(--text-primary);", "{value}" }
+            div { class: "stat-label", "{label}" }
+            div { class: "stat-value", "{value}" }
         }
     }
-}
-
-fn format_minutes(total: i64) -> String {
-    let hours = total / 60;
-    let mins = total % 60;
-    if hours > 0 {
-        format!("{}h {}m", hours, mins)
-    } else {
-        format!("{}m", mins)
-    }
-}
-
-fn format_date(raw: &str) -> String {
-    if let Ok(dt) = chrono::NaiveDateTime::parse_from_str(raw, "%Y-%m-%dT%H:%M:%SZ") {
-        return dt.format("%b %d, %Y %H:%M").to_string();
-    }
-    if let Ok(dt) = chrono::NaiveDateTime::parse_from_str(raw, "%Y-%m-%dT%H:%M:%S%.fZ") {
-        return dt.format("%b %d, %Y %H:%M").to_string();
-    }
-    if let Ok(dt) = chrono::NaiveDateTime::parse_from_str(raw, "%Y-%m-%d %H:%M:%S") {
-        return dt.format("%b %d, %Y %H:%M").to_string();
-    }
-    raw.to_string()
 }
 
 fn truncate_summary(text: &str, max_len: usize) -> String {

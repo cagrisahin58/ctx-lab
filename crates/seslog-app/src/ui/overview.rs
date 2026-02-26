@@ -1,7 +1,7 @@
 use dioxus::prelude::*;
 use crate::commands::{self, OverviewRow};
 use crate::state::View;
-use super::components::{CostBadge, EmptyState, ProgressBar};
+use super::components::{CostBadge, EmptyState, OverviewSkeleton, ProgressBar, format_minutes};
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 enum SortField {
@@ -21,14 +21,23 @@ enum SortDir {
 
 #[allow(non_snake_case)]
 pub fn OverviewPage() -> Element {
-    let _refresh: Signal<u64> = use_context();
+    let refresh: Signal<u64> = use_context();
 
     let mut include_archived = use_signal(|| false);
     let mut sort_field = use_signal(|| SortField::LastActivity);
     let mut sort_dir = use_signal(|| SortDir::Desc);
 
-    let pool = crate::get_db_pool();
-    let mut rows = commands::get_overview_inner(pool, include_archived()).unwrap_or_default();
+    let resource = use_resource(move || async move {
+        refresh(); // track refresh dependency
+        let pool = crate::get_db_pool();
+        let archived = include_archived();
+        commands::get_overview_inner(pool, archived).unwrap_or_default()
+    });
+
+    let mut rows = match resource() {
+        None => return rsx! { OverviewSkeleton {} },
+        Some(r) => r,
+    };
 
     // Sort the rows
     sort_rows(&mut rows, sort_field(), sort_dir());
@@ -61,7 +70,7 @@ pub fn OverviewPage() -> Element {
                     }
                 }
                 EmptyState {
-                    icon: "\u{1F4CB}".to_string(),
+                    icon: super::icons::SVG_LIST.to_string(),
                     title: "No Projects".to_string(),
                     message: "No projects found. Start a Claude Code session to see data here.".to_string(),
                 }
@@ -290,16 +299,6 @@ fn sort_rows(rows: &mut [OverviewRow], field: SortField, dir: SortDir) {
             SortDir::Desc => ordering.reverse(),
         }
     });
-}
-
-fn format_minutes(total: i64) -> String {
-    let hours = total / 60;
-    let mins = total % 60;
-    if hours > 0 {
-        format!("{}h {}m", hours, mins)
-    } else {
-        format!("{}m", mins)
-    }
 }
 
 fn format_relative_time(raw: &str) -> String {

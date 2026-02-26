@@ -6,3 +6,4 @@ pub mod session_detail;
 pub mod settings;
 pub mod overview;
 pub mod components;
+pub mod icons;

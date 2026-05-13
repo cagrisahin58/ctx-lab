@@ -962,8 +962,9 @@ function renderDiagnostics() {
     state.diagnostics.repo,
     state.diagnostics.branch,
     state.diagnostics.configFile,
-    ...state.diagnostics.directories
-  ];
+    ...state.diagnostics.directories,
+    state.diagnostics.writeAccess
+  ].filter(Boolean);
   return `
     <section class="panel">
       <h3>Bağlantı Tanılaması</h3>
@@ -991,6 +992,7 @@ function diagnosticDetail(detail = {}) {
     return `${detail.private ? "private" : "public"}, varsayılan branch: ${detail.defaultBranch || "belirsiz"}, ${write}`;
   }
   if ("files" in detail) return `${detail.files} dosya`;
+  if (detail.path) return detail.path;
   if (detail.sha) return `sha: ${detail.sha}`;
   if (detail.name) return detail.name;
   return "";

@@ -132,6 +132,9 @@ test("diagnoseMemoryRepo repo, branch, config ve klasörleri raporlar", async ()
     if (/\/contents\/(inbox|work_items|decisions|handoffs|archive)\?ref=main$/.test(url)) {
       return { json: [] };
     }
+    if (url.endsWith("/contents/archive/.ctxlab-write-test")) {
+      return { json: { content: { sha: "write-sha" } } };
+    }
     throw new Error(`Beklenmeyen URL: ${url}`);
   });
 
@@ -144,6 +147,10 @@ test("diagnoseMemoryRepo repo, branch, config ve klasörleri raporlar", async ()
     assert.equal(result.configFile.detail.sha, "config-sha");
     assert.equal(result.directories.length, 5);
     assert.ok(result.directories.every((item) => item.ok));
+    assert.equal(result.writeAccess.ok, true);
+    assert.equal(result.writeAccess.detail.path, "archive/.ctxlab-write-test");
+    assert.ok(mock.calls.some((call) => call.options.method === "PUT"));
+    assert.ok(mock.calls.some((call) => call.options.method === "DELETE"));
   } finally {
     mock.restore();
   }
@@ -166,6 +173,9 @@ test("diagnoseMemoryRepo eksik klasörü başarısız check olarak döndürür",
     if (/\/contents\/(work_items|decisions|handoffs|archive)\?ref=main$/.test(url)) {
       return { json: [] };
     }
+    if (url.endsWith("/contents/archive/.ctxlab-write-test")) {
+      return { json: { content: { sha: "write-sha" } } };
+    }
     throw new Error(`Beklenmeyen URL: ${url}`);
   });
 
@@ -174,6 +184,36 @@ test("diagnoseMemoryRepo eksik klasörü başarısız check olarak döndürür",
     assert.equal(result.ok, false);
     assert.equal(result.directories[0].ok, false);
     assert.match(result.directories[0].message, /inbox\/ klasörü bulunamadı/);
+  } finally {
+    mock.restore();
+  }
+});
+
+test("diagnoseMemoryRepo yazma izni yoksa yazma testini başarısız gösterir", async () => {
+  const mock = installFetchMock((url, options = {}) => {
+    if (url.endsWith("/repos/cagrisahin58/work-memory")) {
+      return { json: { private: true, default_branch: "main", permissions: { push: true } } };
+    }
+    if (url.endsWith("/repos/cagrisahin58/work-memory/branches/main")) {
+      return { json: { name: "main" } };
+    }
+    if (url.endsWith("/contents/config.yaml?ref=main")) {
+      return { json: { sha: "config-sha", content: encode("schema_version: 1") } };
+    }
+    if (/\/contents\/(inbox|work_items|decisions|handoffs|archive)\?ref=main$/.test(url)) {
+      return { json: [] };
+    }
+    if (options.method === "PUT" && url.endsWith("/contents/archive/.ctxlab-write-test")) {
+      return { ok: false, status: 404, text: "Not Found" };
+    }
+    throw new Error(`Beklenmeyen URL: ${url}`);
+  });
+
+  try {
+    const result = await diagnoseMemoryRepo(config);
+    assert.equal(result.ok, false);
+    assert.equal(result.writeAccess.ok, false);
+    assert.match(result.writeAccess.message, /GitHub 404/);
   } finally {
     mock.restore();
   }

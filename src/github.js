@@ -125,13 +125,27 @@ export async function diagnoseMemoryRepo(config) {
       return { files: payload.length };
     }));
   }
+  const writeAccess = await check("Yazma testi", async () => {
+    const path = "archive/.ctxlab-write-test";
+    const result = await putFile(
+      config,
+      path,
+      `ctx-lab write test: ${new Date().toISOString()}\n`,
+      "chore: ctx-lab write access check"
+    );
+    const sha = result?.content?.sha;
+    if (!sha) throw new Error("Yazma testi dosya sha değeri döndürmedi");
+    await deleteFile(config, path, sha, "chore: remove ctx-lab write access check");
+    return { path };
+  });
 
   return {
-    ok: [repo, branch, configFile, ...directories].every((item) => item.ok),
+    ok: [repo, branch, configFile, ...directories, writeAccess].every((item) => item.ok),
     repo,
     branch,
     configFile,
-    directories
+    directories,
+    writeAccess
   };
 }
 

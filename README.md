@@ -8,6 +8,7 @@ AI sohbet geçmişine güvenmek yerine, her önemli oturumdan sonra kısa ve ins
 
 - AI Inbox'ta yeni oturum özetlerini toplar,
 - iş panosunda aktif işleri gösterir,
+- aynı proje için gelen yeni oturumları mevcut iş kartına bağlar,
 - karar defterini kaynaklı tutar,
 - Codex veya Claude için devam prompt'u üretir.
 
@@ -20,18 +21,16 @@ npm install
 npm run dev
 ```
 
-Sonra tarayıcıda Vite'ın verdiği yerel adresi açın.
+Sonra tarayıcıda Vite'ın verdiği yerel adresi açın. Bu geliştirme ortamında varsayılan adres `http://127.0.0.1:5173`.
 
-## GitHub token
+## GitHub memory repo kurulumu
 
 Private memory repo için fine-grained GitHub token önerilir:
 
 - Repository access: sadece memory repo
 - Permissions: Contents read/write
 
-Token yalnızca tarayıcı localStorage alanında saklanır. Sunucu tarafı yoktur.
-
-## Memory repo yapısı
+Uygulamada `Repo Bağlantısı` ekranından owner/repo, branch ve token girilir. `Repo Yapısını Hazırla` düğmesi şu yapıyı otomatik oluşturur:
 
 ```text
 work-memory/
@@ -42,5 +41,11 @@ work-memory/
   archive/
   config.yaml
 ```
+
+Token yalnızca tarayıcı localStorage alanında saklanır. Sunucu tarafı yoktur.
+
+## Manuel oturum özeti akışı
+
+`Yeni Özet` ekranı, Codex veya Claude oturumundan sonra temiz bir kayıt üretir. Kayıt `inbox/` altına timestamp içeren benzersiz dosya adıyla yazılır. AI Inbox'tan `İş Kartına Bağla` seçildiğinde aynı proje için var olan iş kartı varsa yeni session id o karta eklenir; yoksa yeni kart oluşturulur.
 
 Detaylı format için [docs/memory-format.md](docs/memory-format.md) dosyasına bakın.

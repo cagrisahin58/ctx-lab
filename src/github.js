@@ -1,7 +1,7 @@
 import { parseMemoryFile } from "./domain.js";
 
 const API_ROOT = "https://api.github.com";
-const MEMORY_DIRS = ["inbox", "work_items", "decisions", "handoffs", "archive"];
+export const MEMORY_DIRS = ["inbox", "work_items", "decisions", "handoffs", "archive"];
 
 async function githubRequest(config, path, options = {}) {
   const headers = {
@@ -57,6 +57,43 @@ export async function loadMemoryRepo(config) {
   );
 
   return records.sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)));
+}
+
+export async function ensureMemoryRepo(config) {
+  const created = [];
+  await ensureFile(
+    config,
+    "config.yaml",
+    [
+      "schema_version: 1",
+      "language: tr",
+      "product: ctx-lab",
+      "description: GitHub-backed AI work memory",
+      ""
+    ].join("\n"),
+    "chore: ctx-lab memory repo config"
+  ).then((result) => result && created.push("config.yaml"));
+
+  for (const dir of MEMORY_DIRS) {
+    await ensureFile(
+      config,
+      `${dir}/.gitkeep`,
+      "",
+      `chore: ctx-lab memory repo ${dir} klasörünü hazırla`
+    ).then((result) => result && created.push(`${dir}/.gitkeep`));
+  }
+
+  return created;
+}
+
+async function getContent(config, path) {
+  return githubRequest(config, contentsPath(config, path), { allow404: true });
+}
+
+async function ensureFile(config, path, content, message) {
+  const existing = await getContent(config, path);
+  if (existing) return null;
+  return putFile(config, path, content, message);
 }
 
 export async function putFile(config, path, content, message, sha = undefined) {

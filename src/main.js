@@ -1,5 +1,7 @@
 import "./styles.css";
 import {
+  appendSessionToWorkItem,
+  buildInboxSessionSummary,
   buildDecisionFromSession,
   buildWorkItemFromSession,
   generateHandoffPrompt,
@@ -7,9 +9,10 @@ import {
   groupByStatus,
   parseRepoInput,
   parseMemoryFile,
-  replaceFrontmatter
+  replaceFrontmatter,
+  validateMemoryRecords
 } from "./domain.js";
-import { deleteFile, loadMemoryRepo, moveFile, putFile } from "./github.js";
+import { ensureMemoryRepo, loadMemoryRepo, moveFile, putFile } from "./github.js";
 import { demoRecords } from "./fixtures.js";
 
 const STORAGE_KEY = "ctxlab.config.v1";
@@ -22,7 +25,8 @@ const state = {
   selectedId: "",
   loading: false,
   toast: "",
-  demo: false
+  demo: false,
+  warnings: []
 };
 
 function loadConfig() {
@@ -62,6 +66,10 @@ function recordsByType(type) {
   return state.records.filter((record) => record.type === type);
 }
 
+function refreshWarnings() {
+  state.warnings = validateMemoryRecords(state.records);
+}
+
 async function syncFromGitHub() {
   if (!state.config.owner || !state.config.repo) {
     setToast("Önce GitHub memory repo bağlantısını kaydet.");
@@ -71,9 +79,10 @@ async function syncFromGitHub() {
   render();
   try {
     state.records = await loadMemoryRepo(state.config);
+    refreshWarnings();
     state.demo = false;
     state.selectedId = state.records[0]?.id || "";
-    setToast("Memory repo senkronize edildi.");
+    setToast(state.warnings.length ? "Memory repo yüklendi; format uyarıları var." : "Memory repo senkronize edildi.");
   } catch (error) {
     setToast(`Senkronizasyon başarısız: ${error.message}`);
   } finally {
@@ -84,6 +93,7 @@ async function syncFromGitHub() {
 
 function loadDemo() {
   state.records = demoRecords();
+  refreshWarnings();
   state.selectedId = state.records[0]?.id || "";
   state.demo = true;
   setToast("Örnek veriler yüklendi.");
@@ -97,13 +107,17 @@ async function createWorkFromSelected() {
   const record = selectedRecord();
   if (!record) return;
   const work = buildWorkItemFromSession(record);
+  const existingWork = state.records.find((item) => item.type === "work_items" && item.id === work.id);
+  const workContent = existingWork ? appendSessionToWorkItem(existingWork, record) : work.content;
+  const workPath = existingWork ? existingWork.path : work.path;
 
   if (!state.demo) {
     await putFile(
       state.config,
-      work.path,
-      work.content,
-      `work: ${work.id} iş kartını oluştur`
+      workPath,
+      workContent,
+      existingWork ? `work: ${work.id} oturum bağlantısını güncelle` : `work: ${work.id} iş kartını oluştur`,
+      existingWork?.sha
     );
     const updatedInbox = replaceFrontmatter(record.raw, {
       status: "linked",
@@ -118,18 +132,20 @@ async function createWorkFromSelected() {
     );
   }
 
-  const parsed = parseMemoryFile(work.path, work.content, `local-${Date.now()}`);
+  const parsed = parseMemoryFile(workPath, workContent, existingWork?.sha || `local-${Date.now()}`);
+  const withoutExisting = state.records.filter((item) => item.id !== parsed.id);
   state.records = [
     parsed,
-    ...state.records.map((item) =>
+    ...withoutExisting.map((item) =>
       item.id === record.id
         ? { ...item, status: "linked", linkedWorkItem: work.id }
         : item
     )
   ];
+  refreshWarnings();
   state.view = "board";
   state.selectedId = parsed.id;
-  setToast("İş kartı oluşturuldu.");
+  setToast(existingWork ? "Oturum mevcut iş kartına bağlandı." : "İş kartı oluşturuldu.");
 }
 
 async function archiveSelected() {
@@ -145,6 +161,7 @@ async function archiveSelected() {
   state.records = state.records.map((item) =>
     item.id === record.id ? { ...item, type: "archive", path: archivePath, status: "archived" } : item
   );
+  refreshWarnings();
   setToast("Inbox kaydı arşivlendi.");
 }
 
@@ -160,6 +177,7 @@ async function saveDecisionFromSelected() {
     await putFile(state.config, decision.path, decision.content, `decision: ${decision.id}`);
   }
   state.records = [parseMemoryFile(decision.path, decision.content, `local-${Date.now()}`), ...state.records];
+  refreshWarnings();
   state.view = "decisions";
   setToast("Karar kaydı oluşturuldu.");
 }
@@ -183,7 +201,50 @@ ${generateHandoffPrompt(record, target)}
     await putFile(state.config, path, content, `handoff: ${record.id} -> ${target}`);
   }
   state.records = [parseMemoryFile(path, content, `local-${Date.now()}`), ...state.records];
+  refreshWarnings();
   setToast("Handoff kaydı hazırlandı.");
+}
+
+async function initializeMemoryRepo() {
+  if (!state.config.owner || !state.config.repo) {
+    setToast("Önce repo bağlantısını kaydet.");
+    return;
+  }
+  const created = await ensureMemoryRepo(state.config);
+  setToast(created.length ? `Memory repo hazırlandı: ${created.length} dosya oluşturuldu.` : "Memory repo yapısı zaten hazır.");
+  await syncFromGitHub();
+}
+
+async function createInboxSummaryFromForm(form) {
+  if (!state.demo && (!state.config.owner || !state.config.repo)) {
+    setToast("Önce GitHub memory repo bağlantısını kaydet.");
+    return;
+  }
+  const data = new FormData(form);
+  const summary = buildInboxSessionSummary({
+    source: data.get("source"),
+    project: data.get("project"),
+    repo: data.get("repo"),
+    branch: data.get("branch"),
+    tags: String(data.get("tags") || "").split(",").map((tag) => tag.trim()).filter(Boolean),
+    goal: data.get("goal"),
+    happened: data.get("happened"),
+    decisions: data.get("decisions"),
+    questions: data.get("questions"),
+    next: data.get("next"),
+    evidence: data.get("evidence")
+  });
+
+  if (!state.demo) {
+    await putFile(state.config, summary.path, summary.content, `inbox: ${summary.id} oturum özetini ekle`);
+  }
+
+  const parsed = parseMemoryFile(summary.path, summary.content, `local-${Date.now()}`);
+  state.records = [parsed, ...state.records];
+  refreshWarnings();
+  state.selectedId = parsed.id;
+  state.view = "inbox";
+  setToast("Oturum özeti Inbox'a eklendi.");
 }
 
 function render() {
@@ -203,6 +264,7 @@ function render() {
         </div>
         <nav class="nav" aria-label="Ana gezinme">
           ${navButton("inbox", `AI Inbox (${counts.inbox})`)}
+          ${navButton("new-summary", "Yeni Özet")}
           ${navButton("board", `İş Panosu (${counts.work})`)}
           ${navButton("decisions", `Karar Defteri (${counts.decisions})`)}
           ${navButton("handoff", "Handoff Üretici")}
@@ -238,6 +300,7 @@ function repoLabel() {
 
 function renderCurrentView(counts) {
   if (state.view === "settings") return renderSettings();
+  if (state.view === "new-summary") return renderNewSummary();
   if (state.view === "board") return renderBoard();
   if (state.view === "decisions") return renderDecisions();
   if (state.view === "handoff") return renderHandoff();
@@ -263,8 +326,9 @@ function renderInbox(counts) {
     ${renderHeader(
       "AI Inbox",
       "Claude, Codex veya diğer araçlardan gelen oturum özetlerini işlenebilir bağlama dönüştür.",
-      `<button data-action="sync">Yenile</button><button class="primary" data-action="demo">Örnek Veri</button>`
+      `<button data-view="new-summary">Yeni Özet</button><button data-action="sync">Yenile</button><button class="primary" data-action="demo">Örnek Veri</button>`
     )}
+    ${state.warnings.length ? renderWarnings() : ""}
     <div class="stats">
       <div class="stat"><strong>${counts.inbox}</strong><span>Inbox kaydı</span></div>
       <div class="stat"><strong>${counts.work}</strong><span>İş kartı</span></div>
@@ -279,6 +343,17 @@ function renderInbox(counts) {
         ${selected ? renderRecordDetail(selected, true) : `<div class="empty">İncelemek için bir kayıt seçin.</div>`}
       </section>
     </div>
+  `;
+}
+
+function renderWarnings() {
+  return `
+    <section class="panel">
+      <h3>Format Uyarıları</h3>
+      <div class="record-list">
+        ${state.warnings.map((warning) => `<span class="badge blocked">${escapeHtml(warning)}</span>`).join("")}
+      </div>
+    </section>
   `;
 }
 
@@ -333,6 +408,68 @@ function renderHandoff() {
   `;
 }
 
+function renderNewSummary() {
+  return `
+    ${renderHeader("Yeni Oturum Özeti", "Claude veya Codex sohbetinden sonra temiz, insan-onaylı bir kayıt oluştur.")}
+    <section class="panel">
+      <form class="connection-form" id="summary-form">
+        <label>
+          Kaynak
+          <select name="source">
+            <option value="codex">Codex</option>
+            <option value="claude">Claude Code</option>
+            <option value="manual">Manuel</option>
+          </select>
+        </label>
+        <label>
+          Proje
+          <input name="project" required placeholder="ctx-lab" />
+        </label>
+        <label>
+          Repo
+          <input name="repo" placeholder="cagrisahin58/ctx-lab" />
+        </label>
+        <label>
+          Branch
+          <input name="branch" placeholder="main" value="main" />
+        </label>
+        <label class="full">
+          Etiketler
+          <input name="tags" placeholder="architecture, github-memory" />
+        </label>
+        <label class="full">
+          Amaç
+          <textarea name="goal" required placeholder="Bu oturumun hedefi neydi?"></textarea>
+        </label>
+        <label class="full">
+          Yapılanlar
+          <textarea name="happened" placeholder="- Yapılan iş ve önemli ilerlemeler"></textarea>
+        </label>
+        <label class="full">
+          Kararlar
+          <textarea name="decisions" placeholder="- Alınan kararlar"></textarea>
+        </label>
+        <label class="full">
+          Açık Sorular
+          <textarea name="questions" placeholder="- Netleşmesi gerekenler"></textarea>
+        </label>
+        <label class="full">
+          Sonraki Adımlar
+          <textarea name="next" required placeholder="- Bir sonraki somut adım"></textarea>
+        </label>
+        <label class="full">
+          Kanıtlar
+          <textarea name="evidence" placeholder="- Dosya, commit, PR veya sohbet referansı"></textarea>
+        </label>
+        <div class="toolbar-actions full">
+          <button class="primary" type="submit">Inbox'a Kaydet</button>
+          <button type="button" data-view="inbox">Vazgeç</button>
+        </div>
+      </form>
+    </section>
+  `;
+}
+
 function renderSettings() {
   return `
     ${renderHeader("Repo Bağlantısı", "Private GitHub memory repo bilgilerini gir.")}
@@ -352,6 +489,7 @@ function renderSettings() {
         </label>
         <div class="toolbar-actions full">
           <button class="primary" type="submit">Bağlantıyı Kaydet</button>
+          <button type="button" data-action="init-repo">Repo Yapısını Hazırla</button>
           <button type="button" data-action="sync">Kaydetmeden Yenile</button>
         </div>
       </form>
@@ -450,9 +588,16 @@ function bindEvents() {
       }
     });
   }
+  const summaryForm = document.querySelector("#summary-form");
+  if (summaryForm) {
+    summaryForm.addEventListener("submit", (event) => {
+      event.preventDefault();
+      handleAction("create-summary", summaryForm);
+    });
+  }
 }
 
-function handleAction(action) {
+function handleAction(action, payload) {
   const guarded = async (fn) => {
     try {
       await fn();
@@ -463,7 +608,9 @@ function handleAction(action) {
   };
 
   if (action === "sync") guarded(syncFromGitHub);
+  if (action === "init-repo") guarded(initializeMemoryRepo);
   if (action === "demo") loadDemo();
+  if (action === "create-summary") guarded(() => createInboxSummaryFromForm(payload));
   if (action === "create-work") guarded(createWorkFromSelected);
   if (action === "archive") guarded(archiveSelected);
   if (action === "save-decision") guarded(saveDecisionFromSelected);

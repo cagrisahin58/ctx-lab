@@ -1,59 +1,80 @@
 # Memory Repo Formatı
 
-ctx-lab kalıcı gerçeklik olarak GitHub'daki memory repo dosyalarını kullanır. SQLite veya tarayıcı cache yalnızca hızlandırma katmanıdır.
+ctx-lab kalıcı gerçeklik olarak GitHub'daki memory repo dosyalarını kullanır. Tarayıcıdaki durum yalnızca çalışma zamanı görünümüdür.
+
+## Klasörler
+
+```text
+inbox/       İşlenmemiş veya yeni bağlanacak oturum özetleri
+work_items/  Aktif iş hatları
+decisions/   Kaynaklı karar kayıtları
+handoffs/    Codex/Claude devam prompt'ları
+archive/     Tamamlanan veya kapatılan kayıtlar
+config.yaml  Repo seviyesi kısa ayar dosyası
+```
+
+Geçerli kayıt tipleri: `inbox`, `work_items`, `decisions`, `handoffs`, `archive`.
+Geçerli durumlar: `needs_triage`, `linked`, `active`, `waiting`, `blocked`, `done`, `archived`.
 
 ## Inbox session summary
 
+Dosya yolu örneği:
+
+```text
+inbox/2026-05-13T12-34-56-789Z-ctx-lab-codex.md
+```
+
 ```markdown
 ---
-id: sess_20260513_ctx_lab_redesign_codex
+id: sess_2026-05-13T12-34-56-789Z_ctx-lab_codex
 source: codex
 project: ctx-lab
 repo: cagrisahin58/ctx-lab
 branch: main
 status: needs_triage
-created_at: 2026-05-13T20:00:00+03:00
-tags: [architecture, github-memory]
+created_at: 2026-05-13T12:34:56.789Z
+tags:
+  - architecture
+  - github-memory
 linked_work_item:
 ---
 
 # Session Summary
 
-## Goal
+## Amaç
 Bu oturumun hedefi.
 
-## What Happened
+## Yapılanlar
 - Yapılanlar.
 
-## Decisions
+## Kararlar
 - Alınan kararlar.
 
-## Open Questions
+## Açık Sorular
 - Açık sorular.
 
-## Next Actions
+## Sonraki Adımlar
 - Sıradaki adımlar.
 
-## Evidence
+## Kanıtlar
 - Kaynak dosya, commit veya sohbet referansları.
 ```
 
-Türkçe başlıklar da desteklenir: `Amaç`, `Yapılanlar`, `Kararlar`, `Açık Sorular`, `Sonraki Adımlar`, `Kanıtlar`.
+İngilizce başlıklar da okunur: `Goal`, `What Happened`, `Decisions`, `Open Questions`, `Next Actions`, `Evidence`.
 
 ## Work item
 
 ```markdown
 ---
-id: work_ctx_lab_redesign
-title: ctx-lab yeniden tasarım
+id: work_ctx-lab
+title: ctx-lab çalışma hattı
 project: ctx-lab
 status: active
-priority: high
-updated_at: 2026-05-13T20:00:00+03:00
+priority: normal
+updated_at: 2026-05-13T12:40:00.000Z
 sessions:
-  - sess_20260513_ctx_lab_redesign_codex
+  - sess_2026-05-13T12-34-56-789Z_ctx-lab_codex
 decisions:
-  - dec_20260513_ai_inbox_github_sot
 ---
 
 ## Objective
@@ -71,3 +92,5 @@ Riskler ve engeller.
 ## Best Handoff Prompt
 Codex veya Claude'a verilecek kısa devam prompt'u.
 ```
+
+Yeni bir inbox kaydı aynı `work_<project>` id'sine denk gelirse ctx-lab yeni dosya açmak yerine mevcut iş kartının `sessions` listesini günceller.

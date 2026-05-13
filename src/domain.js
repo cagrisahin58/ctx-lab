@@ -10,6 +10,9 @@ const SECTION_ALIASES = {
   risks: ["Risks / Blockers", "Riskler / Engeller", "Engeller"]
 };
 
+export const VALID_TYPES = ["inbox", "work_items", "decisions", "handoffs", "archive"];
+export const VALID_STATUSES = ["needs_triage", "linked", "active", "waiting", "blocked", "done", "archived"];
+
 export function parseRepoInput(input) {
   const trimmed = input.trim().replace(/^https:\/\/github\.com\//, "").replace(/\.git$/, "");
   const [owner, repo] = trimmed.split("/");
@@ -167,6 +170,36 @@ export function parseMemoryFile(path, content, sha = "") {
   };
 }
 
+export function validateMemoryRecords(records) {
+  const warnings = [];
+  const seen = new Map();
+
+  for (const record of records) {
+    if (!VALID_TYPES.includes(record.type)) {
+      warnings.push(`${record.path}: bilinmeyen klasör tipi (${record.type})`);
+    }
+    if (!record.id) {
+      warnings.push(`${record.path}: id alanı eksik`);
+    }
+    if (seen.has(record.id)) {
+      warnings.push(`${record.path}: duplicate id (${record.id}), ilk kayıt: ${seen.get(record.id)}`);
+    } else {
+      seen.set(record.id, record.path);
+    }
+    if (!VALID_STATUSES.includes(record.status)) {
+      warnings.push(`${record.path}: bilinmeyen durum (${record.status})`);
+    }
+    if (record.type === "inbox" && !record.source) {
+      warnings.push(`${record.path}: inbox kaydı için source alanı eksik`);
+    }
+    if (record.type === "work_items" && !record.frontmatter.title) {
+      warnings.push(`${record.path}: iş kartı için title alanı eksik`);
+    }
+  }
+
+  return warnings;
+}
+
 function statusFromType(type) {
   if (type === "inbox") return "needs_triage";
   if (type === "archive") return "archived";
@@ -230,6 +263,76 @@ ${generateHandoffPrompt(session, "codex")}
     path: `work_items/${workId}.md`,
     content
   };
+}
+
+export function appendSessionToWorkItem(workItem, session) {
+  const existingSessions = normalizeArray(workItem.frontmatter.sessions);
+  const sessions = existingSessions.includes(session.id)
+    ? existingSessions
+    : [...existingSessions, session.id];
+
+  return replaceFrontmatter(workItem.raw, {
+    sessions,
+    updated_at: new Date().toISOString()
+  });
+}
+
+function normalizeArray(value) {
+  if (Array.isArray(value)) return value.filter(Boolean);
+  if (!value) return [];
+  return [value];
+}
+
+export function buildInboxSessionSummary(draft, now = new Date()) {
+  const source = draft.source || "codex";
+  const project = draft.project || "genel";
+  const stamp = timestampSlug(now);
+  const id = draft.id || `sess_${stamp}_${slugify(project)}_${slugify(source)}`;
+  const path = `inbox/${stamp}-${slugify(project)}-${slugify(source)}.md`;
+  const content = `${serializeFrontmatter({
+    id,
+    source,
+    project,
+    repo: draft.repo || "",
+    branch: draft.branch || "main",
+    status: "needs_triage",
+    created_at: now.toISOString(),
+    tags: normalizeArray(draft.tags),
+    linked_work_item: ""
+  })}
+
+# Session Summary
+
+## Amaç
+${draft.goal || "Bu oturumun amacı yazılacak."}
+
+## Yapılanlar
+${formatSectionText(draft.happened || "Yapılanlar yazılacak.")}
+
+## Kararlar
+${formatSectionText(draft.decisions || "Kayıtlı karar yok.")}
+
+## Açık Sorular
+${formatSectionText(draft.questions || "Açık soru yok.")}
+
+## Sonraki Adımlar
+${formatSectionText(draft.next || "Sıradaki adım netleştirilecek.")}
+
+## Kanıtlar
+${formatSectionText(draft.evidence || "Kaynak belirtilmedi.")}
+`;
+  return { id, path, content };
+}
+
+function timestampSlug(date) {
+  return date.toISOString().replace(/[:.]/g, "-");
+}
+
+function formatSectionText(value) {
+  const text = String(value).trim();
+  if (!text) return "";
+  if (text.includes("\n") || text.startsWith("- ")) return text;
+  return text;
 }
 
 export function generateHandoffPrompt(record, target = "codex") {

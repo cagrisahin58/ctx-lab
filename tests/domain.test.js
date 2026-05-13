@@ -1,7 +1,9 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
+  appendSessionToWorkItem,
   buildDecisionFromSession,
+  buildInboxSessionSummary,
   buildWorkItemFromSession,
   generateHandoffPrompt,
   getSection,
@@ -9,7 +11,8 @@ import {
   parseMemoryFile,
   parseRepoInput,
   replaceFrontmatter,
-  slugify
+  slugify,
+  validateMemoryRecords
 } from "../src/domain.js";
 
 const sample = `---
@@ -90,4 +93,54 @@ test("frontmatter güncellerken gövdeyi korur", () => {
 
 test("slugify Türkçe karakterleri güvenli hale getirir", () => {
   assert.equal(slugify("Çalışma Hafızası / İyi"), "calisma-hafizasi-iyi");
+});
+
+test("manuel oturum özeti benzersiz inbox yolu üretir", () => {
+  const now = new Date("2026-05-13T12:34:56.789Z");
+  const summary = buildInboxSessionSummary(
+    {
+      source: "codex",
+      project: "ctx-lab",
+      repo: "cagrisahin58/ctx-lab",
+      branch: "main",
+      tags: "ai-inbox, karar",
+      goal: "Bağlam kaybını azaltmak.",
+      happened: "- Yeni form tasarlandı.",
+      decisions: "- GitHub kaynak olacak.",
+      questions: "",
+      next: "Repo kurulumunu doğrula.",
+      evidence: "https://github.com/cagrisahin58/ctx-lab"
+    },
+    now
+  );
+
+  assert.equal(summary.id, "sess_2026-05-13T12-34-56-789Z_ctx-lab_codex");
+  assert.equal(summary.path, "inbox/2026-05-13T12-34-56-789Z-ctx-lab-codex.md");
+  assert.match(summary.content, /status: needs_triage/);
+  assert.match(summary.content, /Bağlam kaybını azaltmak/);
+});
+
+test("memory kayıtlarındaki duplicate id ve durum sorunlarını uyarır", () => {
+  const first = parseMemoryFile("inbox/a.md", sample, "sha-a");
+  const second = parseMemoryFile(
+    "work_items/b.md",
+    sample.replace("status: needs_triage", "status: stale"),
+    "sha-b"
+  );
+  const warnings = validateMemoryRecords([first, second]);
+
+  assert.ok(warnings.some((warning) => warning.includes("duplicate id (sess_test)")));
+  assert.ok(warnings.some((warning) => warning.includes("bilinmeyen durum (stale)")));
+});
+
+test("var olan iş kartına yeni session id ekler", () => {
+  const record = parseMemoryFile("inbox/test.md", sample, "sha");
+  const work = buildWorkItemFromSession(record);
+  const workRecord = parseMemoryFile(work.path, work.content, "work-sha");
+  const nextRecord = { ...record, id: "sess_followup" };
+  const updated = appendSessionToWorkItem(workRecord, nextRecord);
+  const parsed = parseFrontmatter(updated);
+
+  assert.deepEqual(parsed.frontmatter.sessions, ["sess_test", "sess_followup"]);
+  assert.match(parsed.body, /Best Handoff Prompt/);
 });

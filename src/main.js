@@ -4,9 +4,9 @@ import {
   buildInboxSessionSummary,
   buildInboxSessionSummaryFromMarkdown,
   buildDecisionFromSession,
+  buildContextPack,
   buildSessionClosePrompt,
   buildWorkItemFromSession,
-  generateHandoffPrompt,
   getSection,
   groupByStatus,
   parseRepoInput,
@@ -101,8 +101,13 @@ function loadDemo() {
   setToast("Örnek veriler yüklendi.");
 }
 
-function selectedRecord() {
-  return state.records.find((record) => record.id === state.selectedId) || state.records[0];
+function selectedRecord(type = "") {
+  const pool = type ? recordsByType(type) : state.records;
+  return pool.find((record) => record.id === state.selectedId) || pool[0];
+}
+
+function contextRecord() {
+  return state.view === "board" ? selectedRecord("work_items") : selectedRecord();
 }
 
 async function createWorkFromSelected() {
@@ -185,8 +190,9 @@ async function saveDecisionFromSelected() {
 }
 
 async function saveHandoff(target) {
-  const record = selectedRecord();
+  const record = contextRecord();
   if (!record) return;
+  const prompt = buildContextPack(state.records, record, target);
   const content = `---
 id: handoff_${record.id}_${target}
 source_record: ${record.id}
@@ -196,7 +202,7 @@ created_at: ${new Date().toISOString()}
 
 # Handoff
 
-${generateHandoffPrompt(record, target)}
+${prompt}
 `;
   const path = `handoffs/handoff_${record.id}_${target}.md`;
   if (!state.demo) {
@@ -266,6 +272,13 @@ function closePromptText() {
 async function copyClosePrompt() {
   await navigator.clipboard.writeText(closePromptText());
   setToast("Oturum kapanış prompt'u kopyalandı.");
+}
+
+async function copyContextPack(target = "codex") {
+  const record = contextRecord();
+  if (!record) return;
+  await navigator.clipboard.writeText(buildContextPack(state.records, record, target));
+  setToast("Context pack kopyalandı.");
 }
 
 function render() {
@@ -381,6 +394,7 @@ function renderWarnings() {
 function renderBoard() {
   const workItems = recordsByType("work_items");
   const groups = groupByStatus(workItems);
+  const selected = selectedRecord("work_items");
   const columns = [
     ["active", "Aktif"],
     ["waiting", "Beklemede"],
@@ -389,13 +403,18 @@ function renderBoard() {
   ];
   return `
     ${renderHeader("İş Panosu", "Kalıcı gerçeklik burada tutulur; Inbox sadece triage alanıdır.")}
-    <div class="board">
-      ${columns.map(([status, title]) => `
-        <section class="column">
-          <h3>${title}</h3>
-          ${(groups[status] || []).map(renderRecordCard).join("") || `<div class="empty">Kayıt yok.</div>`}
-        </section>
-      `).join("")}
+    <div class="board-layout">
+      <div class="board">
+        ${columns.map(([status, title]) => `
+          <section class="column">
+            <h3>${title}</h3>
+            ${(groups[status] || []).map(renderRecordCard).join("") || `<div class="empty">Kayıt yok.</div>`}
+          </section>
+        `).join("")}
+      </div>
+      <section class="panel detail">
+        ${selected ? renderWorkContext(selected) : `<div class="empty">İş kartı seçin.</div>`}
+      </section>
     </div>
   `;
 }
@@ -412,9 +431,9 @@ function renderDecisions() {
 
 function renderHandoff() {
   const selected = selectedRecord();
-  const prompt = selected ? generateHandoffPrompt(selected, "codex") : "";
+  const prompt = selected ? buildContextPack(state.records, selected, "codex") : "";
   return `
-    ${renderHeader("Handoff Üretici", "Seçili kayıttan Codex veya Claude için kısa devam prompt'u üret.")}
+    ${renderHeader("Handoff Üretici", "Seçili kaydın bağlı iş hattı, oturumları ve kararlarından devam brifi üret.")}
     <section class="panel detail">
       ${selected ? `
         <h3>${escapeHtml(selected.title)}</h3>
@@ -426,6 +445,28 @@ function renderHandoff() {
         <pre class="handoff-output">${escapeHtml(prompt)}</pre>
       ` : `<div class="empty">Önce bir kayıt seçin.</div>`}
     </section>
+  `;
+}
+
+function renderWorkContext(workItem) {
+  const prompt = buildContextPack(state.records, workItem, "codex");
+  return `
+    <h3>${escapeHtml(workItem.title)}</h3>
+    <div class="meta">
+      <span class="badge ${workItem.status}">${statusLabel(workItem.status)}</span>
+      <span>${escapeHtml(workItem.path)}</span>
+    </div>
+    <div class="toolbar-actions">
+      <button class="primary" data-action="copy-context-pack">Context Pack Kopyala</button>
+      <button data-action="save-handoff-codex">Handoff Kaydet</button>
+    </div>
+    ${detailSection("Amaç", getSection(workItem.sections, "objective"))}
+    ${detailSection("Güncel Durum", getSection(workItem.sections, "current"))}
+    ${detailSection("Sonraki Adım", getSection(workItem.sections, "next"))}
+    <div class="section">
+      <h4>Devam Brifi</h4>
+      <pre>${escapeHtml(prompt)}</pre>
+    </div>
   `;
 }
 
@@ -646,15 +687,14 @@ function handleAction(action, payload) {
   if (action === "demo") loadDemo();
   if (action === "create-summary") guarded(() => createInboxSummaryFromForm(payload));
   if (action === "copy-close-prompt") guarded(copyClosePrompt);
+  if (action === "copy-context-pack") guarded(copyContextPack);
   if (action === "create-work") guarded(createWorkFromSelected);
   if (action === "archive") guarded(archiveSelected);
   if (action === "save-decision") guarded(saveDecisionFromSelected);
   if (action === "save-handoff-codex") guarded(() => saveHandoff("codex"));
   if (action === "save-handoff-claude") guarded(() => saveHandoff("claude"));
   if (action === "copy-handoff") {
-    const record = selectedRecord();
-    if (record) navigator.clipboard.writeText(generateHandoffPrompt(record, "codex"));
-    setToast("Handoff prompt'u kopyalandı.");
+    guarded(copyContextPack);
   }
 }
 

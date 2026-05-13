@@ -277,10 +277,114 @@ export function appendSessionToWorkItem(workItem, session) {
   });
 }
 
+export function resolveWorkContext(records, anchorRecord) {
+  if (!anchorRecord) {
+    return { workItem: null, sessions: [], decisions: [] };
+  }
+
+  const workItem = anchorRecord.type === "work_items"
+    ? anchorRecord
+    : records.find((record) => record.id === anchorRecord.linkedWorkItem) || null;
+  const sessionIds = new Set(normalizeArray(workItem?.frontmatter.sessions));
+  if (anchorRecord.type === "inbox") sessionIds.add(anchorRecord.id);
+
+  const sessions = sortRecords(
+    records.filter((record) =>
+      record.type === "inbox" && (
+        sessionIds.has(record.id) ||
+        (workItem && record.linkedWorkItem === workItem.id)
+      )
+    )
+  );
+  const resolvedSessionIds = new Set(sessions.map((record) => record.id));
+  const decisionIds = new Set(normalizeArray(workItem?.frontmatter.decisions));
+  const project = workItem?.project || anchorRecord.project;
+
+  const decisions = sortRecords(
+    records.filter((record) =>
+      record.type === "decisions" && (
+        decisionIds.has(record.id) ||
+        resolvedSessionIds.has(record.frontmatter.source_session) ||
+        (project && record.project === project)
+      )
+    )
+  );
+
+  return { workItem, sessions, decisions };
+}
+
+export function buildContextPack(records, anchorRecord, target = "codex") {
+  const toolName = target === "claude" ? "Claude Code" : "Codex";
+  const { workItem, sessions, decisions } = resolveWorkContext(records, anchorRecord);
+  const base = workItem || anchorRecord;
+  if (!base) return `${toolName} için context pack üretilecek kayıt bulunamadı.`;
+
+  const latestSession = sessions[0] || (base.type === "inbox" ? base : null);
+  const objective = getSection(base.sections, "objective") || getSection(base.sections, "goal") || base.summary || base.title;
+  const current = getSection(base.sections, "current") || getSection(latestSession?.sections || {}, "happened") || base.summary || "Güncel durum kayıtlardan net çıkarılamadı.";
+  const next = getSection(base.sections, "next") || getSection(latestSession?.sections || {}, "next") || "Sıradaki somut adım kayıtlardan net çıkarılamadı.";
+  const risks = getSection(base.sections, "risks") || getSection(latestSession?.sections || {}, "questions") || "Kayıtlı risk veya açık soru yok.";
+
+  return [
+    `${toolName} için ctx-lab context pack`,
+    "",
+    `İş hattı: ${base.title}`,
+    `Proje: ${base.project || "belirsiz"}`,
+    `Repo: ${base.repo || latestSession?.repo || "belirsiz"}`,
+    `Branch: ${base.branch || latestSession?.branch || "belirsiz"}`,
+    "",
+    "Amaç:",
+    objective,
+    "",
+    "Güncel durum:",
+    current,
+    "",
+    "Sıradaki adım:",
+    next,
+    "",
+    "Riskler / açık sorular:",
+    risks,
+    "",
+    "Bağlı oturumlar:",
+    formatSessionBullets(sessions),
+    "",
+    "Karar kayıtları:",
+    formatDecisionBullets(decisions),
+    "",
+    "Çalışma kuralı:",
+    "Önce mevcut repo durumunu oku. Yalnızca bu iş hattıyla ilgili değişiklikleri öner veya uygula. Kayıtlarda olmayan dosya, commit, metrik veya karar uydurma; eksik bağlamı açıkça belirt."
+  ].join("\n");
+}
+
 function normalizeArray(value) {
   if (Array.isArray(value)) return value.filter(Boolean);
   if (!value) return [];
   return [value];
+}
+
+function sortRecords(records) {
+  return [...records].sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)));
+}
+
+function formatSessionBullets(sessions) {
+  if (!sessions.length) return "- Bağlı oturum kaydı yok.";
+  return sessions.slice(0, 6).map((session) => {
+    const happened = getSection(session.sections, "happened") || session.summary || "Özet yok.";
+    const next = getSection(session.sections, "next") || "Sonraki adım belirtilmedi.";
+    return `- ${session.id} (${session.source || "kaynak yok"}, ${session.createdAt || "tarih yok"}): ${compactLine(happened)} Sonraki: ${compactLine(next)}`;
+  }).join("\n");
+}
+
+function formatDecisionBullets(decisions) {
+  if (!decisions.length) return "- Kayıtlı karar yok.";
+  return decisions.slice(0, 6).map((decision) => {
+    const value = getSection(decision.sections, "decisions") || getSection(decision.sections, "Karar") || decision.summary || decision.title;
+    return `- ${decision.id}: ${compactLine(value)}`;
+  }).join("\n");
+}
+
+function compactLine(value) {
+  return String(value || "").replace(/\s+/g, " ").trim().slice(0, 260);
 }
 
 export function buildInboxSessionSummary(draft, now = new Date()) {

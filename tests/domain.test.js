@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   appendSessionToWorkItem,
+  buildContextPack,
   buildDecisionFromSession,
   buildInboxSessionSummary,
   buildInboxSessionSummaryFromMarkdown,
@@ -13,6 +14,7 @@ import {
   parseMemoryFile,
   parseRepoInput,
   replaceFrontmatter,
+  resolveWorkContext,
   slugify,
   validateMemoryRecords
 } from "../src/domain.js";
@@ -183,4 +185,37 @@ test("oturum kapanış prompt'u ctx-lab formatını ister", () => {
   assert.match(prompt, /ctx-lab AI çalışma hafızası/);
   assert.match(prompt, /project: ctx-lab/);
   assert.match(prompt, /## Sonraki Adımlar/);
+});
+
+test("iş kartından bağlı oturum ve kararlarla context pack üretir", () => {
+  const session = parseMemoryFile("inbox/test.md", sample, "sha-session");
+  const work = parseMemoryFile(
+    "work_items/work_ctx-lab.md",
+    buildWorkItemFromSession(session).content,
+    "sha-work"
+  );
+  const decision = parseMemoryFile(
+    "decisions/dec_test.md",
+    `---
+id: dec_test
+title: GitHub memory repo seçimi
+project: ctx-lab
+source_session: sess_test
+created_at: 2026-05-13T12:00:00.000Z
+---
+
+## Karar
+GitHub memory repo kalıcı kaynak olacak.
+`,
+    "sha-decision"
+  );
+  const context = resolveWorkContext([work, session, decision], work);
+  const pack = buildContextPack([work, session, decision], work, "codex");
+
+  assert.equal(context.sessions.length, 1);
+  assert.equal(context.decisions.length, 1);
+  assert.match(pack, /Codex için ctx-lab context pack/);
+  assert.match(pack, /sess_test/);
+  assert.match(pack, /GitHub memory repo kalıcı kaynak olacak/);
+  assert.match(pack, /Çalışma kuralı/);
 });

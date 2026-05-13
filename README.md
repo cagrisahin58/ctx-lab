@@ -10,7 +10,7 @@ AI sohbet geçmişine güvenmek yerine, her önemli oturumdan sonra kısa ve ins
 - iş panosunda aktif işleri gösterir,
 - aynı proje için gelen yeni oturumları mevcut iş kartına bağlar,
 - karar defterini kaynaklı tutar,
-- Codex veya Claude için devam prompt'u üretir.
+- Codex veya Claude için iş hattı merkezli context pack üretir.
 
 Uygulama v1'de tamamen Türkçe arayüzle gelir. Veri alanları teknik sebeplerle İngilizce kalabilir, ancak kullanıcıya görünen metinler Türkçedir.
 
@@ -49,5 +49,9 @@ Token yalnızca tarayıcı localStorage alanında saklanır. Sunucu tarafı yokt
 `Yeni Özet` ekranı, Codex veya Claude oturumundan sonra temiz bir kayıt üretir. Ekrandaki `Oturum Kapanış Prompt'u` AI sohbetine yapıştırıldığında ctx-lab formatında markdown özet alınır. Bu markdown `Hazır Markdown` alanına yapıştırılıp doğrudan `inbox/` altına kaydedilebilir.
 
 Kayıtlar timestamp içeren benzersiz dosya adıyla yazılır. AI Inbox'tan `İş Kartına Bağla` seçildiğinde aynı proje için var olan iş kartı varsa yeni session id o karta eklenir; yoksa yeni kart oluşturulur.
+
+## Context pack akışı
+
+`İş Panosu` ekranında seçili iş kartı için bağlı oturumlar, karar kayıtları, güncel durum, sıradaki adım ve çalışma kuralları tek bir devam brifinde birleştirilir. Bu metin doğrudan kopyalanabilir veya `handoffs/` altına kaydedilebilir. Amaç, temiz bir Codex/Claude oturumunda sohbet geçmişi kaybolsa bile insan çalışma bağlamını hızlı geri yüklemektir.
 
 Detaylı format için [docs/memory-format.md](docs/memory-format.md) dosyasına bakın.

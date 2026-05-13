@@ -103,3 +103,14 @@ Codex veya Claude'a verilecek kısa devam prompt'u.
 ```
 
 Yeni bir inbox kaydı aynı `work_<project>` id'sine denk gelirse ctx-lab yeni dosya açmak yerine mevcut iş kartının `sessions` listesini günceller.
+
+## Handoff / context pack
+
+`handoffs/` altındaki kayıtlar artık yalnızca tek oturum özeti değildir. Seçili iş kartı için:
+
+- iş kartındaki amaç, güncel durum, sonraki adım ve riskler,
+- `sessions` listesindeki bağlı oturum özetleri,
+- `decisions` listesi veya bağlı oturumlardan türeyen kararlar,
+- Codex/Claude için çalışma kuralı
+
+tek bir context pack içinde birleştirilir. Bu dosyalar temiz AI oturumlarında ilk prompt olarak kullanılmak üzere tasarlanır.

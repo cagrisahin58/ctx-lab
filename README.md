@@ -23,6 +23,14 @@ npm run dev
 
 Sonra tarayıcıda Vite'ın verdiği yerel adresi açın. Bu geliştirme ortamında varsayılan adres `http://127.0.0.1:5173`.
 
+Windows için tek komut:
+
+```powershell
+.\scripts\start-windows.cmd
+```
+
+Bu komut gerekiyorsa bağımlılıkları kurar, `127.0.0.1:5173` üzerinde dev server başlatır ve tarayıcıyı açar. Alternatif port için `.\scripts\start-windows.cmd -Port 5174` kullanılabilir.
+
 Kalite kapısı:
 
 ```bash

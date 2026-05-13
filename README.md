@@ -29,7 +29,7 @@ Kalite kapısı:
 npm run verify
 ```
 
-Bu komut unit testleri, production build'i ve `dist/` smoke kontrolünü çalıştırır.
+Bu komut unit testleri, production build'i ve `dist/` smoke kontrolünü çalıştırır. Aynı kapı GitHub Actions üzerinde `main` push'ları ve pull request'ler için de çalışır.
 
 ## GitHub memory repo kurulumu
 

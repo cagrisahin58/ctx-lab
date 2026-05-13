@@ -324,8 +324,99 @@ ${formatSectionText(draft.evidence || "Kaynak belirtilmedi.")}
   return { id, path, content };
 }
 
+export function buildInboxSessionSummaryFromMarkdown(raw, fallback = {}, now = new Date()) {
+  const parsed = parseFrontmatter(String(raw || "").trim());
+  const frontmatter = parsed.frontmatter;
+  const source = frontmatter.source || fallback.source || "manual";
+  const project = frontmatter.project || fallback.project || "genel";
+  const createdAt = frontmatter.created_at || now.toISOString();
+  const createdDate = new Date(createdAt);
+  const stamp = timestampSlug(Number.isNaN(createdDate.getTime()) ? now : createdDate);
+  const id = frontmatter.id || `sess_${stamp}_${slugify(project)}_${slugify(source)}`;
+  const body = parsed.body.trim() || defaultSessionBody();
+  const content = `${serializeFrontmatter({
+    id,
+    source,
+    project,
+    repo: frontmatter.repo || fallback.repo || "",
+    branch: frontmatter.branch || fallback.branch || "main",
+    status: "needs_triage",
+    created_at: createdAt,
+    tags: normalizeArray(frontmatter.tags || fallback.tags),
+    linked_work_item: frontmatter.linked_work_item || ""
+  })}
+
+${body}
+`;
+
+  return {
+    id,
+    path: `inbox/${stamp}-${slugify(project)}-${slugify(source)}.md`,
+    content
+  };
+}
+
+export function buildSessionClosePrompt(defaults = {}) {
+  const source = defaults.source || "codex";
+  const project = defaults.project || "<proje>";
+  const repo = defaults.repo || "<owner/repo>";
+  const branch = defaults.branch || "main";
+
+  return `Bu oturumu ctx-lab AI çalışma hafızası için özetle.
+
+Yalnızca aşağıdaki markdown şemasını doldur. Kısa, kanıtlı ve eyleme dönük yaz. Uydurma dosya, commit, sayı veya karar ekleme; emin olmadığın yerleri "Belirsiz" diye işaretle.
+
+---
+source: ${source}
+project: ${project}
+repo: ${repo}
+branch: ${branch}
+status: needs_triage
+tags:
+  - ai-session
+linked_work_item:
+---
+
+# Session Summary
+
+## Amaç
+
+## Yapılanlar
+
+## Kararlar
+
+## Açık Sorular
+
+## Sonraki Adımlar
+
+## Kanıtlar
+`;
+}
+
 function timestampSlug(date) {
   return date.toISOString().replace(/[:.]/g, "-");
+}
+
+function defaultSessionBody() {
+  return `# Session Summary
+
+## Amaç
+Bu oturumun amacı yazılacak.
+
+## Yapılanlar
+Yapılanlar yazılacak.
+
+## Kararlar
+Kayıtlı karar yok.
+
+## Açık Sorular
+Açık soru yok.
+
+## Sonraki Adımlar
+Sıradaki adım netleştirilecek.
+
+## Kanıtlar
+Kaynak belirtilmedi.`;
 }
 
 function formatSectionText(value) {

@@ -4,6 +4,8 @@ import {
   appendSessionToWorkItem,
   buildDecisionFromSession,
   buildInboxSessionSummary,
+  buildInboxSessionSummaryFromMarkdown,
+  buildSessionClosePrompt,
   buildWorkItemFromSession,
   generateHandoffPrompt,
   getSection,
@@ -143,4 +145,42 @@ test("var olan iş kartına yeni session id ekler", () => {
 
   assert.deepEqual(parsed.frontmatter.sessions, ["sess_test", "sess_followup"]);
   assert.match(parsed.body, /Best Handoff Prompt/);
+});
+
+test("AI tarafında üretilen markdown özetini normalize eder", () => {
+  const raw = `---
+source: claude
+project: ctx-lab
+repo: cagrisahin58/ctx-lab
+branch: main
+status: done
+tags:
+  - kapanis
+---
+
+# Session Summary
+
+## Amaç
+Markdown içe aktarma akışını denemek.
+`;
+  const summary = buildInboxSessionSummaryFromMarkdown(raw, {}, new Date("2026-05-13T10:00:00.000Z"));
+  const parsed = parseFrontmatter(summary.content);
+
+  assert.equal(summary.path, "inbox/2026-05-13T10-00-00-000Z-ctx-lab-claude.md");
+  assert.equal(parsed.frontmatter.status, "needs_triage");
+  assert.deepEqual(parsed.frontmatter.tags, ["kapanis"]);
+  assert.match(parsed.body, /Markdown içe aktarma/);
+});
+
+test("oturum kapanış prompt'u ctx-lab formatını ister", () => {
+  const prompt = buildSessionClosePrompt({
+    source: "codex",
+    project: "ctx-lab",
+    repo: "cagrisahin58/ctx-lab",
+    branch: "main"
+  });
+
+  assert.match(prompt, /ctx-lab AI çalışma hafızası/);
+  assert.match(prompt, /project: ctx-lab/);
+  assert.match(prompt, /## Sonraki Adımlar/);
 });

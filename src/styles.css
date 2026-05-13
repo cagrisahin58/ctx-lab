@@ -218,6 +218,15 @@ textarea {
   grid-column: 1 / -1;
 }
 
+.connection-form textarea {
+  min-height: 120px;
+}
+
+.connection-form textarea[name="raw_markdown"] {
+  min-height: 260px;
+  font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
+}
+
 .record-list {
   display: grid;
   gap: 10px;

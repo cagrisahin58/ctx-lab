@@ -2,7 +2,9 @@ import "./styles.css";
 import {
   appendSessionToWorkItem,
   buildInboxSessionSummary,
+  buildInboxSessionSummaryFromMarkdown,
   buildDecisionFromSession,
+  buildSessionClosePrompt,
   buildWorkItemFromSession,
   generateHandoffPrompt,
   getSection,
@@ -221,12 +223,16 @@ async function createInboxSummaryFromForm(form) {
     return;
   }
   const data = new FormData(form);
-  const summary = buildInboxSessionSummary({
+  const fallback = {
     source: data.get("source"),
     project: data.get("project"),
     repo: data.get("repo"),
     branch: data.get("branch"),
-    tags: String(data.get("tags") || "").split(",").map((tag) => tag.trim()).filter(Boolean),
+    tags: String(data.get("tags") || "").split(",").map((tag) => tag.trim()).filter(Boolean)
+  };
+  const rawMarkdown = String(data.get("raw_markdown") || "").trim();
+  const summary = rawMarkdown ? buildInboxSessionSummaryFromMarkdown(rawMarkdown, fallback) : buildInboxSessionSummary({
+    ...fallback,
     goal: data.get("goal"),
     happened: data.get("happened"),
     decisions: data.get("decisions"),
@@ -245,6 +251,21 @@ async function createInboxSummaryFromForm(form) {
   state.selectedId = parsed.id;
   state.view = "inbox";
   setToast("Oturum özeti Inbox'a eklendi.");
+}
+
+function closePromptText() {
+  const record = selectedRecord();
+  return buildSessionClosePrompt({
+    source: "codex",
+    project: record?.project || "ctx-lab",
+    repo: record?.repo || "cagrisahin58/ctx-lab",
+    branch: record?.branch || "main"
+  });
+}
+
+async function copyClosePrompt() {
+  await navigator.clipboard.writeText(closePromptText());
+  setToast("Oturum kapanış prompt'u kopyalandı.");
 }
 
 function render() {
@@ -412,6 +433,15 @@ function renderNewSummary() {
   return `
     ${renderHeader("Yeni Oturum Özeti", "Claude veya Codex sohbetinden sonra temiz, insan-onaylı bir kayıt oluştur.")}
     <section class="panel">
+      <div class="section">
+        <h3>Oturum Kapanış Prompt'u</h3>
+        <pre class="handoff-output">${escapeHtml(closePromptText())}</pre>
+        <div class="toolbar-actions">
+          <button class="primary" data-action="copy-close-prompt">Prompt'u Kopyala</button>
+        </div>
+      </div>
+    </section>
+    <section class="panel">
       <form class="connection-form" id="summary-form">
         <label>
           Kaynak
@@ -423,7 +453,7 @@ function renderNewSummary() {
         </label>
         <label>
           Proje
-          <input name="project" required placeholder="ctx-lab" />
+          <input name="project" placeholder="ctx-lab" />
         </label>
         <label>
           Repo
@@ -438,8 +468,12 @@ function renderNewSummary() {
           <input name="tags" placeholder="architecture, github-memory" />
         </label>
         <label class="full">
+          Hazır Markdown
+          <textarea name="raw_markdown" placeholder="AI oturum kapanış prompt'undan gelen markdown özetini buraya yapıştır. Bu alan doluysa aşağıdaki detay alanları yedek bilgi olarak kullanılır."></textarea>
+        </label>
+        <label class="full">
           Amaç
-          <textarea name="goal" required placeholder="Bu oturumun hedefi neydi?"></textarea>
+          <textarea name="goal" placeholder="Bu oturumun hedefi neydi?"></textarea>
         </label>
         <label class="full">
           Yapılanlar
@@ -455,7 +489,7 @@ function renderNewSummary() {
         </label>
         <label class="full">
           Sonraki Adımlar
-          <textarea name="next" required placeholder="- Bir sonraki somut adım"></textarea>
+          <textarea name="next" placeholder="- Bir sonraki somut adım"></textarea>
         </label>
         <label class="full">
           Kanıtlar
@@ -611,6 +645,7 @@ function handleAction(action, payload) {
   if (action === "init-repo") guarded(initializeMemoryRepo);
   if (action === "demo") loadDemo();
   if (action === "create-summary") guarded(() => createInboxSummaryFromForm(payload));
+  if (action === "copy-close-prompt") guarded(copyClosePrompt);
   if (action === "create-work") guarded(createWorkFromSelected);
   if (action === "archive") guarded(archiveSelected);
   if (action === "save-decision") guarded(saveDecisionFromSelected);

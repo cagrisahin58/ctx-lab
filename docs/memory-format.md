@@ -62,6 +62,15 @@ Bu oturumun hedefi.
 
 İngilizce başlıklar da okunur: `Goal`, `What Happened`, `Decisions`, `Open Questions`, `Next Actions`, `Evidence`.
 
+## Oturum kapanış prompt'u
+
+ctx-lab'ın `Yeni Özet` ekranı, Codex veya Claude sohbetinin sonuna yapıştırılacak standart bir prompt üretir. Beklenen çıktı yukarıdaki `Inbox session summary` şemasındaki markdown'dur. Kullanıcı bu çıktıyı `Hazır Markdown` alanına yapıştırdığında uygulama frontmatter'ı normalize eder:
+
+- `status` her zaman `needs_triage` yapılır,
+- `id` yoksa timestamp, proje ve kaynak bilgisinden üretilir,
+- `created_at` yoksa kayıt anı kullanılır,
+- `linked_work_item` boş bırakılır.
+
 ## Work item
 
 ```markdown

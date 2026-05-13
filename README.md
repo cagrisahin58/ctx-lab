@@ -46,6 +46,8 @@ Token yalnızca tarayıcı localStorage alanında saklanır. Sunucu tarafı yokt
 
 ## Manuel oturum özeti akışı
 
-`Yeni Özet` ekranı, Codex veya Claude oturumundan sonra temiz bir kayıt üretir. Kayıt `inbox/` altına timestamp içeren benzersiz dosya adıyla yazılır. AI Inbox'tan `İş Kartına Bağla` seçildiğinde aynı proje için var olan iş kartı varsa yeni session id o karta eklenir; yoksa yeni kart oluşturulur.
+`Yeni Özet` ekranı, Codex veya Claude oturumundan sonra temiz bir kayıt üretir. Ekrandaki `Oturum Kapanış Prompt'u` AI sohbetine yapıştırıldığında ctx-lab formatında markdown özet alınır. Bu markdown `Hazır Markdown` alanına yapıştırılıp doğrudan `inbox/` altına kaydedilebilir.
+
+Kayıtlar timestamp içeren benzersiz dosya adıyla yazılır. AI Inbox'tan `İş Kartına Bağla` seçildiğinde aynı proje için var olan iş kartı varsa yeni session id o karta eklenir; yoksa yeni kart oluşturulur.
 
 Detaylı format için [docs/memory-format.md](docs/memory-format.md) dosyasına bakın.

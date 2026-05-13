@@ -31,6 +31,7 @@ for (const expected of [
   "Baglantiyi Tanila",
   "Gunluk Brif",
   "Yerel onbellek",
+  "Yeni Is Hatti",
   "Context Pack",
   "Oturum Kapanis"
 ]) {

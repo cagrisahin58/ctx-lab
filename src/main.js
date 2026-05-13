@@ -5,6 +5,7 @@ import {
   buildArchivedRecordContent,
   buildInboxSessionSummary,
   buildInboxSessionSummaryFromMarkdown,
+  buildManualWorkItem,
   buildDecisionFromSession,
   buildContextPack,
   buildDailyBrief,
@@ -365,6 +366,30 @@ async function createInboxSummaryFromForm(form) {
   setToast("Oturum özeti Inbox'a eklendi.");
 }
 
+async function createManualWorkFromForm(form) {
+  if (!state.demo && (!state.config.owner || !state.config.repo)) {
+    setToast("Önce GitHub memory repo bağlantısını kaydet.");
+    return;
+  }
+  const data = new FormData(form);
+  const work = buildManualWorkItem({
+    title: data.get("title"),
+    project: data.get("project"),
+    repo: data.get("repo"),
+    branch: data.get("branch"),
+    priority: data.get("priority"),
+    objective: data.get("objective"),
+    current: data.get("current"),
+    next: data.get("next"),
+    risks: data.get("risks")
+  });
+
+  const parsed = await saveMemoryRecord(work.path, work.content, `work: ${work.id} manuel iş hattı oluştur`);
+  state.selectedId = parsed.id;
+  state.view = "board";
+  setToast("Yeni iş hattı oluşturuldu.");
+}
+
 function closePromptText() {
   const record = selectedRecord();
   return buildSessionClosePrompt({
@@ -479,6 +504,7 @@ function cacheLabel() {
 function renderCurrentView(counts) {
   if (state.view === "settings") return renderSettings();
   if (state.view === "new-summary") return renderNewSummary();
+  if (state.view === "new-work") return renderNewWork();
   if (state.view === "board") return renderBoard();
   if (state.view === "decisions") return renderDecisions();
   if (state.view === "handoff") return renderHandoff();
@@ -556,7 +582,11 @@ function renderBoard() {
     ["done", "Tamamlandı"]
   ];
   return `
-    ${renderHeader("İş Panosu", "Kalıcı gerçeklik burada tutulur; Inbox sadece triage alanıdır.")}
+    ${renderHeader(
+      "İş Panosu",
+      "Kalıcı gerçeklik burada tutulur; Inbox sadece triage alanıdır.",
+      `<button class="primary" data-view="new-work">Yeni İş Hattı</button>`
+    )}
     ${renderSearchBar("İş kartı, proje veya durum ara")}
     <div class="board-layout">
       <div class="board">
@@ -571,6 +601,60 @@ function renderBoard() {
         ${selected ? renderWorkContext(selected) : `<div class="empty">İş kartı seçin.</div>`}
       </section>
     </div>
+  `;
+}
+
+function renderNewWork() {
+  return `
+    ${renderHeader("Yeni İş Hattı", "Inbox beklemeden panoda takip edilecek bağımsız bir çalışma hattı aç.")}
+    <section class="panel">
+      <form class="connection-form" id="work-form">
+        <label>
+          Başlık
+          <input name="title" required placeholder="AI Work Memory v1" />
+        </label>
+        <label>
+          Proje
+          <input name="project" placeholder="ctx-lab" />
+        </label>
+        <label>
+          Repo
+          <input name="repo" placeholder="cagrisahin58/ctx-lab" />
+        </label>
+        <label>
+          Branch
+          <input name="branch" placeholder="main" value="main" />
+        </label>
+        <label>
+          Öncelik
+          <select name="priority">
+            <option value="normal">Normal</option>
+            <option value="high">Yüksek</option>
+            <option value="low">Düşük</option>
+          </select>
+        </label>
+        <label class="full">
+          Amaç
+          <textarea name="objective" required placeholder="Bu iş hattı neyi başarmalı?"></textarea>
+        </label>
+        <label class="full">
+          Güncel Durum
+          <textarea name="current" placeholder="Şu an bilinen durum nedir?"></textarea>
+        </label>
+        <label class="full">
+          Sonraki Adım
+          <textarea name="next" required placeholder="Bir sonraki somut adım nedir?"></textarea>
+        </label>
+        <label class="full">
+          Riskler / Engeller
+          <textarea name="risks" placeholder="Açık risk, bağımlılık veya engel var mı?"></textarea>
+        </label>
+        <div class="toolbar-actions full">
+          <button class="primary" type="submit">İş Hattını Oluştur</button>
+          <button type="button" data-view="board">Vazgeç</button>
+        </div>
+      </form>
+    </section>
   `;
 }
 
@@ -930,6 +1014,13 @@ function bindEvents() {
       handleAction("create-summary", summaryForm);
     });
   }
+  const workForm = document.querySelector("#work-form");
+  if (workForm) {
+    workForm.addEventListener("submit", (event) => {
+      event.preventDefault();
+      handleAction("create-manual-work", workForm);
+    });
+  }
   document.querySelectorAll("[data-next-action-form]").forEach((form) => {
     form.addEventListener("submit", (event) => {
       event.preventDefault();
@@ -961,6 +1052,7 @@ function handleAction(action, payload) {
     render();
   }
   if (action === "create-summary") guarded(() => createInboxSummaryFromForm(payload));
+  if (action === "create-manual-work") guarded(() => createManualWorkFromForm(payload));
   if (action === "copy-close-prompt") guarded(copyClosePrompt);
   if (action === "copy-context-pack") guarded(copyContextPack);
   if (action === "copy-daily-brief") guarded(copyDailyBrief);

@@ -298,6 +298,46 @@ ${generateHandoffPrompt(session, "codex")}
   };
 }
 
+export function buildManualWorkItem(draft, now = new Date()) {
+  const title = String(draft.title || draft.project || "Yeni çalışma hattı").trim();
+  const project = String(draft.project || title).trim();
+  const workId = draft.id || `work_${slugify(title)}`;
+  const content = `${serializeFrontmatter({
+    id: workId,
+    title,
+    project,
+    repo: draft.repo || "",
+    branch: draft.branch || "main",
+    status: "active",
+    priority: draft.priority || "normal",
+    updated_at: now.toISOString(),
+    sessions: [],
+    decisions: []
+  })}
+
+## Objective
+${formatSectionText(draft.objective || "Bu işin amacı netleştirilecek.")}
+
+## Current State
+${formatSectionText(draft.current || "İş hattı manuel olarak açıldı.")}
+
+## Next Action
+${formatSectionText(draft.next || "Bir sonraki somut adım belirlenecek.")}
+
+## Risks / Blockers
+${formatSectionText(draft.risks || "Bilinen engel yok.")}
+
+## Best Handoff Prompt
+Bu çalışma hattını devral. Proje: ${project || "belirsiz"}. Repo: ${draft.repo || "belirsiz"}. Önce mevcut repo durumunu oku, sonra yalnızca bu hedefle ilgili değişiklikleri öner veya uygula.
+`;
+
+  return {
+    id: workId,
+    path: `work_items/${workId}.md`,
+    content
+  };
+}
+
 export function appendSessionToWorkItem(workItem, session) {
   const existingSessions = normalizeArray(workItem.frontmatter.sessions);
   const sessions = existingSessions.includes(session.id)

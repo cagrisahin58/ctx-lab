@@ -9,6 +9,7 @@ import {
   buildDecisionFromSession,
   buildInboxSessionSummary,
   buildInboxSessionSummaryFromMarkdown,
+  buildManualWorkItem,
   buildSessionClosePrompt,
   buildWorkItemFromSession,
   filterRecords,
@@ -79,6 +80,29 @@ test("work item içeriği üretir", () => {
   const work = buildWorkItemFromSession(record);
   assert.equal(work.path, "work_items/work_ctx-lab.md");
   assert.match(work.content, /Yeni uygulama yönünü netleştirmek/);
+});
+
+test("manuel iş hattı içeriği üretir", () => {
+  const work = buildManualWorkItem(
+    {
+      title: "AI Work Memory v1",
+      project: "ctx-lab",
+      repo: "cagrisahin58/ctx-lab",
+      branch: "main",
+      objective: "Kanban üzerinden bağımsız iş hattı başlatmak.",
+      current: "Tasarım netleşti.",
+      next: "Formu panoya bağla.",
+      risks: "Kapsam büyümesi."
+    },
+    new Date("2026-05-13T12:00:00.000Z")
+  );
+  const parsed = parseMemoryFile(work.path, work.content, "sha-work");
+
+  assert.equal(work.id, "work_ai-work-memory-v1");
+  assert.equal(parsed.frontmatter.status, "active");
+  assert.equal(parsed.frontmatter.repo, "cagrisahin58/ctx-lab");
+  assert.equal(getSection(parsed.sections, "objective"), "Kanban üzerinden bağımsız iş hattı başlatmak.");
+  assert.equal(getSection(parsed.sections, "next"), "Formu panoya bağla.");
 });
 
 test("decision içeriği üretir", () => {

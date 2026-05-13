@@ -23,6 +23,14 @@ npm run dev
 
 Sonra tarayıcıda Vite'ın verdiği yerel adresi açın. Bu geliştirme ortamında varsayılan adres `http://127.0.0.1:5173`.
 
+Kalite kapısı:
+
+```bash
+npm run verify
+```
+
+Bu komut unit testleri, production build'i ve `dist/` smoke kontrolünü çalıştırır.
+
 ## GitHub memory repo kurulumu
 
 Private memory repo için fine-grained GitHub token önerilir:

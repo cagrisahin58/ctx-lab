@@ -23,7 +23,7 @@ linked_work_item:
 ctx-lab projesini GitHub-backed AI Work Memory sistemine dönüştürme yönünü netleştirmek.
 
 ## Yapılanlar
-- Eski Seslog mimarisinin hook-heavy ve kırılgan olduğu değerlendirildi.
+- Eski prototip mimarisinin hook-heavy ve kırılgan olduğu değerlendirildi.
 - Memory repo source-of-truth yaklaşımı benimsendi.
 - AI Inbox, İş Panosu, Karar Defteri ve Handoff ekranları ana yapı olarak seçildi.
 

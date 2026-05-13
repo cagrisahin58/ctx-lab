@@ -341,6 +341,13 @@ export function updateWorkItemStatusContent(workItem, status, now = new Date()) 
   });
 }
 
+export function buildArchivedRecordContent(record, now = new Date()) {
+  return replaceFrontmatter(record.raw, {
+    status: "archived",
+    archived_at: now.toISOString()
+  });
+}
+
 export function resolveWorkContext(records, anchorRecord) {
   if (!anchorRecord) {
     return { workItem: null, sessions: [], decisions: [] };

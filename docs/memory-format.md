@@ -108,6 +108,7 @@ Inbox triage ekranında kullanıcı farklı bir mevcut iş kartını seçerse ay
 Inbox ekranı varsayılan olarak `needs_triage` kayıtlarını gösterir; `linked`, `archived` ve tüm kayıtlar UI filtresiyle görülebilir.
 Pano üzerinden durum değiştirildiğinde yalnızca iş kartının frontmatter alanındaki `status` ve `updated_at` değerleri güncellenir; gövde korunur.
 Inbox kaydından karar çıkarıldığında ilgili iş kartı bulunabiliyorsa karar id'si iş kartının `decisions` listesine otomatik eklenir.
+Inbox kaydı arşive taşındığında archive dosyasına `status: archived` ve `archived_at` yazılır; ardından kaynak inbox dosyası silinir.
 
 ## Handoff / context pack
 

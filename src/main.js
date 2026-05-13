@@ -2,6 +2,7 @@ import "./styles.css";
 import {
   appendDecisionToWorkItem,
   appendSessionToWorkItem,
+  buildArchivedRecordContent,
   buildInboxSessionSummary,
   buildInboxSessionSummaryFromMarkdown,
   buildDecisionFromSession,
@@ -20,7 +21,7 @@ import {
   WORK_STATUSES,
   validateMemoryRecords
 } from "./domain.js";
-import { ensureMemoryRepo, loadMemoryRepo, moveFile, putFile } from "./github.js";
+import { deleteFile, ensureMemoryRepo, loadMemoryRepo, putFile } from "./github.js";
 import { demoRecords } from "./fixtures.js";
 
 const STORAGE_KEY = "ctxlab.config.v1";
@@ -206,14 +207,13 @@ async function archiveSelected() {
   if (!record || record.type !== "inbox") return;
   const fileName = record.path.split("/").pop();
   const archivePath = `archive/${fileName}`;
-
+  const archivedContent = buildArchivedRecordContent(record);
+  const parsed = await saveMemoryRecord(archivePath, archivedContent, `archive: ${record.id}`);
   if (!state.demo) {
-    await moveFile(state.config, record, archivePath, `archive: ${record.id}`);
+    await deleteFile(state.config, record.path, record.sha, `archive: ${record.id} kaynak inbox kaydını sil`);
   }
 
-  state.records = state.records.map((item) =>
-    item.id === record.id ? { ...item, type: "archive", path: archivePath, status: "archived" } : item
-  );
+  state.selectedId = parsed.id;
   refreshWarnings();
   setToast("Inbox kaydı arşivlendi.");
 }

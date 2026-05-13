@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import {
   appendSessionToWorkItem,
   appendDecisionToWorkItem,
+  buildArchivedRecordContent,
   buildContextPack,
   buildDecisionFromSession,
   buildInboxSessionSummary,
@@ -307,4 +308,14 @@ test("session kaydına bağlı iş kartını bulur ve karar id'sini ekler", () =
   assert.deepEqual(parsed.frontmatter.decisions, [decision.id]);
   assert.equal(parsed.frontmatter.updated_at, "2026-05-13T12:00:00.000Z");
   assert.match(parsed.body, /Current State/);
+});
+
+test("arşiv içeriği status ve archived_at alanlarını günceller", () => {
+  const session = parseMemoryFile("inbox/test.md", sample, "sha-session");
+  const archived = buildArchivedRecordContent(session, new Date("2026-05-13T12:00:00.000Z"));
+  const parsed = parseFrontmatter(archived);
+
+  assert.equal(parsed.frontmatter.status, "archived");
+  assert.equal(parsed.frontmatter.archived_at, "2026-05-13T12:00:00.000Z");
+  assert.match(parsed.body, /Session Summary/);
 });

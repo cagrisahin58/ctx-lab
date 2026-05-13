@@ -118,3 +118,4 @@ Pano üzerinden durum değiştirildiğinde yalnızca iş kartının frontmatter 
 - Codex/Claude için çalışma kuralı
 
 tek bir context pack içinde birleştirilir. Bu dosyalar temiz AI oturumlarında ilk prompt olarak kullanılmak üzere tasarlanır.
+Karar ve handoff kayıtları aynı path ile tekrar kaydedilirse yeni kopya üretmek yerine mevcut dosya `sha` ile güncellenir.

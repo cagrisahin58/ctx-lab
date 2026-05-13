@@ -250,6 +250,13 @@ export function filterRecords(records, query) {
   });
 }
 
+export function upsertRecord(records, record) {
+  return [
+    record,
+    ...records.filter((item) => item.id !== record.id && item.path !== record.path)
+  ];
+}
+
 export function buildWorkItemFromSession(session) {
   const workId = `work_${slugify(session.project || session.title)}`;
   const now = new Date().toISOString();

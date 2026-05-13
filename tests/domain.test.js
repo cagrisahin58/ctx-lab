@@ -18,6 +18,7 @@ import {
   resolveWorkContext,
   slugify,
   updateWorkItemStatusContent,
+  upsertRecord,
   validateMemoryRecords
 } from "../src/domain.js";
 
@@ -257,4 +258,33 @@ test("iş kartı durumunu frontmatter içinde günceller", () => {
   assert.equal(parsed.frontmatter.updated_at, "2026-05-13T12:00:00.000Z");
   assert.match(parsed.body, /Current State/);
   assert.throws(() => updateWorkItemStatusContent(work, "needs_triage"), /Geçersiz iş kartı durumu/);
+});
+
+test("aynı id veya path için kayıtları tekilleştirerek günceller", () => {
+  const first = parseMemoryFile("inbox/test.md", sample, "sha-a");
+  const updated = parseMemoryFile(
+    "inbox/test.md",
+    sample.replace("status: needs_triage", "status: linked"),
+    "sha-b"
+  );
+  const other = parseMemoryFile(
+    "decisions/dec_other.md",
+    `---
+id: dec_other
+title: Başka karar
+project: ctx-lab
+created_at: 2026-05-13T12:00:00.000Z
+---
+
+## Karar
+Başka kayıt.
+`,
+    "sha-c"
+  );
+
+  const records = upsertRecord([first, other], updated);
+  assert.equal(records.length, 2);
+  assert.equal(records[0].status, "linked");
+  assert.equal(records[0].sha, "sha-b");
+  assert.deepEqual(records.map((record) => record.id), ["sess_test", "dec_other"]);
 });

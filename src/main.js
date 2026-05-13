@@ -14,6 +14,7 @@ import {
   parseMemoryFile,
   replaceFrontmatter,
   updateWorkItemStatusContent,
+  upsertRecord,
   WORK_STATUSES,
   validateMemoryRecords
 } from "./domain.js";
@@ -116,6 +117,19 @@ function refreshWarnings() {
   state.warnings = validateMemoryRecords(state.records);
 }
 
+async function saveMemoryRecord(path, content, message) {
+  const existing = state.records.find((record) => record.path === path);
+  let sha = existing?.sha || `local-${Date.now()}`;
+  if (!state.demo) {
+    const result = await putFile(state.config, path, content, message, existing?.sha);
+    sha = result?.content?.sha || sha;
+  }
+  const parsed = parseMemoryFile(path, content, sha);
+  state.records = upsertRecord(state.records, parsed);
+  refreshWarnings();
+  return parsed;
+}
+
 async function syncFromGitHub() {
   if (!state.config.owner || !state.config.repo) {
     setToast("Önce GitHub memory repo bağlantısını kaydet.");
@@ -170,43 +184,16 @@ async function createWorkFromSelected(targetWorkId = "") {
   const workPath = existingWork ? existingWork.path : work.path;
   const linkedWorkId = existingWork?.id || work.id;
 
-  if (!state.demo) {
-    await putFile(
-      state.config,
-      workPath,
-      workContent,
-      existingWork ? `work: ${linkedWorkId} oturum bağlantısını güncelle` : `work: ${linkedWorkId} iş kartını oluştur`,
-      existingWork?.sha
-    );
-    const updatedInbox = replaceFrontmatter(record.raw, {
-      status: "linked",
-      linked_work_item: linkedWorkId
-    });
-    await putFile(
-      state.config,
-      record.path,
-      updatedInbox,
-      `inbox: ${record.id} iş kartına bağlandı`,
-      record.sha
-    );
-  }
-
-  const parsed = parseMemoryFile(workPath, workContent, existingWork?.sha || `local-${Date.now()}`);
-  const withoutExisting = state.records.filter((item) => item.id !== parsed.id);
-  state.records = [
-    parsed,
-    ...withoutExisting.map((item) =>
-      item.id === record.id
-        ? {
-            ...item,
-            status: "linked",
-            linkedWorkItem: linkedWorkId,
-            raw: replaceFrontmatter(item.raw, { status: "linked", linked_work_item: linkedWorkId })
-          }
-        : item
-    )
-  ];
-  refreshWarnings();
+  const parsed = await saveMemoryRecord(
+    workPath,
+    workContent,
+    existingWork ? `work: ${linkedWorkId} oturum bağlantısını güncelle` : `work: ${linkedWorkId} iş kartını oluştur`
+  );
+  const updatedInbox = replaceFrontmatter(record.raw, {
+    status: "linked",
+    linked_work_item: linkedWorkId
+  });
+  await saveMemoryRecord(record.path, updatedInbox, `inbox: ${record.id} iş kartına bağlandı`);
   state.view = "board";
   state.selectedId = parsed.id;
   setToast(existingWork ? "Oturum seçili iş kartına bağlandı." : "İş kartı oluşturuldu.");
@@ -237,11 +224,7 @@ async function saveDecisionFromSelected() {
     setToast("Bu oturumda karar bölümü bulunamadı.");
     return;
   }
-  if (!state.demo) {
-    await putFile(state.config, decision.path, decision.content, `decision: ${decision.id}`);
-  }
-  state.records = [parseMemoryFile(decision.path, decision.content, `local-${Date.now()}`), ...state.records];
-  refreshWarnings();
+  await saveMemoryRecord(decision.path, decision.content, `decision: ${decision.id}`);
   state.view = "decisions";
   setToast("Karar kaydı oluşturuldu.");
 }
@@ -262,11 +245,7 @@ created_at: ${new Date().toISOString()}
 ${prompt}
 `;
   const path = `handoffs/handoff_${record.id}_${target}.md`;
-  if (!state.demo) {
-    await putFile(state.config, path, content, `handoff: ${record.id} -> ${target}`);
-  }
-  state.records = [parseMemoryFile(path, content, `local-${Date.now()}`), ...state.records];
-  refreshWarnings();
+  await saveMemoryRecord(path, content, `handoff: ${record.id} -> ${target}`);
   setToast("Handoff kaydı hazırlandı.");
 }
 
@@ -281,22 +260,8 @@ async function updateSelectedWorkStatus(payload) {
   }
 
   const content = updateWorkItemStatusContent(record, status);
-  let sha = record.sha;
-  if (!state.demo) {
-    const result = await putFile(
-      state.config,
-      record.path,
-      content,
-      `work: ${record.id} durumunu ${status} yap`,
-      record.sha
-    );
-    sha = result?.content?.sha || sha;
-  }
-
-  const parsed = parseMemoryFile(record.path, content, sha);
-  state.records = state.records.map((item) => (item.id === parsed.id ? parsed : item));
+  const parsed = await saveMemoryRecord(record.path, content, `work: ${record.id} durumunu ${status} yap`);
   state.selectedId = parsed.id;
-  refreshWarnings();
   setToast("İş kartı durumu güncellendi.");
 }
 
@@ -334,13 +299,7 @@ async function createInboxSummaryFromForm(form) {
     evidence: data.get("evidence")
   });
 
-  if (!state.demo) {
-    await putFile(state.config, summary.path, summary.content, `inbox: ${summary.id} oturum özetini ekle`);
-  }
-
-  const parsed = parseMemoryFile(summary.path, summary.content, `local-${Date.now()}`);
-  state.records = [parsed, ...state.records];
-  refreshWarnings();
+  const parsed = await saveMemoryRecord(summary.path, summary.content, `inbox: ${summary.id} oturum özetini ekle`);
   state.selectedId = parsed.id;
   state.view = "inbox";
   setToast("Oturum özeti Inbox'a eklendi.");

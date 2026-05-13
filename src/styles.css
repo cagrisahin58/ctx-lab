@@ -131,6 +131,11 @@ textarea {
   font-size: 13px;
 }
 
+.cache-meta {
+  color: #8fa0b4;
+  font-size: 12px;
+}
+
 .content {
   padding: 28px;
   display: grid;

@@ -25,15 +25,17 @@ import {
 } from "./domain.js";
 import { deleteFile, diagnoseMemoryRepo, ensureMemoryRepo, loadMemoryRepo, putFile } from "./github.js";
 import { demoRecords } from "./fixtures.js";
+import { loadAppConfig, loadRecordCache, saveAppConfig, saveRecordCache } from "./storage.js";
 
-const STORAGE_KEY = "ctxlab.config.v1";
 const app = document.querySelector("#app");
+const initialConfig = loadAppConfig();
+const initialCache = loadRecordCache(initialConfig);
 
 const state = {
   view: "inbox",
-  config: loadConfig(),
-  records: [],
-  selectedId: "",
+  config: initialConfig,
+  records: initialCache.records,
+  selectedId: initialCache.records[0]?.id || "",
   loading: false,
   toast: "",
   demo: false,
@@ -41,25 +43,41 @@ const state = {
   query: "",
   inboxStatus: "needs_triage",
   diagnostics: null,
-  diagnosticsLoading: false
+  diagnosticsLoading: false,
+  cacheMeta: {
+    scope: initialCache.scope,
+    syncedAt: initialCache.syncedAt
+  }
 };
 
-function loadConfig() {
-  try {
-    return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {
-      owner: "",
-      repo: "",
-      branch: "main",
-      token: ""
-    };
-  } catch {
-    return { owner: "", repo: "", branch: "main", token: "" };
-  }
+function saveConfig(config) {
+  state.config = saveAppConfig(config);
+  const cache = loadRecordCache(state.config);
+  state.records = cache.records;
+  state.cacheMeta = {
+    scope: cache.scope,
+    syncedAt: cache.syncedAt
+  };
+  state.selectedId = state.records[0]?.id || "";
+  state.demo = false;
+  state.diagnostics = null;
+  refreshWarnings();
 }
 
-function saveConfig(config) {
-  state.config = config;
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(config));
+function persistRecordCache() {
+  if (state.demo) return;
+  try {
+    const cache = saveRecordCache(state.config, state.records);
+    state.cacheMeta = {
+      scope: cache.scope,
+      syncedAt: cache.syncedAt
+    };
+  } catch {
+    state.cacheMeta = {
+      ...state.cacheMeta,
+      syncedAt: ""
+    };
+  }
 }
 
 function setToast(message) {
@@ -134,6 +152,7 @@ async function saveMemoryRecord(path, content, message) {
   const parsed = parseMemoryFile(path, content, sha);
   state.records = upsertRecord(state.records, parsed);
   refreshWarnings();
+  persistRecordCache();
   return parsed;
 }
 
@@ -145,9 +164,10 @@ async function syncFromGitHub() {
   state.loading = true;
   render();
   try {
+    state.demo = false;
     state.records = await loadMemoryRepo(state.config);
     refreshWarnings();
-    state.demo = false;
+    persistRecordCache();
     state.selectedId = state.records[0]?.id || "";
     setToast(state.warnings.length ? "Memory repo yüklendi; format uyarıları var." : "Memory repo senkronize edildi.");
   } catch (error) {
@@ -420,6 +440,7 @@ function render() {
         </nav>
         <div class="sync-panel">
           <span>${state.demo ? "Örnek veri modu" : repoLabel()}</span>
+          ${state.demo ? "" : `<span class="cache-meta">${cacheLabel()}</span>`}
           <button class="primary" data-action="sync" ${state.loading ? "disabled" : ""}>
             ${state.loading ? "Senkronize ediliyor" : "GitHub'dan Yenile"}
           </button>
@@ -444,6 +465,15 @@ function repoLabel() {
   return state.config.owner && state.config.repo
     ? `${state.config.owner}/${state.config.repo} · ${state.config.branch || "main"}`
     : "Memory repo bağlı değil";
+}
+
+function cacheLabel() {
+  if (!state.cacheMeta.syncedAt) return "Yerel önbellek yok";
+  const date = new Date(state.cacheMeta.syncedAt);
+  const label = Number.isNaN(date.getTime())
+    ? state.cacheMeta.syncedAt
+    : date.toLocaleString("tr-TR", { dateStyle: "short", timeStyle: "short" });
+  return `Yerel önbellek: ${state.records.length} kayıt · ${label}`;
 }
 
 function renderCurrentView(counts) {
@@ -959,4 +989,5 @@ function escapeHtml(value) {
     .replace(/"/g, "&quot;");
 }
 
+refreshWarnings();
 render();

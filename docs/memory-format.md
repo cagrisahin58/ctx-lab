@@ -15,6 +15,10 @@ config.yaml  Repo seviyesi kısa ayar dosyası
 
 Repo tanılaması bu klasörleri, `config.yaml` dosyasını, seçili branch'i ve repo erişimini kontrol eder.
 
+## Yerel önbellek
+
+ctx-lab, son başarılı GitHub senkronizasyonundan gelen kayıt snapshot'ını tarayıcı localStorage alanında saklar. Önbellek `owner/repo@branch` kapsamıyla ayrılır; farklı memory repo veya branch seçildiğinde eski kayıtlar yeni ekranda gösterilmez. Bu önbellek yalnızca hızlı açılış ve geçici çevrimdışı görünürlük içindir. Kalıcı kaynak gerçeklik GitHub memory repo'dur.
+
 Geçerli kayıt tipleri: `inbox`, `work_items`, `decisions`, `handoffs`, `archive`.
 Geçerli durumlar: `needs_triage`, `linked`, `active`, `waiting`, `blocked`, `done`, `archived`.
 İş kartı panosunda yönetilen durumlar: `active`, `waiting`, `blocked`, `done`.

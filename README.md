@@ -51,7 +51,7 @@ work-memory/
   config.yaml
 ```
 
-Token yalnızca tarayıcı localStorage alanında saklanır. Sunucu tarafı yoktur.
+Token ve son başarılı memory snapshot'ı yalnızca tarayıcı localStorage alanında saklanır. Sunucu tarafı yoktur. Yerel önbellek owner/repo/branch kapsamıyla ayrılır; uygulama açıldığında son kayıtları hızlı gösterir, GitHub ise kaynak gerçeklik olarak kalır.
 
 ## Manuel oturum özeti akışı
 

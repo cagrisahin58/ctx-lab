@@ -30,6 +30,7 @@ for (const expected of [
   "Handoff",
   "Baglantiyi Tanila",
   "Gunluk Brif",
+  "Yerel onbellek",
   "Context Pack",
   "Oturum Kapanis"
 ]) {

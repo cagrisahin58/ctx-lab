@@ -1,5 +1,6 @@
 import "./styles.css";
 import {
+  appendDecisionToWorkItem,
   appendSessionToWorkItem,
   buildInboxSessionSummary,
   buildInboxSessionSummaryFromMarkdown,
@@ -8,6 +9,7 @@ import {
   buildSessionClosePrompt,
   buildWorkItemFromSession,
   filterRecords,
+  findWorkItemForSession,
   getSection,
   groupByStatus,
   parseRepoInput,
@@ -224,7 +226,12 @@ async function saveDecisionFromSelected() {
     setToast("Bu oturumda karar bölümü bulunamadı.");
     return;
   }
-  await saveMemoryRecord(decision.path, decision.content, `decision: ${decision.id}`);
+  const savedDecision = await saveMemoryRecord(decision.path, decision.content, `decision: ${decision.id}`);
+  const workItem = findWorkItemForSession(state.records, record);
+  if (workItem) {
+    const updatedWork = appendDecisionToWorkItem(workItem, savedDecision);
+    await saveMemoryRecord(workItem.path, updatedWork, `work: ${workItem.id} karar bağlantısını güncelle`);
+  }
   state.view = "decisions";
   setToast("Karar kaydı oluşturuldu.");
 }

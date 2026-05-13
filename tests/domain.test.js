@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   appendSessionToWorkItem,
+  appendDecisionToWorkItem,
   buildContextPack,
   buildDecisionFromSession,
   buildInboxSessionSummary,
@@ -9,6 +10,7 @@ import {
   buildSessionClosePrompt,
   buildWorkItemFromSession,
   filterRecords,
+  findWorkItemForSession,
   generateHandoffPrompt,
   getSection,
   parseFrontmatter,
@@ -287,4 +289,22 @@ Başka kayıt.
   assert.equal(records[0].status, "linked");
   assert.equal(records[0].sha, "sha-b");
   assert.deepEqual(records.map((record) => record.id), ["sess_test", "dec_other"]);
+});
+
+test("session kaydına bağlı iş kartını bulur ve karar id'sini ekler", () => {
+  const session = parseMemoryFile("inbox/test.md", sample, "sha-session");
+  const work = parseMemoryFile(
+    "work_items/work_ctx-lab.md",
+    buildWorkItemFromSession(session).content,
+    "sha-work"
+  );
+  const decision = buildDecisionFromSession(session);
+  const found = findWorkItemForSession([work, session], session);
+  const updated = appendDecisionToWorkItem(found, decision, new Date("2026-05-13T12:00:00.000Z"));
+  const parsed = parseFrontmatter(updated);
+
+  assert.equal(found.id, "work_ctx-lab");
+  assert.deepEqual(parsed.frontmatter.decisions, [decision.id]);
+  assert.equal(parsed.frontmatter.updated_at, "2026-05-13T12:00:00.000Z");
+  assert.match(parsed.body, /Current State/);
 });

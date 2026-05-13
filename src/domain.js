@@ -310,6 +310,27 @@ export function appendSessionToWorkItem(workItem, session) {
   });
 }
 
+export function findWorkItemForSession(records, session) {
+  if (!session) return null;
+  return records.find((record) => {
+    if (record.type !== "work_items") return false;
+    return record.id === session.linkedWorkItem ||
+      normalizeArray(record.frontmatter.sessions).includes(session.id);
+  }) || null;
+}
+
+export function appendDecisionToWorkItem(workItem, decision, now = new Date()) {
+  const existingDecisions = normalizeArray(workItem.frontmatter.decisions);
+  const decisions = existingDecisions.includes(decision.id)
+    ? existingDecisions
+    : [...existingDecisions, decision.id];
+
+  return replaceFrontmatter(workItem.raw, {
+    decisions,
+    updated_at: now.toISOString()
+  });
+}
+
 export function updateWorkItemStatusContent(workItem, status, now = new Date()) {
   if (!WORK_STATUSES.includes(status)) {
     throw new Error(`Geçersiz iş kartı durumu: ${status}`);

@@ -58,5 +58,6 @@ Inbox varsayılan olarak yalnızca triage bekleyen kayıtları gösterir; bağl�
 
 İş kartları `Aktif`, `Beklemede`, `Engelli` ve `Tamamlandı` durumları arasında doğrudan panodan taşınabilir. Arama alanı Inbox, İş Panosu ve Karar Defteri içinde proje, başlık, repo, durum, kaynak ve etiket bilgilerine göre hızlı süzme yapar.
 Karar ve handoff kayıtları tekrar kaydedildiğinde mevcut dosya güncellenir; aynı kayıt için gereksiz kopyalar üretilmez.
+Inbox kaydından karar çıkarıldığında ilgili iş kartı bulunursa karar id'si o iş hattına otomatik bağlanır.
 
 Detaylı format için [docs/memory-format.md](docs/memory-format.md) dosyasına bakın.

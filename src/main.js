@@ -32,7 +32,8 @@ const state = {
   toast: "",
   demo: false,
   warnings: [],
-  query: ""
+  query: "",
+  inboxStatus: "needs_triage"
 };
 
 function loadConfig() {
@@ -91,10 +92,16 @@ function filteredRecords(type) {
 function keepSelectionVisible() {
   const type = primaryTypeForView(state.view);
   if (!type) return;
-  const visible = filteredRecords(type);
+  const visible = state.view === "inbox" ? visibleInboxRecords() : filteredRecords(type);
   if (visible.length && !visible.some((record) => record.id === state.selectedId)) {
     state.selectedId = visible[0].id;
   }
+}
+
+function visibleInboxRecords() {
+  const inbox = filteredRecords("inbox");
+  if (state.inboxStatus === "all") return inbox;
+  return inbox.filter((record) => record.status === state.inboxStatus);
 }
 
 function primaryTypeForView(view) {
@@ -434,7 +441,7 @@ function renderHeader(title, subtitle, actions = "") {
 }
 
 function renderInbox(counts) {
-  const inbox = filteredRecords("inbox");
+  const inbox = visibleInboxRecords();
   const selected = inbox.find((record) => record.id === state.selectedId) || inbox[0];
   return `
     ${renderHeader(
@@ -442,7 +449,15 @@ function renderInbox(counts) {
       "Claude, Codex veya diğer araçlardan gelen oturum özetlerini işlenebilir bağlama dönüştür.",
       `<button data-view="new-summary">Yeni Özet</button><button data-action="sync">Yenile</button><button class="primary" data-action="demo">Örnek Veri</button>`
     )}
-    ${renderSearchBar("Inbox içinde ara")}
+    <div class="filter-row">
+      ${renderSearchBar("Inbox içinde ara")}
+      <select class="status-select" data-inbox-status aria-label="Inbox durum filtresi">
+        <option value="needs_triage" ${state.inboxStatus === "needs_triage" ? "selected" : ""}>Triage gerekli</option>
+        <option value="linked" ${state.inboxStatus === "linked" ? "selected" : ""}>Bağlandı</option>
+        <option value="archived" ${state.inboxStatus === "archived" ? "selected" : ""}>Arşiv</option>
+        <option value="all" ${state.inboxStatus === "all" ? "selected" : ""}>Tümü</option>
+      </select>
+    </div>
     ${state.warnings.length ? renderWarnings() : ""}
     <div class="stats">
       <div class="stat"><strong>${counts.inbox}</strong><span>Inbox kaydı</span></div>
@@ -758,6 +773,13 @@ function bindEvents() {
       id: select.dataset.workId,
       status: select.value
     }));
+  });
+  document.querySelectorAll("[data-inbox-status]").forEach((select) => {
+    select.addEventListener("change", () => {
+      state.inboxStatus = select.value;
+      keepSelectionVisible();
+      render();
+    });
   });
   const form = document.querySelector("#settings-form");
   if (form) {

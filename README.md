@@ -50,6 +50,7 @@ Token yalnızca tarayıcı localStorage alanında saklanır. Sunucu tarafı yokt
 
 Kayıtlar timestamp içeren benzersiz dosya adıyla yazılır. AI Inbox'tan `İş Kartına Bağla` seçildiğinde aynı proje için var olan iş kartı varsa yeni session id o karta eklenir; yoksa yeni kart oluşturulur.
 Gerekirse Inbox detayındaki seçiciden mevcut bir iş hattı bilinçli olarak hedeflenebilir; bu durumda oturum özeti seçili iş kartının `sessions` listesine eklenir.
+Inbox varsayılan olarak yalnızca triage bekleyen kayıtları gösterir; bağlı, arşivlenmiş veya tüm kayıtlar durum filtresiyle açılabilir.
 
 ## Context pack akışı
 

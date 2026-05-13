@@ -163,6 +163,13 @@ textarea {
   align-items: center;
 }
 
+.triage-linker {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+}
+
 .page-title {
   display: grid;
   gap: 4px;
@@ -380,6 +387,7 @@ textarea {
   .board-layout,
   .board,
   .search-strip,
+  .triage-linker,
   .connection-form {
     grid-template-columns: 1fr;
   }

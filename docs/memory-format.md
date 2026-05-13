@@ -104,6 +104,7 @@ Codex veya Claude'a verilecek kısa devam prompt'u.
 ```
 
 Yeni bir inbox kaydı aynı `work_<project>` id'sine denk gelirse ctx-lab yeni dosya açmak yerine mevcut iş kartının `sessions` listesini günceller.
+Inbox triage ekranında kullanıcı farklı bir mevcut iş kartını seçerse aynı güncelleme seçilen kart için yapılır ve inbox kaydındaki `linked_work_item` bu iş kartının id'sine çekilir.
 Pano üzerinden durum değiştirildiğinde yalnızca iş kartının frontmatter alanındaki `status` ve `updated_at` değerleri güncellenir; gövde korunur.
 
 ## Handoff / context pack

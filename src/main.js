@@ -65,11 +65,13 @@ function setToast(message) {
 
 function setView(view) {
   state.view = view;
+  keepSelectionVisible();
   render();
 }
 
 function setQuery(query) {
   state.query = query;
+  keepSelectionVisible();
   render();
   const search = document.querySelector("[data-search]");
   if (search) {
@@ -84,6 +86,23 @@ function recordsByType(type) {
 
 function filteredRecords(type) {
   return filterRecords(recordsByType(type), state.query);
+}
+
+function keepSelectionVisible() {
+  const type = primaryTypeForView(state.view);
+  if (!type) return;
+  const visible = filteredRecords(type);
+  if (visible.length && !visible.some((record) => record.id === state.selectedId)) {
+    state.selectedId = visible[0].id;
+  }
+}
+
+function primaryTypeForView(view) {
+  return {
+    inbox: "inbox",
+    board: "work_items",
+    decisions: "decisions"
+  }[view] || "";
 }
 
 function refreshWarnings() {
@@ -128,25 +147,33 @@ function contextRecord() {
   return state.view === "board" ? selectedRecord("work_items") : selectedRecord();
 }
 
-async function createWorkFromSelected() {
+async function createWorkFromSelected(targetWorkId = "") {
   const record = selectedRecord();
-  if (!record) return;
+  if (!record || record.type !== "inbox") return;
   const work = buildWorkItemFromSession(record);
-  const existingWork = state.records.find((item) => item.type === "work_items" && item.id === work.id);
+  const targetWork = targetWorkId
+    ? state.records.find((item) => item.type === "work_items" && item.id === targetWorkId)
+    : null;
+  if (targetWorkId && !targetWork) {
+    setToast("Bağlanacak iş kartı bulunamadı.");
+    return;
+  }
+  const existingWork = targetWork || state.records.find((item) => item.type === "work_items" && item.id === work.id);
   const workContent = existingWork ? appendSessionToWorkItem(existingWork, record) : work.content;
   const workPath = existingWork ? existingWork.path : work.path;
+  const linkedWorkId = existingWork?.id || work.id;
 
   if (!state.demo) {
     await putFile(
       state.config,
       workPath,
       workContent,
-      existingWork ? `work: ${work.id} oturum bağlantısını güncelle` : `work: ${work.id} iş kartını oluştur`,
+      existingWork ? `work: ${linkedWorkId} oturum bağlantısını güncelle` : `work: ${linkedWorkId} iş kartını oluştur`,
       existingWork?.sha
     );
     const updatedInbox = replaceFrontmatter(record.raw, {
       status: "linked",
-      linked_work_item: work.id
+      linked_work_item: linkedWorkId
     });
     await putFile(
       state.config,
@@ -163,14 +190,19 @@ async function createWorkFromSelected() {
     parsed,
     ...withoutExisting.map((item) =>
       item.id === record.id
-        ? { ...item, status: "linked", linkedWorkItem: work.id }
+        ? {
+            ...item,
+            status: "linked",
+            linkedWorkItem: linkedWorkId,
+            raw: replaceFrontmatter(item.raw, { status: "linked", linked_work_item: linkedWorkId })
+          }
         : item
     )
   ];
   refreshWarnings();
   state.view = "board";
   state.selectedId = parsed.id;
-  setToast(existingWork ? "Oturum mevcut iş kartına bağlandı." : "İş kartı oluşturuldu.");
+  setToast(existingWork ? "Oturum seçili iş kartına bağlandı." : "İş kartı oluşturuldu.");
 }
 
 async function archiveSelected() {
@@ -403,7 +435,7 @@ function renderHeader(title, subtitle, actions = "") {
 
 function renderInbox(counts) {
   const inbox = filteredRecords("inbox");
-  const selected = selectedRecord();
+  const selected = inbox.find((record) => record.id === state.selectedId) || inbox[0];
   return `
     ${renderHeader(
       "AI Inbox",
@@ -650,6 +682,7 @@ function renderRecordCard(record) {
 }
 
 function renderRecordDetail(record, withActions) {
+  const workItems = recordsByType("work_items");
   return `
     <h3>${escapeHtml(record.title)}</h3>
     <div class="meta">
@@ -659,10 +692,18 @@ function renderRecordDetail(record, withActions) {
     </div>
     ${withActions ? `
       <div class="toolbar-actions">
-        <button class="primary" data-action="create-work">İş Kartına Dönüştür</button>
+        <button class="primary" data-action="create-work">Yeni/Proje İş Kartına Bağla</button>
         <button data-action="save-decision">Karar Çıkar</button>
         <button data-action="archive">Arşivle</button>
       </div>
+      ${workItems.length ? `
+        <div class="triage-linker">
+          <select data-link-work-target aria-label="Mevcut iş kartı">
+            ${workItems.map((item) => `<option value="${escapeHtml(item.id)}">${escapeHtml(item.title)}</option>`).join("")}
+          </select>
+          <button data-action="link-existing-work">Seçili İşe Bağla</button>
+        </div>
+      ` : ""}
     ` : ""}
     ${detailSection("Amaç", getSection(record.sections, "goal") || getSection(record.sections, "objective"))}
     ${detailSection("Yapılanlar / Güncel Durum", getSection(record.sections, "happened") || getSection(record.sections, "current"))}
@@ -767,6 +808,10 @@ function handleAction(action, payload) {
   if (action === "copy-close-prompt") guarded(copyClosePrompt);
   if (action === "copy-context-pack") guarded(copyContextPack);
   if (action === "create-work") guarded(createWorkFromSelected);
+  if (action === "link-existing-work") {
+    const target = document.querySelector("[data-link-work-target]")?.value || "";
+    guarded(() => createWorkFromSelected(target));
+  }
   if (action === "update-work-status") guarded(() => updateSelectedWorkStatus(payload));
   if (action === "archive") guarded(archiveSelected);
   if (action === "save-decision") guarded(saveDecisionFromSelected);

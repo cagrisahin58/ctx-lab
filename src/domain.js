@@ -12,6 +12,7 @@ const SECTION_ALIASES = {
 
 export const VALID_TYPES = ["inbox", "work_items", "decisions", "handoffs", "archive"];
 export const VALID_STATUSES = ["needs_triage", "linked", "active", "waiting", "blocked", "done", "archived"];
+export const WORK_STATUSES = ["active", "waiting", "blocked", "done"];
 
 export function parseRepoInput(input) {
   const trimmed = input.trim().replace(/^https:\/\/github\.com\//, "").replace(/\.git$/, "");
@@ -224,6 +225,31 @@ export function groupByStatus(records) {
   }, {});
 }
 
+export function filterRecords(records, query) {
+  const tokens = String(query || "")
+    .toLocaleLowerCase("tr")
+    .split(/\s+/)
+    .map((token) => token.trim())
+    .filter(Boolean);
+  if (!tokens.length) return records;
+
+  return records.filter((record) => {
+    const haystack = [
+      record.title,
+      record.summary,
+      record.project,
+      record.repo,
+      record.branch,
+      record.status,
+      record.source,
+      record.path,
+      record.nextAction,
+      ...normalizeArray(record.tags)
+    ].join(" ").toLocaleLowerCase("tr");
+    return tokens.every((token) => haystack.includes(token));
+  });
+}
+
 export function buildWorkItemFromSession(session) {
   const workId = `work_${slugify(session.project || session.title)}`;
   const now = new Date().toISOString();
@@ -274,6 +300,16 @@ export function appendSessionToWorkItem(workItem, session) {
   return replaceFrontmatter(workItem.raw, {
     sessions,
     updated_at: new Date().toISOString()
+  });
+}
+
+export function updateWorkItemStatusContent(workItem, status, now = new Date()) {
+  if (!WORK_STATUSES.includes(status)) {
+    throw new Error(`Geçersiz iş kartı durumu: ${status}`);
+  }
+  return replaceFrontmatter(workItem.raw, {
+    status,
+    updated_at: now.toISOString()
   });
 }
 

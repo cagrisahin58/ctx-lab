@@ -7,11 +7,14 @@ import {
   buildContextPack,
   buildSessionClosePrompt,
   buildWorkItemFromSession,
+  filterRecords,
   getSection,
   groupByStatus,
   parseRepoInput,
   parseMemoryFile,
   replaceFrontmatter,
+  updateWorkItemStatusContent,
+  WORK_STATUSES,
   validateMemoryRecords
 } from "./domain.js";
 import { ensureMemoryRepo, loadMemoryRepo, moveFile, putFile } from "./github.js";
@@ -28,7 +31,8 @@ const state = {
   loading: false,
   toast: "",
   demo: false,
-  warnings: []
+  warnings: [],
+  query: ""
 };
 
 function loadConfig() {
@@ -64,8 +68,22 @@ function setView(view) {
   render();
 }
 
+function setQuery(query) {
+  state.query = query;
+  render();
+  const search = document.querySelector("[data-search]");
+  if (search) {
+    search.focus();
+    search.setSelectionRange(search.value.length, search.value.length);
+  }
+}
+
 function recordsByType(type) {
   return state.records.filter((record) => record.type === type);
+}
+
+function filteredRecords(type) {
+  return filterRecords(recordsByType(type), state.query);
 }
 
 function refreshWarnings() {
@@ -213,6 +231,36 @@ ${prompt}
   setToast("Handoff kaydı hazırlandı.");
 }
 
+async function updateSelectedWorkStatus(payload) {
+  const status = typeof payload === "string" ? payload : payload?.status;
+  const record = payload?.id
+    ? state.records.find((item) => item.id === payload.id)
+    : contextRecord();
+  if (!record || record.type !== "work_items") {
+    setToast("Durum değiştirmek için iş kartı seç.");
+    return;
+  }
+
+  const content = updateWorkItemStatusContent(record, status);
+  let sha = record.sha;
+  if (!state.demo) {
+    const result = await putFile(
+      state.config,
+      record.path,
+      content,
+      `work: ${record.id} durumunu ${status} yap`,
+      record.sha
+    );
+    sha = result?.content?.sha || sha;
+  }
+
+  const parsed = parseMemoryFile(record.path, content, sha);
+  state.records = state.records.map((item) => (item.id === parsed.id ? parsed : item));
+  state.selectedId = parsed.id;
+  refreshWarnings();
+  setToast("İş kartı durumu güncellendi.");
+}
+
 async function initializeMemoryRepo() {
   if (!state.config.owner || !state.config.repo) {
     setToast("Önce repo bağlantısını kaydet.");
@@ -354,7 +402,7 @@ function renderHeader(title, subtitle, actions = "") {
 }
 
 function renderInbox(counts) {
-  const inbox = recordsByType("inbox");
+  const inbox = filteredRecords("inbox");
   const selected = selectedRecord();
   return `
     ${renderHeader(
@@ -362,6 +410,7 @@ function renderInbox(counts) {
       "Claude, Codex veya diğer araçlardan gelen oturum özetlerini işlenebilir bağlama dönüştür.",
       `<button data-view="new-summary">Yeni Özet</button><button data-action="sync">Yenile</button><button class="primary" data-action="demo">Örnek Veri</button>`
     )}
+    ${renderSearchBar("Inbox içinde ara")}
     ${state.warnings.length ? renderWarnings() : ""}
     <div class="stats">
       <div class="stat"><strong>${counts.inbox}</strong><span>Inbox kaydı</span></div>
@@ -392,9 +441,9 @@ function renderWarnings() {
 }
 
 function renderBoard() {
-  const workItems = recordsByType("work_items");
+  const workItems = filteredRecords("work_items");
   const groups = groupByStatus(workItems);
-  const selected = selectedRecord("work_items");
+  const selected = workItems.find((record) => record.id === state.selectedId) || workItems[0];
   const columns = [
     ["active", "Aktif"],
     ["waiting", "Beklemede"],
@@ -403,6 +452,7 @@ function renderBoard() {
   ];
   return `
     ${renderHeader("İş Panosu", "Kalıcı gerçeklik burada tutulur; Inbox sadece triage alanıdır.")}
+    ${renderSearchBar("İş kartı, proje veya durum ara")}
     <div class="board-layout">
       <div class="board">
         ${columns.map(([status, title]) => `
@@ -420,9 +470,10 @@ function renderBoard() {
 }
 
 function renderDecisions() {
-  const decisions = recordsByType("decisions");
+  const decisions = filteredRecords("decisions");
   return `
     ${renderHeader("Karar Defteri", "Neyi neden seçtiğimizi oturum geçmişinden bağımsız saklar.")}
+    ${renderSearchBar("Karar kayıtlarında ara")}
     <div class="grid">
       ${decisions.length ? decisions.map((record) => `<section class="panel">${renderRecordDetail(record, false)}</section>`).join("") : `<div class="empty">Henüz karar kaydı yok.</div>`}
     </div>
@@ -459,6 +510,9 @@ function renderWorkContext(workItem) {
     <div class="toolbar-actions">
       <button class="primary" data-action="copy-context-pack">Context Pack Kopyala</button>
       <button data-action="save-handoff-codex">Handoff Kaydet</button>
+      <select class="status-select" data-status-select data-work-id="${escapeHtml(workItem.id)}" aria-label="İş kartı durumu">
+        ${WORK_STATUSES.map((status) => `<option value="${status}" ${workItem.status === status ? "selected" : ""}>${statusLabel(status)}</option>`).join("")}
+      </select>
     </div>
     ${detailSection("Amaç", getSection(workItem.sections, "objective"))}
     ${detailSection("Güncel Durum", getSection(workItem.sections, "current"))}
@@ -467,6 +521,15 @@ function renderWorkContext(workItem) {
       <h4>Devam Brifi</h4>
       <pre>${escapeHtml(prompt)}</pre>
     </div>
+  `;
+}
+
+function renderSearchBar(placeholder) {
+  return `
+    <section class="search-strip">
+      <input data-search placeholder="${escapeHtml(placeholder)}" value="${escapeHtml(state.query)}" />
+      ${state.query ? `<button data-action="clear-search">Temizle</button>` : ""}
+    </section>
   `;
 }
 
@@ -644,6 +707,17 @@ function bindEvents() {
   document.querySelectorAll("[data-action]").forEach((button) => {
     button.addEventListener("click", () => handleAction(button.dataset.action));
   });
+  document.querySelectorAll("[data-search]").forEach((input) => {
+    input.addEventListener("input", () => {
+      setQuery(input.value);
+    });
+  });
+  document.querySelectorAll("[data-status-select]").forEach((select) => {
+    select.addEventListener("change", () => handleAction("update-work-status", {
+      id: select.dataset.workId,
+      status: select.value
+    }));
+  });
   const form = document.querySelector("#settings-form");
   if (form) {
     form.addEventListener("submit", (event) => {
@@ -685,10 +759,15 @@ function handleAction(action, payload) {
   if (action === "sync") guarded(syncFromGitHub);
   if (action === "init-repo") guarded(initializeMemoryRepo);
   if (action === "demo") loadDemo();
+  if (action === "clear-search") {
+    state.query = "";
+    render();
+  }
   if (action === "create-summary") guarded(() => createInboxSummaryFromForm(payload));
   if (action === "copy-close-prompt") guarded(copyClosePrompt);
   if (action === "copy-context-pack") guarded(copyContextPack);
   if (action === "create-work") guarded(createWorkFromSelected);
+  if (action === "update-work-status") guarded(() => updateSelectedWorkStatus(payload));
   if (action === "archive") guarded(archiveSelected);
   if (action === "save-decision") guarded(saveDecisionFromSelected);
   if (action === "save-handoff-codex") guarded(() => saveHandoff("codex"));

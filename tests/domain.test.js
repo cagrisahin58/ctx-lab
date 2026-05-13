@@ -8,6 +8,7 @@ import {
   buildInboxSessionSummaryFromMarkdown,
   buildSessionClosePrompt,
   buildWorkItemFromSession,
+  filterRecords,
   generateHandoffPrompt,
   getSection,
   parseFrontmatter,
@@ -16,6 +17,7 @@ import {
   replaceFrontmatter,
   resolveWorkContext,
   slugify,
+  updateWorkItemStatusContent,
   validateMemoryRecords
 } from "../src/domain.js";
 
@@ -218,4 +220,41 @@ GitHub memory repo kalıcı kaynak olacak.
   assert.match(pack, /sess_test/);
   assert.match(pack, /GitHub memory repo kalıcı kaynak olacak/);
   assert.match(pack, /Çalışma kuralı/);
+});
+
+test("kayıtları çok kelimeli arama metniyle süzer", () => {
+  const session = parseMemoryFile("inbox/test.md", sample, "sha-session");
+  const decision = parseMemoryFile(
+    "decisions/dec_other.md",
+    `---
+id: dec_other
+title: Başka karar
+project: baska-proje
+created_at: 2026-05-13T12:00:00.000Z
+---
+
+## Karar
+Farklı bir kayıt.
+`,
+    "sha-decision"
+  );
+
+  assert.deepEqual(filterRecords([session, decision], "ctx github").map((record) => record.id), ["sess_test"]);
+  assert.equal(filterRecords([session, decision], "").length, 2);
+});
+
+test("iş kartı durumunu frontmatter içinde günceller", () => {
+  const session = parseMemoryFile("inbox/test.md", sample, "sha-session");
+  const work = parseMemoryFile(
+    "work_items/work_ctx-lab.md",
+    buildWorkItemFromSession(session).content,
+    "sha-work"
+  );
+  const updated = updateWorkItemStatusContent(work, "blocked", new Date("2026-05-13T12:00:00.000Z"));
+  const parsed = parseFrontmatter(updated);
+
+  assert.equal(parsed.frontmatter.status, "blocked");
+  assert.equal(parsed.frontmatter.updated_at, "2026-05-13T12:00:00.000Z");
+  assert.match(parsed.body, /Current State/);
+  assert.throws(() => updateWorkItemStatusContent(work, "needs_triage"), /Geçersiz iş kartı durumu/);
 });

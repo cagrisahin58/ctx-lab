@@ -151,6 +151,18 @@ textarea {
   flex-wrap: wrap;
 }
 
+.status-select {
+  width: auto;
+  min-width: 150px;
+}
+
+.search-strip {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+}
+
 .page-title {
   display: grid;
   gap: 4px;
@@ -367,6 +379,7 @@ textarea {
   .stats,
   .board-layout,
   .board,
+  .search-strip,
   .connection-form {
     grid-template-columns: 1fr;
   }

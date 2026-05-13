@@ -15,6 +15,7 @@ config.yaml  Repo seviyesi kısa ayar dosyası
 
 Geçerli kayıt tipleri: `inbox`, `work_items`, `decisions`, `handoffs`, `archive`.
 Geçerli durumlar: `needs_triage`, `linked`, `active`, `waiting`, `blocked`, `done`, `archived`.
+İş kartı panosunda yönetilen durumlar: `active`, `waiting`, `blocked`, `done`.
 
 ## Inbox session summary
 
@@ -103,6 +104,7 @@ Codex veya Claude'a verilecek kısa devam prompt'u.
 ```
 
 Yeni bir inbox kaydı aynı `work_<project>` id'sine denk gelirse ctx-lab yeni dosya açmak yerine mevcut iş kartının `sessions` listesini günceller.
+Pano üzerinden durum değiştirildiğinde yalnızca iş kartının frontmatter alanındaki `status` ve `updated_at` değerleri güncellenir; gövde korunur.
 
 ## Handoff / context pack
 

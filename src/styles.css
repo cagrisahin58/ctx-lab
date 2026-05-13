@@ -186,6 +186,21 @@ textarea {
   min-height: 110px;
 }
 
+.diagnostic-list {
+  display: grid;
+  gap: 8px;
+}
+
+.diagnostic-item {
+  display: grid;
+  grid-template-columns: auto minmax(150px, 0.35fr) minmax(220px, 1fr);
+  gap: 10px;
+  align-items: center;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
 .page-title {
   display: grid;
   gap: 4px;
@@ -405,6 +420,7 @@ textarea {
   .search-strip,
   .filter-row,
   .triage-linker,
+  .diagnostic-item,
   .connection-form {
     grid-template-columns: 1fr;
   }

@@ -22,7 +22,7 @@ import {
   WORK_STATUSES,
   validateMemoryRecords
 } from "./domain.js";
-import { deleteFile, ensureMemoryRepo, loadMemoryRepo, putFile } from "./github.js";
+import { deleteFile, diagnoseMemoryRepo, ensureMemoryRepo, loadMemoryRepo, putFile } from "./github.js";
 import { demoRecords } from "./fixtures.js";
 
 const STORAGE_KEY = "ctxlab.config.v1";
@@ -38,7 +38,9 @@ const state = {
   demo: false,
   warnings: [],
   query: "",
-  inboxStatus: "needs_triage"
+  inboxStatus: "needs_triage",
+  diagnostics: null,
+  diagnosticsLoading: false
 };
 
 function loadConfig() {
@@ -294,6 +296,22 @@ async function initializeMemoryRepo() {
   const created = await ensureMemoryRepo(state.config);
   setToast(created.length ? `Memory repo hazırlandı: ${created.length} dosya oluşturuldu.` : "Memory repo yapısı zaten hazır.");
   await syncFromGitHub();
+}
+
+async function runDiagnostics() {
+  if (!state.config.owner || !state.config.repo) {
+    setToast("Önce repo bağlantısını kaydet.");
+    return;
+  }
+  state.diagnosticsLoading = true;
+  render();
+  try {
+    state.diagnostics = await diagnoseMemoryRepo(state.config);
+    setToast(state.diagnostics.ok ? "Repo tanılaması temiz." : "Repo tanılamasında uyarılar var.");
+  } finally {
+    state.diagnosticsLoading = false;
+    render();
+  }
 }
 
 async function createInboxSummaryFromForm(form) {
@@ -663,12 +681,54 @@ function renderSettings() {
         </label>
         <div class="toolbar-actions full">
           <button class="primary" type="submit">Bağlantıyı Kaydet</button>
+          <button type="button" data-action="diagnose-repo" ${state.diagnosticsLoading ? "disabled" : ""}>${state.diagnosticsLoading ? "Tanılanıyor" : "Bağlantıyı Tanıla"}</button>
           <button type="button" data-action="init-repo">Repo Yapısını Hazırla</button>
           <button type="button" data-action="sync">Kaydetmeden Yenile</button>
         </div>
       </form>
     </section>
+    ${renderDiagnostics()}
   `;
+}
+
+function renderDiagnostics() {
+  if (!state.diagnostics) return "";
+  const items = [
+    state.diagnostics.repo,
+    state.diagnostics.branch,
+    state.diagnostics.configFile,
+    ...state.diagnostics.directories
+  ];
+  return `
+    <section class="panel">
+      <h3>Bağlantı Tanılaması</h3>
+      <div class="diagnostic-list">
+        ${items.map(renderDiagnosticItem).join("")}
+      </div>
+    </section>
+  `;
+}
+
+function renderDiagnosticItem(item) {
+  const detail = item.ok ? diagnosticDetail(item.detail) : item.message;
+  return `
+    <div class="diagnostic-item ${item.ok ? "ok" : "fail"}">
+      <span class="badge ${item.ok ? "active" : "blocked"}">${item.ok ? "Tamam" : "Uyarı"}</span>
+      <strong>${escapeHtml(item.label)}</strong>
+      <span>${escapeHtml(detail || "")}</span>
+    </div>
+  `;
+}
+
+function diagnosticDetail(detail = {}) {
+  if ("private" in detail) {
+    const write = detail.writeHint === null ? "yazma izni belirsiz" : detail.writeHint ? "yazma izni görünüyor" : "yazma izni görünmüyor";
+    return `${detail.private ? "private" : "public"}, varsayılan branch: ${detail.defaultBranch || "belirsiz"}, ${write}`;
+  }
+  if ("files" in detail) return `${detail.files} dosya`;
+  if (detail.sha) return `sha: ${detail.sha}`;
+  if (detail.name) return detail.name;
+  return "";
 }
 
 function renderRecordCard(record) {
@@ -820,6 +880,7 @@ function handleAction(action, payload) {
 
   if (action === "sync") guarded(syncFromGitHub);
   if (action === "init-repo") guarded(initializeMemoryRepo);
+  if (action === "diagnose-repo") guarded(runDiagnostics);
   if (action === "demo") loadDemo();
   if (action === "clear-search") {
     state.query = "";

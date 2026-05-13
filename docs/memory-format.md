@@ -13,6 +13,8 @@ archive/     Tamamlanan veya kapatılan kayıtlar
 config.yaml  Repo seviyesi kısa ayar dosyası
 ```
 
+Repo tanılaması bu klasörleri, `config.yaml` dosyasını, seçili branch'i ve repo erişimini kontrol eder.
+
 Geçerli kayıt tipleri: `inbox`, `work_items`, `decisions`, `handoffs`, `archive`.
 Geçerli durumlar: `needs_triage`, `linked`, `active`, `waiting`, `blocked`, `done`, `archived`.
 İş kartı panosunda yönetilen durumlar: `active`, `waiting`, `blocked`, `done`.

@@ -31,6 +31,7 @@ Private memory repo için fine-grained GitHub token önerilir:
 - Permissions: Contents read/write
 
 Uygulamada `Repo Bağlantısı` ekranından owner/repo, branch ve token girilir. `Repo Yapısını Hazırla` düğmesi şu yapıyı otomatik oluşturur:
+`Bağlantıyı Tanıla` düğmesi repo erişimi, branch, `config.yaml` ve memory klasörlerini kontrol eder.
 
 ```text
 work-memory/

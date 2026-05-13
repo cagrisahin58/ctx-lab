@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { deleteFile, ensureMemoryRepo, loadMemoryRepo, putFile } from "../src/github.js";
+import { deleteFile, diagnoseMemoryRepo, ensureMemoryRepo, loadMemoryRepo, putFile } from "../src/github.js";
 
 const config = {
   owner: "cagrisahin58",
@@ -113,6 +113,67 @@ test("ensureMemoryRepo eksik config ve klasör tutucularını oluşturur", async
       "handoffs/.gitkeep",
       "archive/.gitkeep"
     ]);
+  } finally {
+    mock.restore();
+  }
+});
+
+test("diagnoseMemoryRepo repo, branch, config ve klasörleri raporlar", async () => {
+  const mock = installFetchMock((url) => {
+    if (url.endsWith("/repos/cagrisahin58/work-memory")) {
+      return { json: { private: true, default_branch: "main", permissions: { push: true } } };
+    }
+    if (url.endsWith("/repos/cagrisahin58/work-memory/branches/main")) {
+      return { json: { name: "main" } };
+    }
+    if (url.endsWith("/contents/config.yaml?ref=main")) {
+      return { json: { sha: "config-sha", content: encode("schema_version: 1") } };
+    }
+    if (/\/contents\/(inbox|work_items|decisions|handoffs|archive)\?ref=main$/.test(url)) {
+      return { json: [] };
+    }
+    throw new Error(`Beklenmeyen URL: ${url}`);
+  });
+
+  try {
+    const result = await diagnoseMemoryRepo(config);
+    assert.equal(result.ok, true);
+    assert.equal(result.repo.detail.private, true);
+    assert.equal(result.repo.detail.writeHint, true);
+    assert.equal(result.branch.detail.name, "main");
+    assert.equal(result.configFile.detail.sha, "config-sha");
+    assert.equal(result.directories.length, 5);
+    assert.ok(result.directories.every((item) => item.ok));
+  } finally {
+    mock.restore();
+  }
+});
+
+test("diagnoseMemoryRepo eksik klasörü başarısız check olarak döndürür", async () => {
+  const mock = installFetchMock((url) => {
+    if (url.endsWith("/repos/cagrisahin58/work-memory")) {
+      return { json: { private: true, default_branch: "main" } };
+    }
+    if (url.endsWith("/repos/cagrisahin58/work-memory/branches/main")) {
+      return { json: { name: "main" } };
+    }
+    if (url.endsWith("/contents/config.yaml?ref=main")) {
+      return { json: { sha: "config-sha", content: encode("schema_version: 1") } };
+    }
+    if (url.endsWith("/contents/inbox?ref=main")) {
+      return { ok: true, status: 404, json: null };
+    }
+    if (/\/contents\/(work_items|decisions|handoffs|archive)\?ref=main$/.test(url)) {
+      return { json: [] };
+    }
+    throw new Error(`Beklenmeyen URL: ${url}`);
+  });
+
+  try {
+    const result = await diagnoseMemoryRepo(config);
+    assert.equal(result.ok, false);
+    assert.equal(result.directories[0].ok, false);
+    assert.match(result.directories[0].message, /inbox\/ klasörü bulunamadı/);
   } finally {
     mock.restore();
   }

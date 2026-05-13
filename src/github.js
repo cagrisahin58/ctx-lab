@@ -95,6 +95,54 @@ export async function ensureMemoryRepo(config) {
   return created;
 }
 
+export async function diagnoseMemoryRepo(config) {
+  const repo = await check("Repo erişimi", async () => {
+    const payload = await githubRequest(config, `/repos/${config.owner}/${config.repo}`);
+    return {
+      private: Boolean(payload.private),
+      defaultBranch: payload.default_branch || "",
+      writeHint: payload.permissions ? Boolean(payload.permissions.push || payload.permissions.maintain || payload.permissions.admin) : null
+    };
+  });
+  const branchName = config.branch || "main";
+  const branch = await check(`Branch: ${branchName}`, async () => {
+    const payload = await githubRequest(
+      config,
+      `/repos/${config.owner}/${config.repo}/branches/${encodeURIComponent(branchName)}`
+    );
+    return { name: payload.name || branchName };
+  });
+  const configFile = await check("config.yaml", async () => {
+    const payload = await getContent(config, "config.yaml");
+    if (!payload) throw new Error("config.yaml bulunamadı");
+    return { sha: payload.sha || "" };
+  });
+  const directories = [];
+  for (const dir of MEMORY_DIRS) {
+    directories.push(await check(`${dir}/`, async () => {
+      const payload = await githubRequest(config, contentsPath(config, dir), { allow404: true });
+      if (!Array.isArray(payload)) throw new Error(`${dir}/ klasörü bulunamadı`);
+      return { files: payload.length };
+    }));
+  }
+
+  return {
+    ok: [repo, branch, configFile, ...directories].every((item) => item.ok),
+    repo,
+    branch,
+    configFile,
+    directories
+  };
+}
+
+async function check(label, fn) {
+  try {
+    return { label, ok: true, detail: await fn() };
+  } catch (error) {
+    return { label, ok: false, message: error.message };
+  }
+}
+
 async function getContent(config, path) {
   return githubRequest(config, contentsPath(config, path), { allow404: true });
 }

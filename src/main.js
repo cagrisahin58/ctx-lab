@@ -44,6 +44,7 @@ const state = {
   warnings: [],
   query: "",
   inboxStatus: "needs_triage",
+  handoffTarget: "codex",
   diagnostics: null,
   diagnosticsLoading: false,
   cacheMeta: {
@@ -194,7 +195,17 @@ function selectedRecord(type = "") {
 }
 
 function contextRecord() {
+  if (state.view === "handoff") return handoffAnchorRecord();
   return state.view === "board" ? selectedRecord("work_items") : selectedRecord();
+}
+
+function handoffRecords() {
+  return state.records.filter((record) => record.type === "work_items" || record.type === "inbox");
+}
+
+function handoffAnchorRecord() {
+  const records = handoffRecords();
+  return records.find((record) => record.id === state.selectedId) || records[0] || null;
 }
 
 async function createWorkFromSelected(targetWorkId = "") {
@@ -757,20 +768,29 @@ function renderNewDecision() {
 }
 
 function renderHandoff() {
-  const selected = selectedRecord();
-  const prompt = selected ? buildContextPack(state.records, selected, "codex") : "";
+  const records = handoffRecords();
+  const selected = handoffAnchorRecord();
+  const prompt = selected ? buildContextPack(state.records, selected, state.handoffTarget) : "";
   return `
-    ${renderHeader("Handoff Üretici", "Seçili kaydın bağlı iş hattı, oturumları ve kararlarından devam brifi üret.")}
+    ${renderHeader("Handoff Üretici", "Seçili iş hattı veya inbox kaydından Codex/Claude devam brifi üret.")}
     <section class="panel detail">
       ${selected ? `
+        <div class="filter-row">
+          <select data-handoff-record aria-label="Handoff kaynak kaydı">
+            ${records.map((record) => `<option value="${escapeHtml(record.id)}" ${selected.id === record.id ? "selected" : ""}>${escapeHtml(record.title)} · ${escapeHtml(record.type)}</option>`).join("")}
+          </select>
+          <select class="status-select" data-handoff-target aria-label="Handoff hedefi">
+            <option value="codex" ${state.handoffTarget === "codex" ? "selected" : ""}>Codex</option>
+            <option value="claude" ${state.handoffTarget === "claude" ? "selected" : ""}>Claude Code</option>
+          </select>
+        </div>
         <h3>${escapeHtml(selected.title)}</h3>
         <div class="toolbar-actions">
-          <button class="primary" data-action="save-handoff-codex">Codex Handoff Kaydet</button>
-          <button data-action="save-handoff-claude">Claude Handoff Kaydet</button>
+          <button class="primary" data-action="save-handoff-current">Handoff Kaydet</button>
           <button data-action="copy-handoff">Kopyala</button>
         </div>
         <pre class="handoff-output">${escapeHtml(prompt)}</pre>
-      ` : `<div class="empty">Önce bir kayıt seçin.</div>`}
+      ` : `<div class="empty">Handoff üretmek için önce bir inbox kaydı veya iş hattı oluşturun.</div>`}
     </section>
   `;
 }
@@ -1078,6 +1098,18 @@ function bindEvents() {
       render();
     });
   });
+  document.querySelectorAll("[data-handoff-record]").forEach((select) => {
+    select.addEventListener("change", () => {
+      state.selectedId = select.value;
+      render();
+    });
+  });
+  document.querySelectorAll("[data-handoff-target]").forEach((select) => {
+    select.addEventListener("change", () => {
+      state.handoffTarget = select.value;
+      render();
+    });
+  });
   const form = document.querySelector("#settings-form");
   if (form) {
     form.addEventListener("submit", (event) => {
@@ -1164,10 +1196,11 @@ function handleAction(action, payload) {
   if (action === "update-work-next") guarded(() => updateSelectedWorkNextAction(payload));
   if (action === "archive") guarded(archiveSelected);
   if (action === "save-decision") guarded(saveDecisionFromSelected);
+  if (action === "save-handoff-current") guarded(() => saveHandoff(state.handoffTarget));
   if (action === "save-handoff-codex") guarded(() => saveHandoff("codex"));
   if (action === "save-handoff-claude") guarded(() => saveHandoff("claude"));
   if (action === "copy-handoff") {
-    guarded(copyContextPack);
+    guarded(() => copyContextPack(state.handoffTarget));
   }
 }
 

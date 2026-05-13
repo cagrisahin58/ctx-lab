@@ -302,6 +302,22 @@ test("iş hattına doğrudan bağlı manuel karar context pack içinde çözül�
   assert.match(pack, /Karar defteri bağımsız kullanılacak/);
 });
 
+test("iş hattı olmadan source_work_item boş kararları yanlış bağlamaz", () => {
+  const decision = parseMemoryFile(
+    "decisions/dec_lonely.md",
+    buildManualDecision({
+      id: "dec_lonely",
+      title: "Bağımsız karar",
+      decision: "Bu karar bir iş hattına bağlı değil."
+    }).content,
+    "sha-decision"
+  );
+  const context = resolveWorkContext([decision], decision);
+
+  assert.equal(context.workItem, null);
+  assert.equal(context.decisions.length, 0);
+});
+
 test("açık işler ve triage için günlük çalışma brifi üretir", () => {
   const session = parseMemoryFile("inbox/test.md", sample, "sha-session");
   const work = parseMemoryFile(

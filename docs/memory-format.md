@@ -157,6 +157,7 @@ Plan oturumu.
 - Codex/Claude için çalışma kuralı
 
 tek bir context pack içinde birleştirilir. Bu dosyalar temiz AI oturumlarında ilk prompt olarak kullanılmak üzere tasarlanır.
+`Handoff Üretici` ekranında kaynak kayıt ve hedef araç seçildiğinde önizleme aynı seçimle güncellenir; kaydedilen dosyada `target` alanı `codex` veya `claude` olarak tutulur.
 Karar ve handoff kayıtları aynı path ile tekrar kaydedilirse yeni kopya üretmek yerine mevcut dosya `sha` ile güncellenir.
 GitHub 409/422 yazma hatalarında dosyanın güncel `sha` değeri okunur ve yazma bir kez yeniden denenir.
 

@@ -33,6 +33,7 @@ for (const expected of [
   "Yerel onbellek",
   "Yeni Is Hatti",
   "Yeni Karar",
+  "Handoff hedefi",
   "Context Pack",
   "Oturum Kapanis"
 ]) {

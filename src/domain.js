@@ -428,7 +428,7 @@ export function resolveWorkContext(records, anchorRecord) {
     records.filter((record) =>
       record.type === "decisions" && (
         decisionIds.has(record.id) ||
-        record.frontmatter.source_work_item === workItem?.id ||
+        (workItem && record.frontmatter.source_work_item === workItem.id) ||
         resolvedSessionIds.has(record.frontmatter.source_session) ||
         (project && record.project === project)
       )

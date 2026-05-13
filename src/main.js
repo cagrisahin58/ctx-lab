@@ -27,6 +27,7 @@ import {
 } from "./domain.js";
 import { deleteFile, diagnoseMemoryRepo, ensureMemoryRepo, loadMemoryRepo, putFile } from "./github.js";
 import { demoRecords } from "./fixtures.js";
+import { fetchRunnerHealth, fetchRunnerProjects, registerRunnerProject } from "./runner-client.js";
 import { loadAppConfig, loadRecordCache, saveAppConfig, saveRecordCache } from "./storage.js";
 
 const app = document.querySelector("#app");
@@ -47,6 +48,12 @@ const state = {
   handoffTarget: "codex",
   diagnostics: null,
   diagnosticsLoading: false,
+  runner: {
+    loading: false,
+    health: null,
+    projects: [],
+    error: ""
+  },
   cacheMeta: {
     scope: initialCache.scope,
     syncedAt: initialCache.syncedAt
@@ -252,7 +259,7 @@ async function archiveSelected() {
 
   state.selectedId = parsed.id;
   refreshWarnings();
-  setToast("Inbox kaydı arşivlendi.");
+  setToast("Oturum kaydı arşivlendi.");
 }
 
 async function saveDecisionFromSelected() {
@@ -284,13 +291,13 @@ target: ${target}
 created_at: ${new Date().toISOString()}
 ---
 
-# Handoff
+# Devam Brifi
 
 ${prompt}
 `;
   const path = `handoffs/handoff_${record.id}_${target}.md`;
   await saveMemoryRecord(path, content, `handoff: ${record.id} -> ${target}`);
-  setToast("Handoff kaydı hazırlandı.");
+  setToast("Devam brifi kaydı hazırlandı.");
 }
 
 async function updateSelectedWorkStatus(payload) {
@@ -348,6 +355,46 @@ async function runDiagnostics() {
   }
 }
 
+async function refreshRunnerStatus(options = {}) {
+  state.runner.loading = true;
+  if (!options.silent) render();
+  try {
+    const [health, registry] = await Promise.all([
+      fetchRunnerHealth(),
+      fetchRunnerProjects()
+    ]);
+    state.runner = {
+      loading: false,
+      health,
+      projects: Array.isArray(registry.projects) ? registry.projects : [],
+      error: ""
+    };
+    if (!options.silent) setToast("Yerel runner durumu güncellendi.");
+  } catch (error) {
+    state.runner = {
+      ...state.runner,
+      loading: false,
+      error: error.message || "Yerel runner'a bağlanılamadı."
+    };
+    if (!options.silent) setToast(`Yerel runner hatası: ${state.runner.error}`);
+  } finally {
+    render();
+  }
+}
+
+async function registerProjectFromForm(form) {
+  const data = new FormData(form);
+  await registerRunnerProject({
+    name: data.get("name"),
+    path: data.get("path"),
+    repo: data.get("repo"),
+    branch: data.get("branch") || "main"
+  });
+  setToast("Proje kökü yerel runner'a kaydedildi.");
+  form.reset();
+  await refreshRunnerStatus({ silent: true });
+}
+
 async function createInboxSummaryFromForm(form) {
   if (!state.demo && (!state.config.owner || !state.config.repo)) {
     setToast("Önce GitHub memory repo bağlantısını kaydet.");
@@ -375,7 +422,7 @@ async function createInboxSummaryFromForm(form) {
   const parsed = await saveMemoryRecord(summary.path, summary.content, `inbox: ${summary.id} oturum özetini ekle`);
   state.selectedId = parsed.id;
   state.view = "inbox";
-  setToast("Oturum özeti Inbox'a eklendi.");
+  setToast("Oturum özeti oturum akışına eklendi.");
 }
 
 async function createManualWorkFromForm(form) {
@@ -452,7 +499,7 @@ async function copyContextPack(target = "codex") {
   const record = contextRecord();
   if (!record) return;
   await navigator.clipboard.writeText(buildContextPack(state.records, record, target));
-  setToast("Context pack kopyalandı.");
+  setToast("Bağlam paketi kopyalandı.");
 }
 
 function dailyBriefText(target = "codex") {
@@ -474,12 +521,12 @@ target: codex
 created_at: ${now.toISOString()}
 ---
 
-# Günlük Brif
+# Günlük Devam Brifi
 
 ${dailyBriefText("codex")}
 `;
   await saveMemoryRecord(`handoffs/${id}.md`, content, `handoff: ${id} günlük brif`);
-  setToast("Günlük brif handoff olarak kaydedildi.");
+  setToast("Günlük brif devam brifi olarak kaydedildi.");
 }
 
 function render() {
@@ -498,13 +545,14 @@ function render() {
           <span>AI çalışma hafızası</span>
         </div>
         <nav class="nav" aria-label="Ana gezinme">
-          ${navButton("inbox", `AI Inbox (${counts.inbox})`)}
-          ${navButton("new-summary", "Yeni Özet")}
-          ${navButton("board", `İş Panosu (${counts.work})`)}
+          ${navButton("inbox", `Oturum Akışı (${counts.inbox})`)}
+          ${navButton("new-summary", "Yeni Oturum Özeti")}
+          ${navButton("board", `İş Akışı (${counts.work})`)}
           ${navButton("decisions", `Karar Defteri (${counts.decisions})`)}
-          ${navButton("handoff", "Handoff Üretici")}
-          ${navButton("daily", "Günlük Brif")}
-          ${navButton("settings", "Repo Bağlantısı")}
+          ${navButton("handoff", "Devam Brifi")}
+          ${navButton("daily", "Günlük Devam Brifi")}
+          ${navButton("runner", "Yerel Codex Runner")}
+          ${navButton("settings", "Hafıza Bağlantısı")}
         </nav>
         <div class="sync-panel">
           <span>${state.demo ? "Örnek veri modu" : repoLabel()}</span>
@@ -553,6 +601,7 @@ function renderCurrentView(counts) {
   if (state.view === "decisions") return renderDecisions();
   if (state.view === "handoff") return renderHandoff();
   if (state.view === "daily") return renderDailyBrief();
+  if (state.view === "runner") return renderRunner();
   return renderInbox(counts);
 }
 
@@ -573,14 +622,14 @@ function renderInbox(counts) {
   const selected = inbox.find((record) => record.id === state.selectedId) || inbox[0];
   return `
     ${renderHeader(
-      "AI Inbox",
+      "Oturum Akışı",
       "Claude, Codex veya diğer araçlardan gelen oturum özetlerini işlenebilir bağlama dönüştür.",
-      `<button data-view="new-summary">Yeni Özet</button><button data-action="sync">Yenile</button><button class="primary" data-action="demo">Örnek Veri</button>`
+      `<button data-view="new-summary">Yeni Oturum Özeti</button><button data-action="sync">Yenile</button><button class="primary" data-action="demo">Örnek Veri</button>`
     )}
     <div class="filter-row">
-      ${renderSearchBar("Inbox içinde ara")}
-      <select class="status-select" data-inbox-status aria-label="Inbox durum filtresi">
-        <option value="needs_triage" ${state.inboxStatus === "needs_triage" ? "selected" : ""}>Triage gerekli</option>
+      ${renderSearchBar("Oturum akışında ara")}
+      <select class="status-select" data-inbox-status aria-label="Oturum durum filtresi">
+        <option value="needs_triage" ${state.inboxStatus === "needs_triage" ? "selected" : ""}>İşleme Bekliyor</option>
         <option value="linked" ${state.inboxStatus === "linked" ? "selected" : ""}>Bağlandı</option>
         <option value="archived" ${state.inboxStatus === "archived" ? "selected" : ""}>Arşiv</option>
         <option value="all" ${state.inboxStatus === "all" ? "selected" : ""}>Tümü</option>
@@ -588,14 +637,14 @@ function renderInbox(counts) {
     </div>
     ${state.warnings.length ? renderWarnings() : ""}
     <div class="stats">
-      <div class="stat"><strong>${counts.inbox}</strong><span>Inbox kaydı</span></div>
+      <div class="stat"><strong>${counts.inbox}</strong><span>Oturum kaydı</span></div>
       <div class="stat"><strong>${counts.work}</strong><span>İş kartı</span></div>
       <div class="stat"><strong>${counts.decisions}</strong><span>Karar</span></div>
       <div class="stat"><strong>${counts.archive}</strong><span>Arşiv</span></div>
     </div>
     <div class="grid two">
       <section class="record-list">
-        ${inbox.length ? inbox.map(renderRecordCard).join("") : `<div class="empty">Inbox boş. Memory repo'ya session summary ekleyin veya örnek veri yükleyin.</div>`}
+        ${inbox.length ? inbox.map(renderRecordCard).join("") : `<div class="empty">Oturum akışı boş. Hafıza reposuna oturum özeti ekleyin veya örnek veri yükleyin.</div>`}
       </section>
       <section class="panel detail">
         ${selected ? renderRecordDetail(selected, true) : `<div class="empty">İncelemek için bir kayıt seçin.</div>`}
@@ -627,8 +676,8 @@ function renderBoard() {
   ];
   return `
     ${renderHeader(
-      "İş Panosu",
-      "Kalıcı gerçeklik burada tutulur; Inbox sadece triage alanıdır.",
+      "İş Akışı",
+      "Kalıcı gerçeklik burada tutulur; oturum akışı sadece işleme bekleyen kayıt alanıdır.",
       `<button class="primary" data-view="new-work">Yeni İş Hattı</button>`
     )}
     ${renderSearchBar("İş kartı, proje veya durum ara")}
@@ -650,7 +699,7 @@ function renderBoard() {
 
 function renderNewWork() {
   return `
-    ${renderHeader("Yeni İş Hattı", "Inbox beklemeden panoda takip edilecek bağımsız bir çalışma hattı aç.")}
+    ${renderHeader("Yeni İş Hattı", "Oturum akışını beklemeden takip edilecek bağımsız bir çalışma hattı aç.")}
     <section class="panel">
       <form class="connection-form" id="work-form">
         <label>
@@ -772,25 +821,25 @@ function renderHandoff() {
   const selected = handoffAnchorRecord();
   const prompt = selected ? buildContextPack(state.records, selected, state.handoffTarget) : "";
   return `
-    ${renderHeader("Handoff Üretici", "Seçili iş hattı veya inbox kaydından Codex/Claude devam brifi üret.")}
+    ${renderHeader("Devam Brifi", "Seçili iş hattı veya oturum kaydından Codex/Claude devam brifi üret.")}
     <section class="panel detail">
       ${selected ? `
         <div class="filter-row">
-          <select data-handoff-record aria-label="Handoff kaynak kaydı">
+          <select data-handoff-record aria-label="Devam brifi kaynak kaydı">
             ${records.map((record) => `<option value="${escapeHtml(record.id)}" ${selected.id === record.id ? "selected" : ""}>${escapeHtml(record.title)} · ${escapeHtml(record.type)}</option>`).join("")}
           </select>
-          <select class="status-select" data-handoff-target aria-label="Handoff hedefi">
+          <select class="status-select" data-handoff-target aria-label="Devam brifi hedefi">
             <option value="codex" ${state.handoffTarget === "codex" ? "selected" : ""}>Codex</option>
             <option value="claude" ${state.handoffTarget === "claude" ? "selected" : ""}>Claude Code</option>
           </select>
         </div>
         <h3>${escapeHtml(selected.title)}</h3>
         <div class="toolbar-actions">
-          <button class="primary" data-action="save-handoff-current">Handoff Kaydet</button>
+          <button class="primary" data-action="save-handoff-current">Devam Brifini Kaydet</button>
           <button data-action="copy-handoff">Kopyala</button>
         </div>
         <pre class="handoff-output">${escapeHtml(prompt)}</pre>
-      ` : `<div class="empty">Handoff üretmek için önce bir inbox kaydı veya iş hattı oluşturun.</div>`}
+      ` : `<div class="empty">Devam brifi üretmek için önce bir oturum kaydı veya iş hattı oluşturun.</div>`}
     </section>
   `;
 }
@@ -798,11 +847,11 @@ function renderHandoff() {
 function renderDailyBrief() {
   const brief = dailyBriefText("codex");
   return `
-    ${renderHeader("Günlük Brif", "Açık iş hatlarını, triage yükünü ve sıradaki adımları tek devam metninde topla.")}
+    ${renderHeader("Günlük Devam Brifi", "Açık iş hatlarını, işleme bekleyen kayıtları ve sıradaki adımları tek devam metninde topla.")}
     <section class="panel detail">
       <div class="toolbar-actions">
         <button class="primary" data-action="copy-daily-brief">Brifi Kopyala</button>
-        <button data-action="save-daily-brief">Handoff Olarak Kaydet</button>
+        <button data-action="save-daily-brief">Devam Brifi Olarak Kaydet</button>
       </div>
       <pre class="handoff-output">${escapeHtml(brief)}</pre>
     </section>
@@ -819,8 +868,8 @@ function renderWorkContext(workItem) {
       <span>${escapeHtml(workItem.path)}</span>
     </div>
     <div class="toolbar-actions">
-      <button class="primary" data-action="copy-context-pack">Context Pack Kopyala</button>
-      <button data-action="save-handoff-codex">Handoff Kaydet</button>
+      <button class="primary" data-action="copy-context-pack">Bağlam Paketini Kopyala</button>
+      <button data-action="save-handoff-codex">Devam Brifini Kaydet</button>
       <select class="status-select" data-status-select data-work-id="${escapeHtml(workItem.id)}" aria-label="İş kartı durumu">
         ${WORK_STATUSES.map((status) => `<option value="${status}" ${workItem.status === status ? "selected" : ""}>${statusLabel(status)}</option>`).join("")}
       </select>
@@ -919,7 +968,7 @@ function renderNewSummary() {
           <textarea name="evidence" placeholder="- Dosya, commit, PR veya sohbet referansı"></textarea>
         </label>
         <div class="toolbar-actions full">
-          <button class="primary" type="submit">Inbox'a Kaydet</button>
+          <button class="primary" type="submit">Oturum Akışına Kaydet</button>
           <button type="button" data-view="inbox">Vazgeç</button>
         </div>
       </form>
@@ -929,7 +978,7 @@ function renderNewSummary() {
 
 function renderSettings() {
   return `
-    ${renderHeader("Repo Bağlantısı", "Private GitHub memory repo bilgilerini gir.")}
+    ${renderHeader("Hafıza Bağlantısı", "Private GitHub hafıza reposu bilgilerini gir.")}
     <section class="panel">
       <form class="connection-form" id="settings-form">
         <label>
@@ -998,6 +1047,86 @@ function diagnosticDetail(detail = {}) {
   return "";
 }
 
+function renderRunner() {
+  const { health, projects, error, loading } = state.runner;
+  const codex = health?.codex || {};
+  return `
+    ${renderHeader(
+      "Yerel Codex Runner",
+      "Codex CLI, yerel hafıza mirror'ı ve kayıtlı proje kökleri buradan yönetilir.",
+      `<button data-action="refresh-runner" ${loading ? "disabled" : ""}>${loading ? "Yenileniyor" : "Durumu Yenile"}</button>`
+    )}
+    <div class="runner-grid">
+      <section class="panel">
+        <h3>Runner Durumu</h3>
+        <div class="diagnostic-list">
+          <div class="diagnostic-item ${health ? "ok" : "fail"}">
+            <span class="badge ${health ? "active" : "blocked"}">${health ? "Çevrim İçi" : "Kapalı"}</span>
+            <strong>Servis</strong>
+            <span>${health ? escapeHtml(`${health.service} ${health.version}`) : escapeHtml(error || "Henüz kontrol edilmedi.")}</span>
+          </div>
+          <div class="diagnostic-item ${codex.available ? "ok" : "fail"}">
+            <span class="badge ${codex.available ? "active" : "blocked"}">${codex.available ? "Hazır" : "Eksik"}</span>
+            <strong>Codex CLI</strong>
+            <span>${codex.available ? escapeHtml(`${codex.command} · ${codex.version}`) : escapeHtml(codex.error || "Codex durumu bilinmiyor.")}</span>
+          </div>
+          ${health ? `
+            <div class="diagnostic-item ok">
+              <span class="badge active">Tamam</span>
+              <strong>Yerel Hafıza</strong>
+              <span>${escapeHtml(health.appDataDir)}</span>
+            </div>
+          ` : ""}
+        </div>
+      </section>
+      <section class="panel">
+        <h3>Proje Kökü Ekle</h3>
+        <form class="connection-form" id="runner-project-form">
+          <label>
+            Proje Adı
+            <input name="name" required placeholder="ctx-lab" />
+          </label>
+          <label>
+            Branch
+            <input name="branch" placeholder="main" value="main" />
+          </label>
+          <label>
+            Repo
+            <input name="repo" placeholder="cagrisahin58/ctx-lab" />
+          </label>
+          <label>
+            Yerel Klasör
+            <input name="path" required placeholder="C:\\Users\\cagri\\projects\\projeler\\ai_hooks" />
+          </label>
+          <div class="toolbar-actions full">
+            <button class="primary" type="submit">Proje Kökünü Kaydet</button>
+          </div>
+        </form>
+      </section>
+    </div>
+    <section class="panel">
+      <h3>Kayıtlı Proje Kökleri</h3>
+      <div class="record-list">
+        ${projects.length ? projects.map(renderRunnerProject).join("") : `<div class="empty">Kayıtlı proje kökü yok. Codex otomasyonu başlamadan önce çalışılacak repo klasörü buraya eklenir.</div>`}
+      </div>
+    </section>
+  `;
+}
+
+function renderRunnerProject(project) {
+  return `
+    <article class="record-card runner-project">
+      <h3>${escapeHtml(project.name)}</h3>
+      <p>${escapeHtml(project.path)}</p>
+      <div class="meta">
+        ${project.repo ? `<span>${escapeHtml(project.repo)}</span>` : ""}
+        <span>${escapeHtml(project.branch || "main")}</span>
+        ${project.updatedAt ? `<span>Güncellendi: ${escapeHtml(new Date(project.updatedAt).toLocaleString("tr-TR", { dateStyle: "short", timeStyle: "short" }))}</span>` : ""}
+      </div>
+    </article>
+  `;
+}
+
 function renderRecordCard(record) {
   return `
     <button class="record-card ${state.selectedId === record.id ? "selected" : ""}" data-select="${record.id}">
@@ -1059,7 +1188,7 @@ function detailSection(title, value) {
 
 function statusLabel(status) {
   return {
-    needs_triage: "Triage gerekli",
+    needs_triage: "İşleme Bekliyor",
     linked: "Bağlandı",
     active: "Aktif",
     waiting: "Beklemede",
@@ -1152,6 +1281,13 @@ function bindEvents() {
       handleAction("create-manual-decision", decisionForm);
     });
   }
+  const runnerProjectForm = document.querySelector("#runner-project-form");
+  if (runnerProjectForm) {
+    runnerProjectForm.addEventListener("submit", (event) => {
+      event.preventDefault();
+      handleAction("register-runner-project", runnerProjectForm);
+    });
+  }
   document.querySelectorAll("[data-next-action-form]").forEach((form) => {
     form.addEventListener("submit", (event) => {
       event.preventDefault();
@@ -1177,6 +1313,8 @@ function handleAction(action, payload) {
   if (action === "sync") guarded(syncFromGitHub);
   if (action === "init-repo") guarded(initializeMemoryRepo);
   if (action === "diagnose-repo") guarded(runDiagnostics);
+  if (action === "refresh-runner") guarded(refreshRunnerStatus);
+  if (action === "register-runner-project") guarded(() => registerProjectFromForm(payload));
   if (action === "demo") loadDemo();
   if (action === "clear-search") {
     state.query = "";
@@ -1216,3 +1354,4 @@ function escapeHtml(value) {
 
 refreshWarnings();
 render();
+refreshRunnerStatus({ silent: true });

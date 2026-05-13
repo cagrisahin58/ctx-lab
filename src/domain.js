@@ -290,7 +290,7 @@ ${getSection(session.sections, "next") || "Bir sonraki somut adım belirlenecek.
 ## Risks / Blockers
 ${getSection(session.sections, "questions") || "Bilinen engel yok."}
 
-## Best Handoff Prompt
+## Devam Brifi
 ${generateHandoffPrompt(session, "codex")}
 `;
 
@@ -330,7 +330,7 @@ ${formatSectionText(draft.next || "Bir sonraki somut adım belirlenecek.")}
 ## Risks / Blockers
 ${formatSectionText(draft.risks || "Bilinen engel yok.")}
 
-## Best Handoff Prompt
+## Devam Brifi
 Bu çalışma hattını devral. Proje: ${project || "belirsiz"}. Repo: ${draft.repo || "belirsiz"}. Önce mevcut repo durumunu oku, sonra yalnızca bu hedefle ilgili değişiklikleri öner veya uygula.
 `;
 
@@ -442,7 +442,7 @@ export function buildContextPack(records, anchorRecord, target = "codex") {
   const toolName = target === "claude" ? "Claude Code" : "Codex";
   const { workItem, sessions, decisions } = resolveWorkContext(records, anchorRecord);
   const base = workItem || anchorRecord;
-  if (!base) return `${toolName} için context pack üretilecek kayıt bulunamadı.`;
+  if (!base) return `${toolName} için devam brifi üretilecek kayıt bulunamadı.`;
 
   const latestSession = sessions[0] || (base.type === "inbox" ? base : null);
   const objective = getSection(base.sections, "objective") || getSection(base.sections, "goal") || base.summary || base.title;
@@ -451,7 +451,7 @@ export function buildContextPack(records, anchorRecord, target = "codex") {
   const risks = getSection(base.sections, "risks") || getSection(latestSession?.sections || {}, "questions") || "Kayıtlı risk veya açık soru yok.";
 
   return [
-    `${toolName} için ctx-lab context pack`,
+    `${toolName} için ctx-lab devam brifi`,
     "",
     `İş hattı: ${base.title}`,
     `Proje: ${base.project || "belirsiz"}`,
@@ -494,16 +494,16 @@ export function buildDailyBrief(records, target = "codex", now = new Date()) {
     `${toolName} için ctx-lab günlük çalışma brifi`,
     "",
     `Tarih: ${now.toISOString()}`,
-    `Açık iş: ${workItems.length} | Engelli: ${blockedCount} | Beklemede: ${waitingCount} | Triage bekleyen inbox: ${triageCount}`,
+    `Açık iş: ${workItems.length} | Engelli: ${blockedCount} | Beklemede: ${waitingCount} | İşleme bekleyen oturum: ${triageCount}`,
     "",
     "Öncelikli işler:",
     workItems.length ? workItems.slice(0, 10).map((workItem, index) => formatWorkBrief(records, workItem, index)).join("\n") : "- Açık iş kaydı yok.",
     "",
-    "Triage:",
-    triageCount ? `- ${triageCount} inbox kaydı işlenmeyi bekliyor.` : "- Triage bekleyen inbox kaydı yok.",
+    "İşleme bekleyen oturumlar:",
+    triageCount ? `- ${triageCount} oturum kaydı işlenmeyi bekliyor.` : "- İşleme bekleyen oturum kaydı yok.",
     "",
     "Çalışma kuralı:",
-    "Önce repo durumunu ve seçili iş hattının context pack'ini oku. Kayıtlarda olmayan karar, dosya, commit veya metrik uydurma."
+    "Önce repo durumunu ve seçili iş hattının devam brifini oku. Kayıtlarda olmayan karar, dosya, commit veya metrik uydurma."
   ].join("\n");
 }
 

@@ -25,7 +25,7 @@ ctx-lab projesini GitHub-backed AI Work Memory sistemine dönüştürme yönün�
 ## Yapılanlar
 - Eski prototip mimarisinin hook-heavy ve kırılgan olduğu değerlendirildi.
 - Memory repo source-of-truth yaklaşımı benimsendi.
-- AI Inbox, İş Panosu, Karar Defteri ve Handoff ekranları ana yapı olarak seçildi.
+- Oturum Akışı, İş Akışı, Karar Defteri ve Devam Brifi ekranları ana yapı olarak seçildi.
 
 ## Kararlar
 - V1 tamamen Türkçe olacak.
@@ -37,7 +37,7 @@ ctx-lab projesini GitHub-backed AI Work Memory sistemine dönüştürme yönün�
 
 ## Sonraki Adımlar
 - Yeni uygulama iskeletini kur.
-- Memory markdown parser ve AI Inbox ekranını çalışır hale getir.
+- Memory markdown parser ve Oturum Akışı ekranını çalışır hale getir.
 
 ## Kanıtlar
 - cagrisahin58/ctx-lab main branch
@@ -64,7 +64,7 @@ AI sohbetleri kaybolsa bile insan çalışma bağlamını koruyan GitHub-backed 
 Ürün yönü seçildi; uygulama sıfırdan kuruluyor.
 
 ## Next Action
-AI Inbox ve GitHub repo bağlantısını işlevsel hale getir.
+Oturum Akışı ve GitHub repo bağlantısını işlevsel hale getir.
 
 ## Risks / Blockers
 GitHub token deneyimi sade olmalı.

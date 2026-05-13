@@ -24,17 +24,19 @@ const assets = Object.fromEntries(
 const bundleText = Object.values(assets).join("\n");
 
 for (const expected of [
-  "AI Inbox",
-  "Is Panosu",
+  "Oturum Akisi",
+  "Is Akisi",
   "Karar Defteri",
-  "Handoff",
+  "Devam Brifi",
   "Baglantiyi Tanila",
-  "Gunluk Brif",
+  "Gunluk Devam Brifi",
   "Yerel onbellek",
   "Yeni Is Hatti",
   "Yeni Karar",
-  "Handoff hedefi",
-  "Context Pack",
+  "Devam brifi hedefi",
+  "Baglam Paketini Kopyala",
+  "Yerel Codex Runner",
+  "Proje Koku",
   "Oturum Kapanis"
 ]) {
   assert.ok(normalizeTurkish(bundleText).includes(expected), `UI metni eksik: ${expected}`);

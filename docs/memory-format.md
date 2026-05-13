@@ -23,7 +23,7 @@ Geçerli kayıt tipleri: `inbox`, `work_items`, `decisions`, `handoffs`, `archiv
 Geçerli durumlar: `needs_triage`, `linked`, `active`, `waiting`, `blocked`, `done`, `archived`.
 İş kartı panosunda yönetilen durumlar: `active`, `waiting`, `blocked`, `done`.
 
-## Inbox session summary
+## Oturum özeti
 
 Dosya yolu örneği:
 
@@ -71,7 +71,7 @@ Bu oturumun hedefi.
 
 ## Oturum kapanış prompt'u
 
-ctx-lab'ın `Yeni Özet` ekranı, Codex veya Claude sohbetinin sonuna yapıştırılacak standart bir prompt üretir. Beklenen çıktı yukarıdaki `Inbox session summary` şemasındaki markdown'dur. Kullanıcı bu çıktıyı `Hazır Markdown` alanına yapıştırdığında uygulama frontmatter'ı normalize eder:
+ctx-lab'ın `Yeni Oturum Özeti` ekranı, Codex veya Claude sohbetinin sonuna yapıştırılacak standart bir prompt üretir. Beklenen çıktı yukarıdaki oturum özeti şemasındaki markdown'dur. Kullanıcı bu çıktıyı `Hazır Markdown` alanına yapıştırdığında uygulama frontmatter'ı normalize eder:
 
 - `status` her zaman `needs_triage` yapılır,
 - `id` yoksa timestamp, proje ve kaynak bilgisinden üretilir,
@@ -105,18 +105,18 @@ Bir sonraki en iyi adım.
 ## Risks / Blockers
 Riskler ve engeller.
 
-## Best Handoff Prompt
+## Devam Brifi
 Codex veya Claude'a verilecek kısa devam prompt'u.
 ```
 
-Yeni bir inbox kaydı aynı `work_<project>` id'sine denk gelirse ctx-lab yeni dosya açmak yerine mevcut iş kartının `sessions` listesini günceller.
+Yeni bir oturum kaydı aynı `work_<project>` id'sine denk gelirse ctx-lab yeni dosya açmak yerine mevcut iş kartının `sessions` listesini günceller.
 `Yeni İş Hattı` ekranından açılan manuel iş kartları da aynı `work_items/` formatını kullanır; başlangıçta `sessions` ve `decisions` listeleri boştur.
-Inbox triage ekranında kullanıcı farklı bir mevcut iş kartını seçerse aynı güncelleme seçilen kart için yapılır ve inbox kaydındaki `linked_work_item` bu iş kartının id'sine çekilir.
-Inbox ekranı varsayılan olarak `needs_triage` kayıtlarını gösterir; `linked`, `archived` ve tüm kayıtlar UI filtresiyle görülebilir.
+Oturum Akışı ekranında kullanıcı farklı bir mevcut iş kartını seçerse aynı güncelleme seçilen kart için yapılır ve oturum kaydındaki `linked_work_item` bu iş kartının id'sine çekilir.
+Oturum Akışı varsayılan olarak `needs_triage` kayıtlarını gösterir; `linked`, `archived` ve tüm kayıtlar UI filtresiyle görülebilir.
 Pano üzerinden durum değiştirildiğinde yalnızca iş kartının frontmatter alanındaki `status` ve `updated_at` değerleri güncellenir; gövde korunur.
 Pano üzerinden `Next Action` bölümü güncellendiğinde ilgili markdown section değiştirilir ve `updated_at` yenilenir.
-Inbox kaydından karar çıkarıldığında ilgili iş kartı bulunabiliyorsa karar id'si iş kartının `decisions` listesine otomatik eklenir.
-Inbox kaydı arşive taşındığında archive dosyasına `status: archived` ve `archived_at` yazılır; ardından kaynak inbox dosyası silinir.
+Oturum kaydından karar çıkarıldığında ilgili iş kartı bulunabiliyorsa karar id'si iş kartının `decisions` listesine otomatik eklenir.
+Oturum kaydı arşive taşındığında archive dosyasına `status: archived` ve `archived_at` yazılır; ardından kaynak inbox dosyası silinir.
 
 ## Decision record
 
@@ -141,13 +141,13 @@ GitHub memory repo kalıcı kaynak olarak kullanılacak.
 Claude ve Codex arasında taşınabilirlik gerekiyor.
 
 ## Etki
-Context pack ve günlük brif kayıtları repodan okunacak.
+Devam brifi ve günlük brif kayıtları repodan okunacak.
 
 ## Kaynak
 Plan oturumu.
 ```
 
-## Handoff / context pack
+## Devam brifi
 
 `handoffs/` altındaki kayıtlar artık yalnızca tek oturum özeti değildir. Seçili iş kartı için:
 
@@ -156,9 +156,9 @@ Plan oturumu.
 - `decisions` listesi veya bağlı oturumlardan türeyen kararlar,
 - Codex/Claude için çalışma kuralı
 
-tek bir context pack içinde birleştirilir. Bu dosyalar temiz AI oturumlarında ilk prompt olarak kullanılmak üzere tasarlanır.
-`Handoff Üretici` ekranında kaynak kayıt ve hedef araç seçildiğinde önizleme aynı seçimle güncellenir; kaydedilen dosyada `target` alanı `codex` veya `claude` olarak tutulur.
-Karar ve handoff kayıtları aynı path ile tekrar kaydedilirse yeni kopya üretmek yerine mevcut dosya `sha` ile güncellenir.
+tek bir devam brifi içinde birleştirilir. Bu dosyalar temiz AI oturumlarında ilk prompt olarak kullanılmak üzere tasarlanır.
+`Devam Brifi` ekranında kaynak kayıt ve hedef araç seçildiğinde önizleme aynı seçimle güncellenir; kaydedilen dosyada `target` alanı `codex` veya `claude` olarak tutulur.
+Karar ve devam brifi kayıtları aynı path ile tekrar kaydedilirse yeni kopya üretmek yerine mevcut dosya `sha` ile güncellenir.
 GitHub 409/422 yazma hatalarında dosyanın güncel `sha` değeri okunur ve yazma bir kez yeniden denenir.
 
-`Günlük Brif` kaydedildiğinde `handoffs/daily-YYYY-MM-DD.md` yolu kullanılır ve aynı gün yeniden kaydedilirse dosya güncellenir.
+`Günlük Devam Brifi` kaydedildiğinde `handoffs/daily-YYYY-MM-DD.md` yolu kullanılır ve aynı gün yeniden kaydedilirse dosya güncellenir.

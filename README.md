@@ -6,13 +6,13 @@ ctx-lab, Claude Code ve Codex gibi AI araçlarıyla çalışırken insan bağlam
 
 AI sohbet geçmişine güvenmek yerine, her önemli oturumdan sonra kısa ve insan-onaylı bir özet özel bir GitHub memory repo'ya yazılır. ctx-lab bu repo'yu okuyarak:
 
-- AI Inbox'ta yeni oturum özetlerini toplar,
-- iş panosunda aktif işleri gösterir,
+- Oturum Akışı'nda yeni oturum özetlerini toplar,
+- İş Akışı'nda aktif işleri gösterir,
 - aynı proje için gelen yeni oturumları mevcut iş kartına bağlar,
 - karar defterini kaynaklı tutar,
-- Codex veya Claude için iş hattı merkezli context pack üretir.
+- Codex veya Claude için iş hattı merkezli devam brifi üretir.
 
-Uygulama v1'de tamamen Türkçe arayüzle gelir. Veri alanları teknik sebeplerle İngilizce kalabilir, ancak kullanıcıya görünen metinler Türkçedir.
+Uygulama tamamen Türkçe arayüzle gelir. Veri alanları teknik sebeplerle İngilizce kalabilir, ancak kullanıcıya görünen metinler Türkçedir.
 
 ## Hızlı başlatma
 
@@ -29,7 +29,7 @@ Windows için tek komut:
 .\scripts\start-windows.cmd
 ```
 
-Bu komut gerekiyorsa bağımlılıkları kurar, `127.0.0.1:5173` üzerinde dev server başlatır ve tarayıcıyı açar. Alternatif port için `.\scripts\start-windows.cmd -Port 5174` kullanılabilir.
+Bu komut gerekiyorsa bağımlılıkları kurar, `127.0.0.1:5173` üzerinde dev server başlatır, `127.0.0.1:5174` üzerinde yerel Codex Runner'ı açar ve tarayıcıyı başlatır. Alternatif port için `.\scripts\start-windows.cmd -Port 5175 -RunnerPort 5176` kullanılabilir.
 
 Kalite kapısı:
 
@@ -46,7 +46,7 @@ Private memory repo için fine-grained GitHub token önerilir:
 - Repository access: sadece memory repo
 - Permissions: Contents read/write
 
-Uygulamada `Repo Bağlantısı` ekranından owner/repo, branch ve token girilir. `Repo Yapısını Hazırla` düğmesi şu yapıyı otomatik oluşturur:
+Uygulamada `Hafıza Bağlantısı` ekranından owner/repo, branch ve token girilir. `Repo Yapısını Hazırla` düğmesi şu yapıyı otomatik oluşturur:
 `Bağlantıyı Tanıla` düğmesi repo erişimi, branch, `config.yaml`, memory klasörleri ve gerçek Contents yazma iznini kontrol eder. Yazma testi geçici `archive/.ctxlab-write-test` dosyası oluşturup siler.
 
 ```text
@@ -61,25 +61,31 @@ work-memory/
 
 Token ve son başarılı memory snapshot'ı yalnızca tarayıcı localStorage alanında saklanır. Sunucu tarafı yoktur. Yerel önbellek owner/repo/branch kapsamıyla ayrılır; uygulama açıldığında son kayıtları hızlı gösterir, GitHub ise kaynak gerçeklik olarak kalır.
 
+## Yerel Codex Runner
+
+v2 ile `start-windows` komutu ayrıca `scripts/ctxlab-runner.mjs` servislerini başlatır. Runner yalnızca `127.0.0.1` üzerinde çalışır; Codex CLI durumunu denetler, `%APPDATA%/ctx-lab` altında yerel hafıza klasörlerini hazırlar ve otomasyon kapsamına alınacak proje köklerini `projects.json` dosyasında tutar.
+
+`Yerel Codex Runner` ekranında runner sağlığı, Codex CLI sürümü ve kayıtlı proje kökleri görülür. Bir proje kökü kaydedilmeden Codex otomasyonu o klasörde dosya değiştirmeyecek şekilde tasarlanır.
+
 ## Manuel oturum özeti akışı
 
-`Yeni Özet` ekranı, Codex veya Claude oturumundan sonra temiz bir kayıt üretir. Ekrandaki `Oturum Kapanış Prompt'u` AI sohbetine yapıştırıldığında ctx-lab formatında markdown özet alınır. Bu markdown `Hazır Markdown` alanına yapıştırılıp doğrudan `inbox/` altına kaydedilebilir.
+`Yeni Oturum Özeti` ekranı, Codex veya Claude oturumundan sonra temiz bir kayıt üretir. Ekrandaki `Oturum Kapanış Prompt'u` AI sohbetine yapıştırıldığında ctx-lab formatında markdown özet alınır. Bu markdown `Hazır Markdown` alanına yapıştırılıp doğrudan `inbox/` altına kaydedilebilir.
 
-Kayıtlar timestamp içeren benzersiz dosya adıyla yazılır. AI Inbox'tan `İş Kartına Bağla` seçildiğinde aynı proje için var olan iş kartı varsa yeni session id o karta eklenir; yoksa yeni kart oluşturulur.
-Gerekirse Inbox detayındaki seçiciden mevcut bir iş hattı bilinçli olarak hedeflenebilir; bu durumda oturum özeti seçili iş kartının `sessions` listesine eklenir.
-Inbox varsayılan olarak yalnızca triage bekleyen kayıtları gösterir; bağlı, arşivlenmiş veya tüm kayıtlar durum filtresiyle açılabilir.
-Arşivlenen kayıtlar archive klasörüne `archived` statüsüyle taşınır, böylece yeniden senkronizasyonda triage listesine geri düşmez.
+Kayıtlar timestamp içeren benzersiz dosya adıyla yazılır. Oturum Akışı'ndan `İş Kartına Bağla` seçildiğinde aynı proje için var olan iş kartı varsa yeni session id o karta eklenir; yoksa yeni kart oluşturulur.
+Gerekirse oturum detayındaki seçiciden mevcut bir iş hattı bilinçli olarak hedeflenebilir; bu durumda oturum özeti seçili iş kartının `sessions` listesine eklenir.
+Oturum Akışı varsayılan olarak yalnızca işleme bekleyen kayıtları gösterir; bağlı, arşivlenmiş veya tüm kayıtlar durum filtresiyle açılabilir.
+Arşivlenen kayıtlar archive klasörüne `archived` statüsüyle taşınır, böylece yeniden senkronizasyonda işleme bekleyen kayıt listesine geri düşmez.
 
-## Context pack akışı
+## Devam brifi akışı
 
-`İş Panosu` ekranında seçili iş kartı için bağlı oturumlar, karar kayıtları, güncel durum, sıradaki adım ve çalışma kuralları tek bir devam brifinde birleştirilir. `Handoff Üretici`, kaynak iş hattını veya inbox kaydını ve hedef aracı (`Codex` ya da `Claude Code`) açıkça seçtirir. Bu metin doğrudan kopyalanabilir veya `handoffs/` altına kaydedilebilir. Amaç, temiz bir Codex/Claude oturumunda sohbet geçmişi kaybolsa bile insan çalışma bağlamını hızlı geri yüklemektir.
-`Günlük Brif` ekranı tüm açık iş hatlarını, engelli/bekleyen işleri ve triage yükünü tek metinde toplar; bu brif kopyalanabilir veya handoff olarak kaydedilebilir.
+`İş Akışı` ekranında seçili iş kartı için bağlı oturumlar, karar kayıtları, güncel durum, sıradaki adım ve çalışma kuralları tek bir devam brifinde birleştirilir. `Devam Brifi`, kaynak iş hattını veya oturum kaydını ve hedef aracı (`Codex` ya da `Claude Code`) açıkça seçtirir. Bu metin doğrudan kopyalanabilir veya `handoffs/` altına kaydedilebilir. Amaç, temiz bir Codex/Claude oturumunda sohbet geçmişi kaybolsa bile insan çalışma bağlamını hızlı geri yüklemektir.
+`Günlük Devam Brifi` ekranı tüm açık iş hatlarını, engelli/bekleyen işleri ve işleme bekleyen kayıtları tek metinde toplar; bu brif kopyalanabilir veya devam brifi olarak kaydedilebilir.
 
-İş kartları `Aktif`, `Beklemede`, `Engelli` ve `Tamamlandı` durumları arasında doğrudan panodan taşınabilir. Panodaki `Yeni İş Hattı` akışı, Inbox beklemeden bağımsız bir çalışma hattı açar. Arama alanı Inbox, İş Panosu ve Karar Defteri içinde proje, başlık, repo, durum, kaynak ve etiket bilgilerine göre hızlı süzme yapar.
-İş kartının `Sonraki Adım` alanı panodan güncellenebilir; context pack bu güncel değeri kullanır.
+İş kartları `Aktif`, `Beklemede`, `Engelli` ve `Tamamlandı` durumları arasında doğrudan panodan taşınabilir. Panodaki `Yeni İş Hattı` akışı, oturum akışını beklemeden bağımsız bir çalışma hattı açar. Arama alanı Oturum Akışı, İş Akışı ve Karar Defteri içinde proje, başlık, repo, durum, kaynak ve etiket bilgilerine göre hızlı süzme yapar.
+İş kartının `Sonraki Adım` alanı panodan güncellenebilir; devam brifi bu güncel değeri kullanır.
 `Karar Defteri` ekranındaki `Yeni Karar` akışı, oturum geçmişinden bağımsız kaynaklı karar kaydı oluşturur ve seçili iş hattına bağlayabilir.
-Karar ve handoff kayıtları tekrar kaydedildiğinde mevcut dosya güncellenir; aynı kayıt için gereksiz kopyalar üretilmez.
-Inbox kaydından karar çıkarıldığında veya manuel karar bir iş hattına bağlandığında karar id'si o iş hattına otomatik eklenir.
+Karar ve devam brifi kayıtları tekrar kaydedildiğinde mevcut dosya güncellenir; aynı kayıt için gereksiz kopyalar üretilmez.
+Oturum kaydından karar çıkarıldığında veya manuel karar bir iş hattına bağlandığında karar id'si o iş hattına otomatik eklenir.
 GitHub yazımlarında stale `sha` hatası alınırsa uygulama dosyanın son `sha` değerini okuyup yazımı bir kez yeniden dener.
 
 Detaylı format için [docs/memory-format.md](docs/memory-format.md) dosyasına bakın.

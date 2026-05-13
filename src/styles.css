@@ -206,6 +206,20 @@ textarea {
   border-radius: 8px;
 }
 
+.runner-grid {
+  display: grid;
+  grid-template-columns: minmax(320px, 0.9fr) minmax(360px, 1.1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.runner-project p {
+  margin: 0;
+  color: var(--muted);
+  font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
+  overflow-wrap: anywhere;
+}
+
 .page-title {
   display: grid;
   gap: 4px;
@@ -425,6 +439,7 @@ textarea {
   .search-strip,
   .filter-row,
   .triage-linker,
+  .runner-grid,
   .diagnostic-item,
   .connection-form {
     grid-template-columns: 1fr;

@@ -45,7 +45,7 @@ tags: [tasarim, github]
 Yeni uygulama yönünü netleştirmek.
 
 ## Yapılanlar
-- AI Inbox fikri tartışıldı.
+- Oturum Akışı fikri tartışıldı.
 
 ## Kararlar
 - GitHub source-of-truth olacak.
@@ -203,7 +203,7 @@ test("var olan iş kartına yeni session id ekler", () => {
   const parsed = parseFrontmatter(updated);
 
   assert.deepEqual(parsed.frontmatter.sessions, ["sess_test", "sess_followup"]);
-  assert.match(parsed.body, /Best Handoff Prompt/);
+  assert.match(parsed.body, /Devam Brifi/);
 });
 
 test("AI tarafında üretilen markdown özetini normalize eder", () => {
@@ -244,7 +244,7 @@ test("oturum kapanış prompt'u ctx-lab formatını ister", () => {
   assert.match(prompt, /## Sonraki Adımlar/);
 });
 
-test("iş kartından bağlı oturum ve kararlarla context pack üretir", () => {
+test("iş kartından bağlı oturum ve kararlarla devam brifi üretir", () => {
   const session = parseMemoryFile("inbox/test.md", sample, "sha-session");
   const work = parseMemoryFile(
     "work_items/work_ctx-lab.md",
@@ -271,13 +271,13 @@ GitHub memory repo kalıcı kaynak olacak.
 
   assert.equal(context.sessions.length, 1);
   assert.equal(context.decisions.length, 1);
-  assert.match(pack, /Codex için ctx-lab context pack/);
+  assert.match(pack, /Codex için ctx-lab devam brifi/);
   assert.match(pack, /sess_test/);
   assert.match(pack, /GitHub memory repo kalıcı kaynak olacak/);
   assert.match(pack, /Çalışma kuralı/);
 });
 
-test("iş hattına doğrudan bağlı manuel karar context pack içinde çözülür", () => {
+test("iş hattına doğrudan bağlı manuel karar devam brifi içinde çözülür", () => {
   const session = parseMemoryFile("inbox/test.md", sample, "sha-session");
   const work = parseMemoryFile(
     "work_items/work_ctx-lab.md",
@@ -318,7 +318,7 @@ test("iş hattı olmadan source_work_item boş kararları yanlış bağlamaz", (
   assert.equal(context.decisions.length, 0);
 });
 
-test("açık işler ve triage için günlük çalışma brifi üretir", () => {
+test("açık işler ve işleme bekleyen oturumlar için günlük çalışma brifi üretir", () => {
   const session = parseMemoryFile("inbox/test.md", sample, "sha-session");
   const work = parseMemoryFile(
     "work_items/work_ctx-lab.md",
@@ -340,7 +340,7 @@ test("açık işler ve triage için günlük çalışma brifi üretir", () => {
   assert.match(brief, /Codex için ctx-lab günlük çalışma brifi/);
   assert.match(brief, /Açık iş: 2/);
   assert.match(brief, /Engelli: 1/);
-  assert.match(brief, /Triage bekleyen inbox: 1/);
+  assert.match(brief, /İşleme bekleyen oturum: 1/);
   assert.match(brief, /blocked çalışma hattı \[blocked\]/);
   assert.doesNotMatch(brief, /done çalışma hattı/);
 });
@@ -391,11 +391,11 @@ test("iş kartı sonraki adım bölümünü günceller ve alias ile okur", () =>
   );
   assert.equal(getSection(work.sections, "next"), "- Parser yaz.");
 
-  const updated = updateWorkItemNextActionContent(work, "- Context pack'i gerçek repo ile dene.", new Date("2026-05-13T12:00:00.000Z"));
+  const updated = updateWorkItemNextActionContent(work, "- Devam brifini gerçek repo ile dene.", new Date("2026-05-13T12:00:00.000Z"));
   const parsed = parseMemoryFile(work.path, updated, "sha-updated");
 
   assert.equal(parsed.frontmatter.updated_at, "2026-05-13T12:00:00.000Z");
-  assert.equal(getSection(parsed.sections, "next"), "- Context pack'i gerçek repo ile dene.");
+  assert.equal(getSection(parsed.sections, "next"), "- Devam brifini gerçek repo ile dene.");
   assert.match(updated, /## Current State/);
   assert.throws(() => updateWorkItemNextActionContent(work, " "), /Sonraki adım boş olamaz/);
 });

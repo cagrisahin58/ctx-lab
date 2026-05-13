@@ -1,10 +1,11 @@
 import { createServer } from "node:http";
-import { access, mkdir, readFile, writeFile } from "node:fs/promises";
+import { access, mkdir, readFile, stat, writeFile } from "node:fs/promises";
 import { constants } from "node:fs";
 import { homedir } from "node:os";
-import { join, posix, resolve, win32 } from "node:path";
+import { basename, join, posix, resolve, win32 } from "node:path";
 import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
+import { createHash } from "node:crypto";
 
 export const DEFAULT_RUNNER_PORT = 5174;
 export const RUNNER_VERSION = "0.1.0";
@@ -50,6 +51,61 @@ export async function readProjectRegistry(paths = buildRunnerPaths()) {
   } catch {
     return { version: 1, projects: [] };
   }
+}
+
+export async function saveProjectRegistry(paths = buildRunnerPaths(), registry = { version: 1, projects: [] }) {
+  const normalized = {
+    version: registry.version || 1,
+    projects: Array.isArray(registry.projects) ? registry.projects : []
+  };
+  await ensureRunnerHome(paths);
+  await writeFile(paths.projectsFile, `${JSON.stringify(normalized, null, 2)}\n`, "utf8");
+  return normalized;
+}
+
+export function normalizeProjectDraft(input = {}) {
+  const projectPath = String(input.path || input.rootPath || "").trim();
+  if (!projectPath) throw new Error("Proje klasoru zorunlu.");
+
+  const resolvedPath = resolve(projectPath);
+  const name = String(input.name || "").trim() || basename(resolvedPath) || "proje";
+  const repo = String(input.repo || "").trim();
+  const branch = String(input.branch || "main").trim() || "main";
+
+  return {
+    id: `project_${createHash("sha1").update(resolvedPath.toLowerCase()).digest("hex").slice(0, 12)}`,
+    name,
+    path: resolvedPath,
+    repo,
+    branch
+  };
+}
+
+export async function registerProject(paths = buildRunnerPaths(), input = {}, options = {}) {
+  await ensureRunnerHome(paths);
+  const draft = normalizeProjectDraft(input);
+  const details = await stat(draft.path).catch(() => {
+    throw new Error("Proje klasoru bulunamadi.");
+  });
+  if (!details.isDirectory()) throw new Error("Proje yolu bir klasor olmali.");
+  await access(draft.path, constants.R_OK | constants.W_OK).catch(() => {
+    throw new Error("Proje klasoru okunabilir ve yazilabilir olmali.");
+  });
+
+  const registry = await readProjectRegistry(paths);
+  const now = (options.now || new Date()).toISOString();
+  const existing = registry.projects.find((project) => project.id === draft.id);
+  const project = {
+    ...existing,
+    ...draft,
+    createdAt: existing?.createdAt || now,
+    updatedAt: now
+  };
+  const projects = existing
+    ? registry.projects.map((item) => item.id === project.id ? project : item)
+    : [...registry.projects, project];
+  await saveProjectRegistry(paths, { version: registry.version, projects });
+  return project;
 }
 
 export function codexCandidates(env = process.env, platform = process.platform) {
@@ -124,11 +180,30 @@ export function createRunnerServer(options = {}) {
         await ensureRunnerHome(paths);
         return sendJson(response, 200, await readProjectRegistry(paths));
       }
+      if (request.method === "POST" && url.pathname === "/projects") {
+        const body = await readJsonBody(request);
+        const project = await registerProject(paths, body, options);
+        return sendJson(response, 201, { ok: true, project, registry: await readProjectRegistry(paths) });
+      }
       return sendJson(response, 404, { ok: false, error: "Endpoint bulunamadı" });
     } catch (error) {
       return sendJson(response, 500, { ok: false, error: error.message });
     }
   });
+}
+
+async function readJsonBody(request) {
+  let raw = "";
+  for await (const chunk of request) {
+    raw += chunk;
+    if (raw.length > 1024 * 1024) throw new Error("Istek govdesi cok buyuk.");
+  }
+  if (!raw.trim()) return {};
+  try {
+    return JSON.parse(raw);
+  } catch {
+    throw new Error("Gecersiz JSON govdesi.");
+  }
 }
 
 function sendJson(response, status, payload) {

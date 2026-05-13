@@ -10,7 +10,9 @@ import {
   createRunnerServer,
   detectCodex,
   ensureRunnerHome,
+  normalizeProjectDraft,
   readProjectRegistry,
+  registerProject,
   resolveAppDataDir
 } from "../scripts/ctxlab-runner.mjs";
 
@@ -81,6 +83,48 @@ test("runner health payload app-data, proje sayısı ve codex durumunu döndür�
   }
 });
 
+test("runner proje taslagini deterministik id ile normalize eder", () => {
+  const draft = normalizeProjectDraft({
+    name: "ctx-lab",
+    path: process.cwd(),
+    repo: "cagrisahin58/ctx-lab"
+  });
+
+  assert.equal(draft.name, "ctx-lab");
+  assert.equal(draft.repo, "cagrisahin58/ctx-lab");
+  assert.match(draft.id, /^project_[a-f0-9]{12}$/);
+});
+
+test("runner proje kaydini allowlist registry dosyasina ekler ve gunceller", async () => {
+  const dir = await mkdtemp(join(tmpdir(), "ctxlab-runner-"));
+  const projectDir = await mkdtemp(join(tmpdir(), "ctxlab-project-"));
+  const paths = buildRunnerPaths(dir);
+
+  try {
+    const first = await registerProject(paths, {
+      name: "ctx-lab",
+      path: projectDir,
+      repo: "cagrisahin58/ctx-lab"
+    }, { now: new Date("2026-05-14T12:00:00.000Z") });
+    const second = await registerProject(paths, {
+      name: "ctx-lab yeni",
+      path: projectDir,
+      repo: "cagrisahin58/ctx-lab",
+      branch: "main"
+    }, { now: new Date("2026-05-14T12:05:00.000Z") });
+    const registry = await readProjectRegistry(paths);
+
+    assert.equal(first.id, second.id);
+    assert.equal(registry.projects.length, 1);
+    assert.equal(registry.projects[0].name, "ctx-lab yeni");
+    assert.equal(registry.projects[0].createdAt, "2026-05-14T12:00:00.000Z");
+    assert.equal(registry.projects[0].updatedAt, "2026-05-14T12:05:00.000Z");
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+    await rm(projectDir, { recursive: true, force: true });
+  }
+});
+
 test("runner server /health endpointini sunar", async () => {
   const dir = await mkdtemp(join(tmpdir(), "ctxlab-runner-"));
   const paths = buildRunnerPaths(dir);
@@ -101,5 +145,36 @@ test("runner server /health endpointini sunar", async () => {
   } finally {
     await new Promise((resolve) => server.close(resolve));
     await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test("runner server /projects endpointinden proje kaydeder", async () => {
+  const dir = await mkdtemp(join(tmpdir(), "ctxlab-runner-"));
+  const projectDir = await mkdtemp(join(tmpdir(), "ctxlab-project-"));
+  const paths = buildRunnerPaths(dir);
+  const server = createRunnerServer({
+    paths,
+    now: new Date("2026-05-14T12:00:00.000Z"),
+    runCommand: async () => ({ ok: true, stdout: "codex-cli test\n", stderr: "" })
+  });
+
+  try {
+    await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
+    const { port } = server.address();
+    const response = await fetch(`http://127.0.0.1:${port}/projects`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: "ctx-lab", path: projectDir, repo: "cagrisahin58/ctx-lab" })
+    });
+    const body = await response.json();
+
+    assert.equal(response.status, 201);
+    assert.equal(body.ok, true);
+    assert.equal(body.registry.projects.length, 1);
+    assert.equal(body.project.name, "ctx-lab");
+  } finally {
+    await new Promise((resolve) => server.close(resolve));
+    await rm(dir, { recursive: true, force: true });
+    await rm(projectDir, { recursive: true, force: true });
   }
 });

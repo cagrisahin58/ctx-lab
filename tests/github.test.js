@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { ensureMemoryRepo, loadMemoryRepo, putFile } from "../src/github.js";
+import { deleteFile, ensureMemoryRepo, loadMemoryRepo, putFile } from "../src/github.js";
 
 const config = {
   owner: "cagrisahin58",
@@ -133,6 +133,90 @@ test("putFile içeriği base64 yazar ve sha varsa gönderir", async () => {
   try {
     const result = await putFile(config, "inbox/test.md", "Türkçe içerik", "test commit", "old-sha");
     assert.equal(result.content.sha, "new-sha");
+  } finally {
+    mock.restore();
+  }
+});
+
+test("putFile stale sha hatasında son sha ile tekrar dener", async () => {
+  let putCount = 0;
+  const mock = installFetchMock((url, options = {}) => {
+    if (options.method === "PUT") {
+      putCount += 1;
+      const body = JSON.parse(options.body);
+      if (putCount === 1) {
+        assert.equal(body.sha, "old-sha");
+        return { ok: false, status: 409, text: "sha eski" };
+      }
+      assert.equal(body.sha, "fresh-sha");
+      return { json: { content: { sha: "new-sha" } } };
+    }
+    if (url.endsWith("/contents/inbox/test.md?ref=main")) {
+      return { json: { sha: "fresh-sha", content: encode("eski içerik") } };
+    }
+    throw new Error(`Beklenmeyen URL: ${url}`);
+  });
+
+  try {
+    const result = await putFile(config, "inbox/test.md", "yeni içerik", "retry commit", "old-sha");
+    assert.equal(result.content.sha, "new-sha");
+    assert.equal(putCount, 2);
+  } finally {
+    mock.restore();
+  }
+});
+
+test("putFile dosya zaten varsa sha okuyup create isteğini update'e çevirir", async () => {
+  let putCount = 0;
+  const mock = installFetchMock((url, options = {}) => {
+    if (options.method === "PUT") {
+      putCount += 1;
+      const body = JSON.parse(options.body);
+      if (putCount === 1) {
+        assert.equal(body.sha, undefined);
+        return { ok: false, status: 422, text: "sha gerekli" };
+      }
+      assert.equal(body.sha, "existing-sha");
+      return { json: { content: { sha: "updated-sha" } } };
+    }
+    if (url.endsWith("/contents/inbox/existing.md?ref=main")) {
+      return { json: { sha: "existing-sha", content: encode("mevcut") } };
+    }
+    throw new Error(`Beklenmeyen URL: ${url}`);
+  });
+
+  try {
+    const result = await putFile(config, "inbox/existing.md", "güncel", "upsert commit");
+    assert.equal(result.content.sha, "updated-sha");
+    assert.equal(putCount, 2);
+  } finally {
+    mock.restore();
+  }
+});
+
+test("deleteFile stale sha hatasında son sha ile tekrar dener", async () => {
+  let deleteCount = 0;
+  const mock = installFetchMock((url, options = {}) => {
+    if (options.method === "DELETE") {
+      deleteCount += 1;
+      const body = JSON.parse(options.body);
+      if (deleteCount === 1) {
+        assert.equal(body.sha, "old-sha");
+        return { ok: false, status: 409, text: "sha eski" };
+      }
+      assert.equal(body.sha, "fresh-sha");
+      return { json: { commit: { sha: "delete-commit" } } };
+    }
+    if (url.endsWith("/contents/inbox/test.md?ref=main")) {
+      return { json: { sha: "fresh-sha", content: encode("silinecek") } };
+    }
+    throw new Error(`Beklenmeyen URL: ${url}`);
+  });
+
+  try {
+    const result = await deleteFile(config, "inbox/test.md", "old-sha", "delete retry");
+    assert.equal(result.commit.sha, "delete-commit");
+    assert.equal(deleteCount, 2);
   } finally {
     mock.restore();
   }

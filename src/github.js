@@ -3,6 +3,15 @@ import { parseMemoryFile } from "./domain.js";
 const API_ROOT = "https://api.github.com";
 export const MEMORY_DIRS = ["inbox", "work_items", "decisions", "handoffs", "archive"];
 
+class GitHubHttpError extends Error {
+  constructor(status, body) {
+    super(`GitHub ${status}: ${body.slice(0, 300)}`);
+    this.name = "GitHubHttpError";
+    this.status = status;
+    this.body = body;
+  }
+}
+
 async function githubRequest(config, path, options = {}) {
   const headers = {
     Accept: "application/vnd.github+json",
@@ -15,7 +24,7 @@ async function githubRequest(config, path, options = {}) {
   if (response.status === 404 && options.allow404) return null;
   if (!response.ok) {
     const body = await response.text();
-    throw new Error(`GitHub ${response.status}: ${body.slice(0, 300)}`);
+    throw new GitHubHttpError(response.status, body);
   }
   if (response.status === 204) return null;
   return response.json();
@@ -97,6 +106,17 @@ async function ensureFile(config, path, content, message) {
 }
 
 export async function putFile(config, path, content, message, sha = undefined) {
+  try {
+    return await putFileOnce(config, path, content, message, sha);
+  } catch (error) {
+    if (!isRecoverableWriteError(error)) throw error;
+    const latest = await getContent(config, path);
+    if (!latest?.sha || latest.sha === sha) throw error;
+    return putFileOnce(config, path, content, message, latest.sha);
+  }
+}
+
+async function putFileOnce(config, path, content, message, sha = undefined) {
   const body = {
     message,
     content: encodeBase64(content),
@@ -110,6 +130,18 @@ export async function putFile(config, path, content, message, sha = undefined) {
 }
 
 export async function deleteFile(config, path, sha, message) {
+  try {
+    return await deleteFileOnce(config, path, sha, message);
+  } catch (error) {
+    if (error.status === 404) return null;
+    if (!isRecoverableWriteError(error)) throw error;
+    const latest = await getContent(config, path);
+    if (!latest?.sha || latest.sha === sha) throw error;
+    return deleteFileOnce(config, path, latest.sha, message);
+  }
+}
+
+async function deleteFileOnce(config, path, sha, message) {
   return githubRequest(config, `/repos/${config.owner}/${config.repo}/contents/${path}`, {
     method: "DELETE",
     body: JSON.stringify({
@@ -118,6 +150,10 @@ export async function deleteFile(config, path, sha, message) {
       branch: config.branch || undefined
     })
   });
+}
+
+function isRecoverableWriteError(error) {
+  return error?.status === 409 || error?.status === 422;
 }
 
 export async function moveFile(config, fromRecord, toPath, message) {

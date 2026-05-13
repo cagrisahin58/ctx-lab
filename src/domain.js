@@ -3,7 +3,7 @@ const SECTION_ALIASES = {
   happened: ["What Happened", "Yapılanlar", "Ne Oldu"],
   decisions: ["Decisions", "Kararlar"],
   questions: ["Open Questions", "Açık Sorular", "Sorular"],
-  next: ["Next Actions", "Sonraki Adımlar", "Sıradaki İşler"],
+  next: ["Next Action", "Next Actions", "Sonraki Adım", "Sonraki Adımlar", "Sıradaki İş", "Sıradaki İşler"],
   evidence: ["Evidence", "Kanıtlar", "Kaynaklar"],
   objective: ["Objective", "Amaç"],
   current: ["Current State", "Güncel Durum"],
@@ -341,6 +341,16 @@ export function updateWorkItemStatusContent(workItem, status, now = new Date()) 
   });
 }
 
+export function updateWorkItemNextActionContent(workItem, nextAction, now = new Date()) {
+  const text = String(nextAction || "").trim();
+  if (!text) {
+    throw new Error("Sonraki adım boş olamaz.");
+  }
+  const { frontmatter, body } = parseFrontmatter(workItem.raw);
+  const updatedBody = replaceSection(body, "next", "Next Action", text);
+  return `${serializeFrontmatter({ ...frontmatter, updated_at: now.toISOString() })}\n\n${updatedBody}`;
+}
+
 export function buildArchivedRecordContent(record, now = new Date()) {
   return replaceFrontmatter(record.raw, {
     status: "archived",
@@ -456,6 +466,34 @@ function formatDecisionBullets(decisions) {
 
 function compactLine(value) {
   return String(value || "").replace(/\s+/g, " ").trim().slice(0, 260);
+}
+
+function replaceSection(body, key, fallbackTitle, value) {
+  const lines = body.split(/\r?\n/);
+  const aliases = SECTION_ALIASES[key] || [fallbackTitle];
+  const start = lines.findIndex((line) => {
+    const match = line.match(/^##\s+(.+)$/);
+    return match && aliases.some((alias) => match[1].trim().toLowerCase() === alias.toLowerCase());
+  });
+
+  if (start === -1) {
+    return `${body.trimEnd()}\n\n## ${fallbackTitle}\n${value}\n`;
+  }
+
+  let end = lines.length;
+  for (let index = start + 1; index < lines.length; index += 1) {
+    if (/^##\s+/.test(lines[index])) {
+      end = index;
+      break;
+    }
+  }
+
+  return [
+    ...lines.slice(0, start + 1),
+    value,
+    "",
+    ...lines.slice(end)
+  ].join("\n").trimEnd() + "\n";
 }
 
 export function buildInboxSessionSummary(draft, now = new Date()) {

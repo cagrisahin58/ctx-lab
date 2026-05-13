@@ -20,6 +20,7 @@ import {
   replaceFrontmatter,
   resolveWorkContext,
   slugify,
+  updateWorkItemNextActionContent,
   updateWorkItemStatusContent,
   upsertRecord,
   validateMemoryRecords
@@ -261,6 +262,24 @@ test("iş kartı durumunu frontmatter içinde günceller", () => {
   assert.equal(parsed.frontmatter.updated_at, "2026-05-13T12:00:00.000Z");
   assert.match(parsed.body, /Current State/);
   assert.throws(() => updateWorkItemStatusContent(work, "needs_triage"), /Geçersiz iş kartı durumu/);
+});
+
+test("iş kartı sonraki adım bölümünü günceller ve alias ile okur", () => {
+  const session = parseMemoryFile("inbox/test.md", sample, "sha-session");
+  const work = parseMemoryFile(
+    "work_items/work_ctx-lab.md",
+    buildWorkItemFromSession(session).content,
+    "sha-work"
+  );
+  assert.equal(getSection(work.sections, "next"), "- Parser yaz.");
+
+  const updated = updateWorkItemNextActionContent(work, "- Context pack'i gerçek repo ile dene.", new Date("2026-05-13T12:00:00.000Z"));
+  const parsed = parseMemoryFile(work.path, updated, "sha-updated");
+
+  assert.equal(parsed.frontmatter.updated_at, "2026-05-13T12:00:00.000Z");
+  assert.equal(getSection(parsed.sections, "next"), "- Context pack'i gerçek repo ile dene.");
+  assert.match(updated, /## Current State/);
+  assert.throws(() => updateWorkItemNextActionContent(work, " "), /Sonraki adım boş olamaz/);
 });
 
 test("aynı id veya path için kayıtları tekilleştirerek günceller", () => {

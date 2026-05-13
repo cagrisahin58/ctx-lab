@@ -177,6 +177,15 @@ textarea {
   align-items: center;
 }
 
+.quick-update-form {
+  display: grid;
+  gap: 10px;
+}
+
+.quick-update-form textarea {
+  min-height: 110px;
+}
+
 .page-title {
   display: grid;
   gap: 4px;

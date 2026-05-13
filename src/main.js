@@ -16,6 +16,7 @@ import {
   parseRepoInput,
   parseMemoryFile,
   replaceFrontmatter,
+  updateWorkItemNextActionContent,
   updateWorkItemStatusContent,
   upsertRecord,
   WORK_STATUSES,
@@ -272,6 +273,19 @@ async function updateSelectedWorkStatus(payload) {
   setToast("İş kartı durumu güncellendi.");
 }
 
+async function updateSelectedWorkNextAction(payload) {
+  const record = state.records.find((item) => item.id === payload?.id);
+  if (!record || record.type !== "work_items") {
+    setToast("Sonraki adımı güncellemek için iş kartı seç.");
+    return;
+  }
+
+  const content = updateWorkItemNextActionContent(record, payload.nextAction);
+  const parsed = await saveMemoryRecord(record.path, content, `work: ${record.id} sonraki adımı güncelle`);
+  state.selectedId = parsed.id;
+  setToast("Sonraki adım güncellendi.");
+}
+
 async function initializeMemoryRepo() {
   if (!state.config.owner || !state.config.repo) {
     setToast("Önce repo bağlantısını kaydet.");
@@ -514,6 +528,7 @@ function renderHandoff() {
 
 function renderWorkContext(workItem) {
   const prompt = buildContextPack(state.records, workItem, "codex");
+  const nextAction = getSection(workItem.sections, "next");
   return `
     <h3>${escapeHtml(workItem.title)}</h3>
     <div class="meta">
@@ -529,7 +544,15 @@ function renderWorkContext(workItem) {
     </div>
     ${detailSection("Amaç", getSection(workItem.sections, "objective"))}
     ${detailSection("Güncel Durum", getSection(workItem.sections, "current"))}
-    ${detailSection("Sonraki Adım", getSection(workItem.sections, "next"))}
+    <form class="quick-update-form" data-next-action-form data-work-id="${escapeHtml(workItem.id)}">
+      <label>
+        Sonraki Adım
+        <textarea name="next_action" required>${escapeHtml(nextAction)}</textarea>
+      </label>
+      <div class="toolbar-actions">
+        <button type="submit">Sonraki Adımı Güncelle</button>
+      </div>
+    </form>
     <div class="section">
       <h4>Devam Brifi</h4>
       <pre>${escapeHtml(prompt)}</pre>
@@ -773,6 +796,16 @@ function bindEvents() {
       handleAction("create-summary", summaryForm);
     });
   }
+  document.querySelectorAll("[data-next-action-form]").forEach((form) => {
+    form.addEventListener("submit", (event) => {
+      event.preventDefault();
+      const data = new FormData(form);
+      handleAction("update-work-next", {
+        id: form.dataset.workId,
+        nextAction: data.get("next_action")
+      });
+    });
+  });
 }
 
 function handleAction(action, payload) {
@@ -801,6 +834,7 @@ function handleAction(action, payload) {
     guarded(() => createWorkFromSelected(target));
   }
   if (action === "update-work-status") guarded(() => updateSelectedWorkStatus(payload));
+  if (action === "update-work-next") guarded(() => updateSelectedWorkNextAction(payload));
   if (action === "archive") guarded(archiveSelected);
   if (action === "save-decision") guarded(saveDecisionFromSelected);
   if (action === "save-handoff-codex") guarded(() => saveHandoff("codex"));

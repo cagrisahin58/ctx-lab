@@ -58,6 +58,7 @@ Arşivlenen kayıtlar archive klasörüne `archived` statüsüyle taşınır, b�
 `İş Panosu` ekranında seçili iş kartı için bağlı oturumlar, karar kayıtları, güncel durum, sıradaki adım ve çalışma kuralları tek bir devam brifinde birleştirilir. Bu metin doğrudan kopyalanabilir veya `handoffs/` altına kaydedilebilir. Amaç, temiz bir Codex/Claude oturumunda sohbet geçmişi kaybolsa bile insan çalışma bağlamını hızlı geri yüklemektir.
 
 İş kartları `Aktif`, `Beklemede`, `Engelli` ve `Tamamlandı` durumları arasında doğrudan panodan taşınabilir. Arama alanı Inbox, İş Panosu ve Karar Defteri içinde proje, başlık, repo, durum, kaynak ve etiket bilgilerine göre hızlı süzme yapar.
+İş kartının `Sonraki Adım` alanı panodan güncellenebilir; context pack bu güncel değeri kullanır.
 Karar ve handoff kayıtları tekrar kaydedildiğinde mevcut dosya güncellenir; aynı kayıt için gereksiz kopyalar üretilmez.
 Inbox kaydından karar çıkarıldığında ilgili iş kartı bulunursa karar id'si o iş hattına otomatik bağlanır.
 GitHub yazımlarında stale `sha` hatası alınırsa uygulama dosyanın son `sha` değerini okuyup yazımı bir kez yeniden dener.

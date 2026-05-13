@@ -118,6 +118,35 @@ Pano üzerinden `Next Action` bölümü güncellendiğinde ilgili markdown secti
 Inbox kaydından karar çıkarıldığında ilgili iş kartı bulunabiliyorsa karar id'si iş kartının `decisions` listesine otomatik eklenir.
 Inbox kaydı arşive taşındığında archive dosyasına `status: archived` ve `archived_at` yazılır; ardından kaynak inbox dosyası silinir.
 
+## Decision record
+
+Manuel karar kayıtları `Karar Defteri > Yeni Karar` akışıyla oluşturulur. Bir iş hattı seçilirse `source_work_item` alanı doldurulur ve karar id'si ilgili iş kartının `decisions` listesine eklenir.
+
+```markdown
+---
+id: dec_2026-05-13T12-00-00-000Z_memory-repo-kaynak-olacak
+title: Memory repo kaynak olacak
+project: ctx-lab
+source: manual
+source_work_item: work_ctx-lab
+created_at: 2026-05-13T12:00:00.000Z
+tags:
+  - github-memory
+---
+
+## Karar
+GitHub memory repo kalıcı kaynak olarak kullanılacak.
+
+## Gerekçe
+Claude ve Codex arasında taşınabilirlik gerekiyor.
+
+## Etki
+Context pack ve günlük brif kayıtları repodan okunacak.
+
+## Kaynak
+Plan oturumu.
+```
+
 ## Handoff / context pack
 
 `handoffs/` altındaki kayıtlar artık yalnızca tek oturum özeti değildir. Seçili iş kartı için:

@@ -9,6 +9,7 @@ import {
   buildDecisionFromSession,
   buildInboxSessionSummary,
   buildInboxSessionSummaryFromMarkdown,
+  buildManualDecision,
   buildManualWorkItem,
   buildSessionClosePrompt,
   buildWorkItemFromSession,
@@ -110,6 +111,30 @@ test("decision içeriği üretir", () => {
   const decision = buildDecisionFromSession(record);
   assert.ok(decision);
   assert.match(decision.content, /GitHub source-of-truth olacak/);
+});
+
+test("manuel karar kaydı üretir ve iş hattı kaynağını taşır", () => {
+  const decision = buildManualDecision(
+    {
+      title: "Memory repo kaynak olacak",
+      project: "ctx-lab",
+      workItemId: "work_ctx-lab",
+      decision: "GitHub memory repo kalıcı kaynak olarak kullanılacak.",
+      rationale: "Claude ve Codex arasında taşınabilirlik gerekiyor.",
+      impact: "Tüm handoff kayıtları repodan okunacak.",
+      source: "Plan oturumu",
+      tags: ["github", "karar"]
+    },
+    new Date("2026-05-13T12:00:00.000Z")
+  );
+  const parsed = parseMemoryFile(decision.path, decision.content, "sha-decision");
+
+  assert.equal(decision.id, "dec_2026-05-13T12-00-00-000Z_memory-repo-kaynak-olacak");
+  assert.equal(parsed.frontmatter.source, "manual");
+  assert.equal(parsed.frontmatter.source_work_item, "work_ctx-lab");
+  assert.deepEqual(parsed.frontmatter.tags, ["github", "karar"]);
+  assert.equal(getSection(parsed.sections, "decisions"), "GitHub memory repo kalıcı kaynak olarak kullanılacak.");
+  assert.equal(getSection(parsed.sections, "rationale"), "Claude ve Codex arasında taşınabilirlik gerekiyor.");
 });
 
 test("handoff prompt Türkçe ve kaynaklıdır", () => {
@@ -250,6 +275,31 @@ GitHub memory repo kalıcı kaynak olacak.
   assert.match(pack, /sess_test/);
   assert.match(pack, /GitHub memory repo kalıcı kaynak olacak/);
   assert.match(pack, /Çalışma kuralı/);
+});
+
+test("iş hattına doğrudan bağlı manuel karar context pack içinde çözülür", () => {
+  const session = parseMemoryFile("inbox/test.md", sample, "sha-session");
+  const work = parseMemoryFile(
+    "work_items/work_ctx-lab.md",
+    buildWorkItemFromSession(session).content,
+    "sha-work"
+  );
+  const decision = parseMemoryFile(
+    "decisions/dec_manual.md",
+    buildManualDecision({
+      id: "dec_manual",
+      title: "Manuel karar",
+      project: "ctx-lab",
+      workItemId: "work_ctx-lab",
+      decision: "Karar defteri bağımsız kullanılacak."
+    }).content,
+    "sha-decision"
+  );
+  const context = resolveWorkContext([work, decision], work);
+  const pack = buildContextPack([work, decision], work, "codex");
+
+  assert.equal(context.decisions.length, 1);
+  assert.match(pack, /Karar defteri bağımsız kullanılacak/);
 });
 
 test("açık işler ve triage için günlük çalışma brifi üretir", () => {

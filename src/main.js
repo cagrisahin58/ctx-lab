@@ -5,6 +5,7 @@ import {
   buildArchivedRecordContent,
   buildInboxSessionSummary,
   buildInboxSessionSummaryFromMarkdown,
+  buildManualDecision,
   buildManualWorkItem,
   buildDecisionFromSession,
   buildContextPack,
@@ -390,6 +391,37 @@ async function createManualWorkFromForm(form) {
   setToast("Yeni iş hattı oluşturuldu.");
 }
 
+async function createManualDecisionFromForm(form) {
+  if (!state.demo && (!state.config.owner || !state.config.repo)) {
+    setToast("Önce GitHub memory repo bağlantısını kaydet.");
+    return;
+  }
+  const data = new FormData(form);
+  const workItemId = data.get("work_item") || "";
+  const workItem = workItemId
+    ? state.records.find((record) => record.type === "work_items" && record.id === workItemId)
+    : null;
+  const decision = buildManualDecision({
+    title: data.get("title"),
+    project: data.get("project") || workItem?.project || "",
+    workItemId,
+    decision: data.get("decision"),
+    rationale: data.get("rationale"),
+    impact: data.get("impact"),
+    source: data.get("source"),
+    tags: String(data.get("tags") || "").split(",").map((tag) => tag.trim()).filter(Boolean)
+  });
+
+  const savedDecision = await saveMemoryRecord(decision.path, decision.content, `decision: ${decision.id} manuel karar oluştur`);
+  if (workItem) {
+    const updatedWork = appendDecisionToWorkItem(workItem, savedDecision);
+    await saveMemoryRecord(workItem.path, updatedWork, `work: ${workItem.id} karar bağlantısını güncelle`);
+  }
+  state.selectedId = savedDecision.id;
+  state.view = "decisions";
+  setToast(workItem ? "Karar kaydı oluşturuldu ve iş hattına bağlandı." : "Karar kaydı oluşturuldu.");
+}
+
 function closePromptText() {
   const record = selectedRecord();
   return buildSessionClosePrompt({
@@ -505,6 +537,7 @@ function renderCurrentView(counts) {
   if (state.view === "settings") return renderSettings();
   if (state.view === "new-summary") return renderNewSummary();
   if (state.view === "new-work") return renderNewWork();
+  if (state.view === "new-decision") return renderNewDecision();
   if (state.view === "board") return renderBoard();
   if (state.view === "decisions") return renderDecisions();
   if (state.view === "handoff") return renderHandoff();
@@ -661,11 +694,65 @@ function renderNewWork() {
 function renderDecisions() {
   const decisions = filteredRecords("decisions");
   return `
-    ${renderHeader("Karar Defteri", "Neyi neden seçtiğimizi oturum geçmişinden bağımsız saklar.")}
+    ${renderHeader(
+      "Karar Defteri",
+      "Neyi neden seçtiğimizi oturum geçmişinden bağımsız saklar.",
+      `<button class="primary" data-view="new-decision">Yeni Karar</button>`
+    )}
     ${renderSearchBar("Karar kayıtlarında ara")}
     <div class="grid">
       ${decisions.length ? decisions.map((record) => `<section class="panel">${renderRecordDetail(record, false)}</section>`).join("") : `<div class="empty">Henüz karar kaydı yok.</div>`}
     </div>
+  `;
+}
+
+function renderNewDecision() {
+  const workItems = recordsByType("work_items");
+  return `
+    ${renderHeader("Yeni Karar", "Oturum geçmişinden bağımsız, kaynaklı ve iş hattına bağlanabilir karar kaydı oluştur.")}
+    <section class="panel">
+      <form class="connection-form" id="decision-form">
+        <label>
+          Başlık
+          <input name="title" required placeholder="Memory repo kaynak olacak" />
+        </label>
+        <label>
+          İş Hattı
+          <select name="work_item">
+            <option value="">Bağlama</option>
+            ${workItems.map((item) => `<option value="${escapeHtml(item.id)}">${escapeHtml(item.title)}</option>`).join("")}
+          </select>
+        </label>
+        <label>
+          Proje
+          <input name="project" placeholder="ctx-lab" />
+        </label>
+        <label>
+          Etiketler
+          <input name="tags" placeholder="architecture, github-memory" />
+        </label>
+        <label class="full">
+          Karar
+          <textarea name="decision" required placeholder="Alınan karar nedir?"></textarea>
+        </label>
+        <label class="full">
+          Gerekçe
+          <textarea name="rationale" placeholder="Bu karar neden alındı?"></textarea>
+        </label>
+        <label class="full">
+          Etki
+          <textarea name="impact" placeholder="Bu karar hangi akışları etkiler?"></textarea>
+        </label>
+        <label class="full">
+          Kaynak
+          <textarea name="source" placeholder="Oturum, commit, dosya veya kısa kanıt notu"></textarea>
+        </label>
+        <div class="toolbar-actions full">
+          <button class="primary" type="submit">Kararı Kaydet</button>
+          <button type="button" data-view="decisions">Vazgeç</button>
+        </div>
+      </form>
+    </section>
   `;
 }
 
@@ -930,6 +1017,9 @@ function renderRecordDetail(record, withActions) {
     ${detailSection("Amaç", getSection(record.sections, "goal") || getSection(record.sections, "objective"))}
     ${detailSection("Yapılanlar / Güncel Durum", getSection(record.sections, "happened") || getSection(record.sections, "current"))}
     ${detailSection("Kararlar", getSection(record.sections, "decisions"))}
+    ${record.type === "decisions" ? detailSection("Gerekçe", getSection(record.sections, "rationale")) : ""}
+    ${record.type === "decisions" ? detailSection("Etki", getSection(record.sections, "impact")) : ""}
+    ${record.type === "decisions" ? detailSection("Kaynak", getSection(record.sections, "source_section")) : ""}
     ${detailSection("Açık Sorular / Riskler", getSection(record.sections, "questions") || getSection(record.sections, "risks"))}
     ${detailSection("Sonraki Adımlar", getSection(record.sections, "next"))}
   `;
@@ -1021,6 +1111,13 @@ function bindEvents() {
       handleAction("create-manual-work", workForm);
     });
   }
+  const decisionForm = document.querySelector("#decision-form");
+  if (decisionForm) {
+    decisionForm.addEventListener("submit", (event) => {
+      event.preventDefault();
+      handleAction("create-manual-decision", decisionForm);
+    });
+  }
   document.querySelectorAll("[data-next-action-form]").forEach((form) => {
     form.addEventListener("submit", (event) => {
       event.preventDefault();
@@ -1053,6 +1150,7 @@ function handleAction(action, payload) {
   }
   if (action === "create-summary") guarded(() => createInboxSummaryFromForm(payload));
   if (action === "create-manual-work") guarded(() => createManualWorkFromForm(payload));
+  if (action === "create-manual-decision") guarded(() => createManualDecisionFromForm(payload));
   if (action === "copy-close-prompt") guarded(copyClosePrompt);
   if (action === "copy-context-pack") guarded(copyContextPack);
   if (action === "copy-daily-brief") guarded(copyDailyBrief);

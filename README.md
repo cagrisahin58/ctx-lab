@@ -69,8 +69,9 @@ Arşivlenen kayıtlar archive klasörüne `archived` statüsüyle taşınır, b�
 
 İş kartları `Aktif`, `Beklemede`, `Engelli` ve `Tamamlandı` durumları arasında doğrudan panodan taşınabilir. Panodaki `Yeni İş Hattı` akışı, Inbox beklemeden bağımsız bir çalışma hattı açar. Arama alanı Inbox, İş Panosu ve Karar Defteri içinde proje, başlık, repo, durum, kaynak ve etiket bilgilerine göre hızlı süzme yapar.
 İş kartının `Sonraki Adım` alanı panodan güncellenebilir; context pack bu güncel değeri kullanır.
+`Karar Defteri` ekranındaki `Yeni Karar` akışı, oturum geçmişinden bağımsız kaynaklı karar kaydı oluşturur ve seçili iş hattına bağlayabilir.
 Karar ve handoff kayıtları tekrar kaydedildiğinde mevcut dosya güncellenir; aynı kayıt için gereksiz kopyalar üretilmez.
-Inbox kaydından karar çıkarıldığında ilgili iş kartı bulunursa karar id'si o iş hattına otomatik bağlanır.
+Inbox kaydından karar çıkarıldığında veya manuel karar bir iş hattına bağlandığında karar id'si o iş hattına otomatik eklenir.
 GitHub yazımlarında stale `sha` hatası alınırsa uygulama dosyanın son `sha` değerini okuyup yazımı bir kez yeniden dener.
 
 Detaylı format için [docs/memory-format.md](docs/memory-format.md) dosyasına bakın.

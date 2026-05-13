@@ -1,13 +1,16 @@
 const SECTION_ALIASES = {
   goal: ["Goal", "Amaç", "Hedef"],
   happened: ["What Happened", "Yapılanlar", "Ne Oldu"],
-  decisions: ["Decisions", "Kararlar"],
+  decisions: ["Decisions", "Kararlar", "Karar"],
   questions: ["Open Questions", "Açık Sorular", "Sorular"],
   next: ["Next Action", "Next Actions", "Sonraki Adım", "Sonraki Adımlar", "Sıradaki İş", "Sıradaki İşler"],
   evidence: ["Evidence", "Kanıtlar", "Kaynaklar"],
   objective: ["Objective", "Amaç"],
   current: ["Current State", "Güncel Durum"],
-  risks: ["Risks / Blockers", "Riskler / Engeller", "Engeller"]
+  risks: ["Risks / Blockers", "Riskler / Engeller", "Engeller"],
+  rationale: ["Rationale", "Gerekçe", "Neden"],
+  impact: ["Impact", "Etki"],
+  source_section: ["Source", "Kaynak", "Kanıt", "Kanıtlar"]
 };
 
 export const VALID_TYPES = ["inbox", "work_items", "decisions", "handoffs", "archive"];
@@ -425,6 +428,7 @@ export function resolveWorkContext(records, anchorRecord) {
     records.filter((record) =>
       record.type === "decisions" && (
         decisionIds.has(record.id) ||
+        record.frontmatter.source_work_item === workItem?.id ||
         resolvedSessionIds.has(record.frontmatter.source_session) ||
         (project && record.project === project)
       )
@@ -769,4 +773,43 @@ ${decisions}
 - ${session.path}
 `;
   return { id: decisionId, path: `decisions/${decisionId}.md`, content };
+}
+
+export function buildManualDecision(draft, now = new Date()) {
+  const title = String(draft.title || "").trim();
+  const decision = String(draft.decision || "").trim();
+  if (!title) throw new Error("Karar başlığı boş olamaz.");
+  if (!decision) throw new Error("Karar metni boş olamaz.");
+
+  const stamp = timestampSlug(now);
+  const decisionId = draft.id || `dec_${stamp}_${slugify(title)}`;
+  const tags = normalizeArray(draft.tags);
+  const content = `${serializeFrontmatter({
+    id: decisionId,
+    title,
+    project: draft.project || "",
+    source: "manual",
+    source_work_item: draft.workItemId || "",
+    created_at: now.toISOString(),
+    tags
+  })}
+
+## Karar
+${formatSectionText(decision)}
+
+## Gerekçe
+${formatSectionText(draft.rationale || "Gerekçe kaydı yok.")}
+
+## Etki
+${formatSectionText(draft.impact || "Etkisi daha sonra netleştirilecek.")}
+
+## Kaynak
+${formatSectionText(draft.source || "Manuel karar kaydı.")}
+`;
+
+  return {
+    id: decisionId,
+    path: `decisions/${decisionId}.md`,
+    content
+  };
 }

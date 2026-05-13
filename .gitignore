@@ -1,5 +1,7 @@
-/target
-*.db
-*.db-*
+node_modules/
+dist/
+.env
+.env.*
+*.log
 .DS_Store
-.worktrees/
+coverage/

@@ -1,6 +1,7 @@
 [CmdletBinding()]
 param(
   [int]$Port = 5173,
+  [int]$RunnerPort = 5174,
   [switch]$NoBrowser,
   [switch]$SkipInstall,
   [switch]$DryRun
@@ -26,11 +27,16 @@ if (-not $SkipInstall -and -not (Test-Path (Join-Path $repoRoot "node_modules"))
 
 $url = "http://127.0.0.1:$Port"
 Write-Host "ctx-lab hazır: $url"
+Write-Host "ctx-lab runner: http://127.0.0.1:$RunnerPort"
 
 if ($DryRun) {
+  & $npm.Source run runner:check
   Write-Host "Dry-run tamamlandı; dev server başlatılmadı."
   exit 0
 }
+
+$runnerArgs = "/c `"$($npm.Source)`" run runner -- --port $RunnerPort"
+Start-Process -FilePath "cmd.exe" -ArgumentList $runnerArgs -WorkingDirectory $repoRoot -WindowStyle Hidden | Out-Null
 
 if (-not $NoBrowser) {
   Start-Job -ScriptBlock {

@@ -65,6 +65,7 @@ Arşivlenen kayıtlar archive klasörüne `archived` statüsüyle taşınır, b�
 ## Context pack akışı
 
 `İş Panosu` ekranında seçili iş kartı için bağlı oturumlar, karar kayıtları, güncel durum, sıradaki adım ve çalışma kuralları tek bir devam brifinde birleştirilir. Bu metin doğrudan kopyalanabilir veya `handoffs/` altına kaydedilebilir. Amaç, temiz bir Codex/Claude oturumunda sohbet geçmişi kaybolsa bile insan çalışma bağlamını hızlı geri yüklemektir.
+`Günlük Brif` ekranı tüm açık iş hatlarını, engelli/bekleyen işleri ve triage yükünü tek metinde toplar; bu brif kopyalanabilir veya handoff olarak kaydedilebilir.
 
 İş kartları `Aktif`, `Beklemede`, `Engelli` ve `Tamamlandı` durumları arasında doğrudan panodan taşınabilir. Arama alanı Inbox, İş Panosu ve Karar Defteri içinde proje, başlık, repo, durum, kaynak ve etiket bilgilerine göre hızlı süzme yapar.
 İş kartının `Sonraki Adım` alanı panodan güncellenebilir; context pack bu güncel değeri kullanır.

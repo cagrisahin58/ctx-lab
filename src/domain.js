@@ -437,6 +437,53 @@ export function buildContextPack(records, anchorRecord, target = "codex") {
   ].join("\n");
 }
 
+export function buildDailyBrief(records, target = "codex", now = new Date()) {
+  const toolName = target === "claude" ? "Claude Code" : "Codex";
+  const workItems = sortWorkItems(
+    records.filter((record) => record.type === "work_items" && record.status !== "done")
+  );
+  const triageCount = records.filter((record) => record.type === "inbox" && record.status === "needs_triage").length;
+  const blockedCount = workItems.filter((record) => record.status === "blocked").length;
+  const waitingCount = workItems.filter((record) => record.status === "waiting").length;
+
+  return [
+    `${toolName} için ctx-lab günlük çalışma brifi`,
+    "",
+    `Tarih: ${now.toISOString()}`,
+    `Açık iş: ${workItems.length} | Engelli: ${blockedCount} | Beklemede: ${waitingCount} | Triage bekleyen inbox: ${triageCount}`,
+    "",
+    "Öncelikli işler:",
+    workItems.length ? workItems.slice(0, 10).map((workItem, index) => formatWorkBrief(records, workItem, index)).join("\n") : "- Açık iş kaydı yok.",
+    "",
+    "Triage:",
+    triageCount ? `- ${triageCount} inbox kaydı işlenmeyi bekliyor.` : "- Triage bekleyen inbox kaydı yok.",
+    "",
+    "Çalışma kuralı:",
+    "Önce repo durumunu ve seçili iş hattının context pack'ini oku. Kayıtlarda olmayan karar, dosya, commit veya metrik uydurma."
+  ].join("\n");
+}
+
+function sortWorkItems(records) {
+  const order = { blocked: 0, active: 1, waiting: 2, done: 3 };
+  return [...records].sort((a, b) => {
+    const statusDelta = (order[a.status] ?? 9) - (order[b.status] ?? 9);
+    if (statusDelta) return statusDelta;
+    return String(b.createdAt).localeCompare(String(a.createdAt));
+  });
+}
+
+function formatWorkBrief(records, workItem, index) {
+  const { sessions, decisions } = resolveWorkContext(records, workItem);
+  const next = getSection(workItem.sections, "next") || workItem.nextAction || "Sonraki adım kayıtlarda yok.";
+  const current = getSection(workItem.sections, "current") || workItem.summary || "Güncel durum kayıtlarda yok.";
+  return [
+    `${index + 1}. ${workItem.title} [${workItem.status}]`,
+    `   Proje: ${workItem.project || "belirsiz"} | Oturum: ${sessions.length} | Karar: ${decisions.length}`,
+    `   Güncel durum: ${compactLine(current)}`,
+    `   Sonraki adım: ${compactLine(next)}`
+  ].join("\n");
+}
+
 function normalizeArray(value) {
   if (Array.isArray(value)) return value.filter(Boolean);
   if (!value) return [];

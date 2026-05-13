@@ -125,3 +125,5 @@ Inbox kaydı arşive taşındığında archive dosyasına `status: archived` ve 
 tek bir context pack içinde birleştirilir. Bu dosyalar temiz AI oturumlarında ilk prompt olarak kullanılmak üzere tasarlanır.
 Karar ve handoff kayıtları aynı path ile tekrar kaydedilirse yeni kopya üretmek yerine mevcut dosya `sha` ile güncellenir.
 GitHub 409/422 yazma hatalarında dosyanın güncel `sha` değeri okunur ve yazma bir kez yeniden denenir.
+
+`Günlük Brif` kaydedildiğinde `handoffs/daily-YYYY-MM-DD.md` yolu kullanılır ve aynı gün yeniden kaydedilirse dosya güncellenir.

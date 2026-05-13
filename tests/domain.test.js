@@ -5,6 +5,7 @@ import {
   appendDecisionToWorkItem,
   buildArchivedRecordContent,
   buildContextPack,
+  buildDailyBrief,
   buildDecisionFromSession,
   buildInboxSessionSummary,
   buildInboxSessionSummaryFromMarkdown,
@@ -225,6 +226,33 @@ GitHub memory repo kalıcı kaynak olacak.
   assert.match(pack, /sess_test/);
   assert.match(pack, /GitHub memory repo kalıcı kaynak olacak/);
   assert.match(pack, /Çalışma kuralı/);
+});
+
+test("açık işler ve triage için günlük çalışma brifi üretir", () => {
+  const session = parseMemoryFile("inbox/test.md", sample, "sha-session");
+  const work = parseMemoryFile(
+    "work_items/work_ctx-lab.md",
+    buildWorkItemFromSession(session).content,
+    "sha-work"
+  );
+  const blocked = parseMemoryFile(
+    "work_items/work_blocked.md",
+    buildWorkItemFromSession({ ...session, id: "sess_blocked", project: "blocked" }).content.replace("status: active", "status: blocked"),
+    "sha-blocked"
+  );
+  const done = parseMemoryFile(
+    "work_items/work_done.md",
+    buildWorkItemFromSession({ ...session, id: "sess_done", project: "done" }).content.replace("status: active", "status: done"),
+    "sha-done"
+  );
+  const brief = buildDailyBrief([session, work, blocked, done], "codex", new Date("2026-05-13T12:00:00.000Z"));
+
+  assert.match(brief, /Codex için ctx-lab günlük çalışma brifi/);
+  assert.match(brief, /Açık iş: 2/);
+  assert.match(brief, /Engelli: 1/);
+  assert.match(brief, /Triage bekleyen inbox: 1/);
+  assert.match(brief, /blocked çalışma hattı \[blocked\]/);
+  assert.doesNotMatch(brief, /done çalışma hattı/);
 });
 
 test("kayıtları çok kelimeli arama metniyle süzer", () => {

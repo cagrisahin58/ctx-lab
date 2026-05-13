@@ -7,6 +7,7 @@ import {
   buildInboxSessionSummaryFromMarkdown,
   buildDecisionFromSession,
   buildContextPack,
+  buildDailyBrief,
   buildSessionClosePrompt,
   buildWorkItemFromSession,
   filterRecords,
@@ -366,6 +367,33 @@ async function copyContextPack(target = "codex") {
   setToast("Context pack kopyalandı.");
 }
 
+function dailyBriefText(target = "codex") {
+  return buildDailyBrief(state.records, target);
+}
+
+async function copyDailyBrief() {
+  await navigator.clipboard.writeText(dailyBriefText("codex"));
+  setToast("Günlük brif kopyalandı.");
+}
+
+async function saveDailyBrief() {
+  const now = new Date();
+  const stamp = now.toISOString().slice(0, 10);
+  const id = `daily_${stamp}`;
+  const content = `---
+id: ${id}
+target: codex
+created_at: ${now.toISOString()}
+---
+
+# Günlük Brif
+
+${dailyBriefText("codex")}
+`;
+  await saveMemoryRecord(`handoffs/${id}.md`, content, `handoff: ${id} günlük brif`);
+  setToast("Günlük brif handoff olarak kaydedildi.");
+}
+
 function render() {
   const counts = {
     inbox: recordsByType("inbox").length,
@@ -387,6 +415,7 @@ function render() {
           ${navButton("board", `İş Panosu (${counts.work})`)}
           ${navButton("decisions", `Karar Defteri (${counts.decisions})`)}
           ${navButton("handoff", "Handoff Üretici")}
+          ${navButton("daily", "Günlük Brif")}
           ${navButton("settings", "Repo Bağlantısı")}
         </nav>
         <div class="sync-panel">
@@ -423,6 +452,7 @@ function renderCurrentView(counts) {
   if (state.view === "board") return renderBoard();
   if (state.view === "decisions") return renderDecisions();
   if (state.view === "handoff") return renderHandoff();
+  if (state.view === "daily") return renderDailyBrief();
   return renderInbox(counts);
 }
 
@@ -540,6 +570,20 @@ function renderHandoff() {
         </div>
         <pre class="handoff-output">${escapeHtml(prompt)}</pre>
       ` : `<div class="empty">Önce bir kayıt seçin.</div>`}
+    </section>
+  `;
+}
+
+function renderDailyBrief() {
+  const brief = dailyBriefText("codex");
+  return `
+    ${renderHeader("Günlük Brif", "Açık iş hatlarını, triage yükünü ve sıradaki adımları tek devam metninde topla.")}
+    <section class="panel detail">
+      <div class="toolbar-actions">
+        <button class="primary" data-action="copy-daily-brief">Brifi Kopyala</button>
+        <button data-action="save-daily-brief">Handoff Olarak Kaydet</button>
+      </div>
+      <pre class="handoff-output">${escapeHtml(brief)}</pre>
     </section>
   `;
 }
@@ -889,6 +933,8 @@ function handleAction(action, payload) {
   if (action === "create-summary") guarded(() => createInboxSummaryFromForm(payload));
   if (action === "copy-close-prompt") guarded(copyClosePrompt);
   if (action === "copy-context-pack") guarded(copyContextPack);
+  if (action === "copy-daily-brief") guarded(copyDailyBrief);
+  if (action === "save-daily-brief") guarded(saveDailyBrief);
   if (action === "create-work") guarded(createWorkFromSelected);
   if (action === "link-existing-work") {
     const target = document.querySelector("[data-link-work-target]")?.value || "";

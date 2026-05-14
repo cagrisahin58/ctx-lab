@@ -813,7 +813,7 @@ async function registerProjectFromForm(form) {
   state.projectPathDraft = "";
   form.reset();
   setToast("Proje kökü yerel çalıştırıcıya kaydedildi.");
-  refreshRunnerStatus({ silent: true });
+  await refreshRunnerStatus({ silent: true });
 }
 
 async function selectProjectRootForForm() {

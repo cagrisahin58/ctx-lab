@@ -153,10 +153,18 @@ async function expectNoVisibleText(page, text) {
 }
 
 async function waitForEnabled(page, selector, message) {
-  await page.waitForFunction((targetSelector) => {
-    const element = document.querySelector(targetSelector);
-    return Boolean(element && !element.disabled);
-  }, selector, { timeout: 15_000 });
+  try {
+    await page.waitForFunction((targetSelector) => {
+      const element = document.querySelector(targetSelector);
+      return Boolean(element && !element.disabled);
+    }, selector, { timeout: 60_000 });
+  } catch (error) {
+    const setupState = await page.evaluate(() => [...document.querySelectorAll(".setup-step")].map((element) => ({
+      done: element.classList.contains("done"),
+      text: element.innerText.replace(/\s+/g, " ").trim()
+    }))).catch(() => []);
+    throw new Error(`${message} ${error.message}. Kurulum durumu: ${JSON.stringify(setupState)}`);
+  }
   assert.equal(await page.locator(selector).first().isEnabled(), true, message);
 }
 

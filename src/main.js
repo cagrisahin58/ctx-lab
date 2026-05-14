@@ -2976,11 +2976,14 @@ function renderMemoryMirrorPanel() {
   const hasConfig = Boolean(config);
   const statusText = !hasConfig
     ? "Hafıza reposu bilgisi kaydedilmedi."
-    : memory?.indexed
+    : memory?.error
+      ? memory.error
+      : memory?.indexed
       ? `${memory.recordCount} kayıt indekslendi · ${formatDate(memory.lastIndexedAt)}`
       : memory?.cloneExists
         ? "Ayna var, indeks bekliyor."
         : memory?.error || "Yerel ayna henüz oluşturulmadı.";
+  const indexOk = memory?.indexed && !memory?.error;
   return `
     <section class="panel">
       <div class="panel-heading">
@@ -2991,11 +2994,12 @@ function renderMemoryMirrorPanel() {
         <button class="primary" data-action="sync-memory-mirror" ${hasConfig ? "" : "disabled"}>Aynayı Yenile</button>
       </div>
       <div class="diagnostic-list">
-        <div class="diagnostic-item ${memory?.indexed ? "ok" : "fail"}">
-          <span class="badge ${memory?.indexed ? "active" : "waiting"}">${memory?.indexed ? "Hazır" : "Bekliyor"}</span>
+        <div class="diagnostic-item ${indexOk ? "ok" : "fail"}">
+          <span class="badge ${indexOk ? "active" : "waiting"}">${memory?.error ? "Hata" : indexOk ? "Hazır" : "Bekliyor"}</span>
           <strong>İndeks</strong>
           <span>${escapeHtml(statusText)}</span>
         </div>
+        ${memory?.remoteCheck ? renderMirrorRemoteDiagnostic(memory.remoteCheck) : ""}
         ${memory?.cloneDir ? `
           <div class="diagnostic-item ok">
             <span class="badge active">Klasör</span>
@@ -3012,6 +3016,23 @@ function renderMemoryMirrorPanel() {
         ` : ""}
       </div>
     </section>
+  `;
+}
+
+function renderMirrorRemoteDiagnostic(remote = {}) {
+  const ok = remote.status === "ok";
+  const waiting = remote.status === "missing";
+  const text = ok
+    ? `${remote.actualRepo || "GitHub"} · ${remote.actualRemoteUrl || remote.expectedRemoteUrl || ""}`
+    : waiting
+      ? `Beklenen: ${remote.expectedRepo || remote.expectedRemoteUrl || "GitHub reposu"}`
+      : remote.error || "Remote doğrulanamadı.";
+  return `
+    <div class="diagnostic-item ${ok ? "ok" : waiting ? "warn" : "fail"}">
+      <span class="badge ${ok ? "active" : waiting ? "waiting" : "blocked"}">${ok ? "Doğru" : waiting ? "Bekliyor" : "Hata"}</span>
+      <strong>Remote</strong>
+      <span>${escapeHtml(text)}</span>
+    </div>
   `;
 }
 

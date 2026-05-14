@@ -239,11 +239,16 @@ export function buildMemoryMirrorPaths(paths = buildRunnerPaths(), input = {}) {
   };
 }
 
-export async function getMemoryMirrorStatus(paths = buildRunnerPaths(), input = {}) {
+export async function getMemoryMirrorStatus(paths = buildRunnerPaths(), input = {}, options = {}) {
   await ensureRunnerHome(paths);
   const mirror = buildMemoryMirrorPaths(paths, input);
+  const run = options.runCommand || runCommand;
   const cloneExists = await pathExists(join(mirror.cloneDir, ".git"));
+  const remoteCheck = cloneExists
+    ? await readMemoryMirrorRemoteStatus(mirror, run)
+    : { status: "missing", expectedRepo: `${mirror.config.owner}/${mirror.config.repo}`, expectedRemoteUrl: mirror.config.remoteUrl };
   const index = await readMemoryIndex(paths, input).catch(() => null);
+  const remoteOk = remoteCheck.status === "ok" || remoteCheck.status === "missing";
 
   return {
     configured: true,
@@ -254,7 +259,9 @@ export async function getMemoryMirrorStatus(paths = buildRunnerPaths(), input = 
     cloneDir: mirror.cloneDir,
     indexFile: mirror.indexFile,
     cloneExists,
-    indexed: Boolean(index),
+    remoteCheck,
+    error: remoteOk ? "" : remoteCheck.error,
+    indexed: Boolean(index) && remoteOk,
     recordCount: index?.recordCount || 0,
     warningCount: index?.warningCount || 0,
     lastIndexedAt: index?.indexedAt || "",
@@ -721,16 +728,56 @@ function branchScopeForId(branch) {
 }
 
 async function assertMemoryMirrorRemote(mirror, run) {
+  const remoteCheck = await readMemoryMirrorRemoteStatus(mirror, run);
+  if (remoteCheck.status !== "ok") throw new Error(remoteCheck.error);
+}
+
+async function readMemoryMirrorRemoteStatus(mirror, run) {
+  const expected = parseGitHubRemoteIdentity(mirror.config.remoteUrl);
   const result = await run("git", ["-C", mirror.cloneDir, "remote", "get-url", "origin"]);
   if (!result.ok) {
-    throw new Error(`Memory mirror remote dogrulanamadi: ${result.stderr || result.stdout || "origin okunamadi"}`);
+    return {
+      status: "error",
+      expectedRepo: expected.label,
+      expectedRemoteUrl: mirror.config.remoteUrl,
+      actualRemoteUrl: "",
+      error: `Memory mirror remote dogrulanamadi: ${result.stderr || result.stdout || "origin okunamadi"}`
+    };
   }
 
-  const actual = parseGitHubRemoteIdentity(result.stdout);
-  const expected = parseGitHubRemoteIdentity(mirror.config.remoteUrl);
-  if (actual.key !== expected.key) {
-    throw new Error(`Yerel hafiza aynasi baska GitHub reposuna bagli: ${actual.label}. Beklenen: ${expected.label}. Dogru hafiza reposunu sec veya yerel aynayi temizle.`);
+  const actualRemoteUrl = result.stdout.trim();
+  let actual;
+  try {
+    actual = parseGitHubRemoteIdentity(actualRemoteUrl);
+  } catch (error) {
+    return {
+      status: "error",
+      expectedRepo: expected.label,
+      expectedRemoteUrl: mirror.config.remoteUrl,
+      actualRemoteUrl,
+      error: error.message
+    };
   }
+
+  if (actual.key !== expected.key) {
+    return {
+      status: "mismatch",
+      expectedRepo: expected.label,
+      expectedRemoteUrl: mirror.config.remoteUrl,
+      actualRepo: actual.label,
+      actualRemoteUrl,
+      error: `Yerel hafiza aynasi baska GitHub reposuna bagli: ${actual.label}. Beklenen: ${expected.label}. Dogru hafiza reposunu sec veya yerel aynayi temizle.`
+    };
+  }
+
+  return {
+    status: "ok",
+    expectedRepo: expected.label,
+    expectedRemoteUrl: mirror.config.remoteUrl,
+    actualRepo: actual.label,
+    actualRemoteUrl,
+    error: ""
+  };
 }
 
 function parseGitHubRemoteIdentity(value) {

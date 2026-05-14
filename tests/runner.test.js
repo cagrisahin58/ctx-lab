@@ -258,7 +258,12 @@ Mirror index denemesi.
       now: new Date("2026-05-14T12:10:00.000Z"),
       runCommand: async () => ({ ok: true, stdout: "abc123\n", stderr: "", code: 0 })
     });
-    const status = await getMemoryMirrorStatus(paths, { owner: "cagrisahin58", repo: "work-memory", branch: "main" });
+    const status = await getMemoryMirrorStatus(paths, { owner: "cagrisahin58", repo: "work-memory", branch: "main" }, {
+      runCommand: async (command, args) => {
+        if (args.includes("remote")) return { ok: true, stdout: "https://github.com/cagrisahin58/work-memory.git\n", stderr: "", code: 0 };
+        return { ok: true, stdout: "", stderr: "", code: 0 };
+      }
+    });
 
     assert.equal(index.recordCount, 1);
     assert.equal(index.records[0].id, "sess_test");
@@ -266,6 +271,53 @@ Mirror index denemesi.
     assert.equal(index.lastCommit, "abc123");
     assert.equal(status.indexed, true);
     assert.equal(status.recordCount, 1);
+    assert.equal(status.remoteCheck.status, "ok");
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test("memory mirror status mevcut clone remote uyumsuzlugunu gosterir", async () => {
+  const dir = await mkdtemp(join(tmpdir(), "ctxlab-runner-"));
+  const paths = buildRunnerPaths(dir);
+  const mirror = buildMemoryMirrorPaths(paths, { owner: "cagrisahin58", repo: "work-memory", branch: "main" });
+
+  try {
+    await mkdir(join(mirror.cloneDir, ".git"), { recursive: true });
+    await mkdir(join(mirror.cloneDir, "inbox"), { recursive: true });
+    await writeFile(join(mirror.cloneDir, "inbox", "stale.md"), `---
+id: sess_stale
+project: ctx-lab
+status: needs_triage
+---
+
+# Session Summary
+`, "utf8");
+    await indexMemoryMirror(paths, {
+      owner: "cagrisahin58",
+      repo: "work-memory",
+      branch: "main"
+    }, {
+      now: new Date("2026-05-14T12:12:00.000Z"),
+      runCommand: async () => ({ ok: true, stdout: "stale-head\n", stderr: "", code: 0 })
+    });
+
+    const status = await getMemoryMirrorStatus(paths, {
+      owner: "cagrisahin58",
+      repo: "work-memory",
+      branch: "main"
+    }, {
+      runCommand: async (command, args) => {
+        if (args.includes("remote")) return { ok: true, stdout: "https://github.com/baska/work-memory.git\n", stderr: "", code: 0 };
+        return { ok: true, stdout: "", stderr: "", code: 0 };
+      }
+    });
+
+    assert.equal(status.cloneExists, true);
+    assert.equal(status.indexed, false);
+    assert.equal(status.recordCount, 1);
+    assert.equal(status.remoteCheck.status, "mismatch");
+    assert.match(status.error, /baska GitHub reposuna bagli/);
   } finally {
     await rm(dir, { recursive: true, force: true });
   }

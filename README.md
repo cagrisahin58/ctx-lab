@@ -23,14 +23,7 @@ Uygulama tamamen Türkçe arayüzle gelir. Veri alanları teknik sebeplerle İng
 
 ## Hızlı başlatma
 
-```bash
-npm install
-npm run dev
-```
-
-Sonra tarayıcıda Vite'ın verdiği yerel adresi açın. Bu geliştirme ortamında varsayılan adres `http://127.0.0.1:5173`.
-
-Windows için tek komut:
+Windows'ta önerilen rota tek komutla Electron masaüstü kabuğunu açmaktır:
 
 ```powershell
 .\scripts\start-windows.cmd
@@ -39,6 +32,15 @@ Windows için tek komut:
 Bu komut gerekiyorsa bağımlılıkları kurar, `127.0.0.1:5173` üzerinde Vite dev server başlatır ve Electron masaüstü kabuğunu açar. Alternatif port için `.\scripts\start-windows.cmd -Port 5175` kullanılabilir.
 
 Varsayılan Windows launcher artık Electron masaüstü kabuğunu açar; çalıştırıcı işlemleri Electron main process IPC yüzeyinden yürür. Hızlı kontrol için `.\scripts\start-windows.cmd -DryRun` çalıştırıcı sağlığı ve masaüstü smoke kapısını çalıştırır. Eski tarayıcı + localhost çalıştırıcı akışı gerektiğinde `.\scripts\start-windows.cmd -Web` kullanılabilir.
+
+Web geliştirme yüzeyini ayrı açmak için:
+
+```bash
+npm install
+npm run dev
+```
+
+Sonra tarayıcıda Vite'ın verdiği yerel adresi açın. Bu geliştirme ortamında varsayılan adres `http://127.0.0.1:5173`.
 
 Masaüstü geliştirme kabuğu:
 

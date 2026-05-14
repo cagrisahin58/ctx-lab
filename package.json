@@ -20,6 +20,7 @@
     "start:windows": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/start-windows.ps1",
     "runner": "node scripts/ctxlab-runner.mjs",
     "runner:check": "node scripts/ctxlab-runner.mjs --dry-run",
+    "github:diagnose": "node scripts/github-live-diagnostics.mjs",
     "icon:generate": "node scripts/generate-icon.mjs",
     "build": "vite build",
     "preview": "vite preview --host 127.0.0.1",

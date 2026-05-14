@@ -3,8 +3,8 @@
 Bu belge, masaustu odakli ctx-lab v2 hedefini gercek repo artefaktlari ve calisan test kanitlariyla takip eder. Amac "bitti" demek degil; hangi gereksinimin hangi dosya, test veya CI sonucu ile kapandigini ve hangi noktalarda kanitin zayif kaldigini gorunur tutmaktir.
 
 Son denetim tarihi: 2026-05-14
-Son denetlenen commit: `3247817` (`Add v2 completion audit`)
-GitHub Actions: `Verify` run `25862195968`, `verify` ve `desktop-verify` basarili.
+Son denetlenen commit: `d181063` (`Force desktop viewport in flow smoke`)
+GitHub Actions: `Verify` run `25863565037`, `verify` ve `desktop-verify` basarili.
 
 ## Kalite kapisi kanitlari
 
@@ -38,7 +38,8 @@ Not: `desktop:pack:smoke`, Windows exe politikasi nedeniyle `app.asar` fallback 
 | Otomasyon seviyeleri | `src/main.js` select opsiyonlari, `scripts/ctxlab-runner.mjs` `AUTOMATION_LEVELS` | `runner.test.js`, `desktop:flow` form ve commit/push onay kapisi | Kapali |
 | Destructive git islemleri kapali | `rejectUnsafePrompt`, commit/push prompt retleri | `runner.test.js` destructive git ve commit/push isteyen prompt testleri | Kapali |
 | Commit/push oncesi ozet ve test sonucu gorunsun | `buildCommitDraft`, `renderRunEvidence`, `applyCodexRunCommit` | `runner.test.js`, `desktop:flow` commit/push onay kapisi | Kapali |
-| GitHub tani: repo, branch, config, klasorler, yazma testi | `diagnoseMemoryRepo`, `ensureMemoryRepo` | `github.test.js`, onboarding `desktop:flow` GitHub mock'u | Kapali, canli private repo yazma testi manuel/ortama bagli |
+| GitHub tani: repo, branch, config, klasorler, yazma testi | `diagnoseMemoryRepo`, `ensureMemoryRepo` | `github.test.js`, onboarding `desktop:flow` GitHub mock'u | Kapali, canli private repo yazma testi opsiyonel |
+| Opsiyonel canli GitHub tani komutu | `scripts/github-live-diagnostics.mjs`, `npm run github:diagnose`, `README.md` | `github-live-diagnostics.test.js`; token yokken ag cagrisina cikmadan skip, token varken gercek `diagnoseMemoryRepo` | Kapali; CI token saglamadigi icin canli private repo yazma testi opsiyonel |
 | 404/403 hata aciklamalari Turkce olsun | `github.js` hata esleme | `github.test.js` 403 ve 404 testleri | Kapali |
 | Markdown/frontmatter geriye uyumlu kalsin | `src/domain.js` parser, serializer, aliaslar | `domain.test.js`, `docs/memory-format.md` | Kapali |
 | Timeline event katmani eklensin | `buildTimelineEvents`, `renderWorkspace`, timeline filtreleri | `domain.test.js`, `desktop:flow` timeline filtreleri | Kapali |
@@ -53,13 +54,12 @@ Not: `desktop:pack:smoke`, Windows exe politikasi nedeniyle `app.asar` fallback 
 
 ## Bilinen zayif kanitlar
 
-1. Canli GitHub private repo yazma testi otomasyon icinde mock'lanir. Kod gercek Contents API yazma testi yapiyor, fakat CI'da token kullanilmadigi icin canli private repo uzerinde dogrulanmaz.
+1. Canli GitHub private repo yazma testi CI icinde mock'lanir veya token yoksa opsiyonel script tarafindan atlanir. `npm run github:diagnose` token verildiginde gercek Contents API yazma/silme testi yapar, fakat CI'da token kullanilmadigi icin canli private repo uzerinde zorunlu dogrulama yoktur.
 2. Gorsel kalite icin screenshot smoke nonblank/kontrast ve ana akislari dogrular; CI screenshot artefakti manuel inceleme icin saklanir. Tasarimin "profesyonel masaustu araci gibi gorunmesi" halen kismen manuel degerlendirme ister.
 3. `claude-review.md` untracked oldugu icin kanit olarak commitlenmez. Bu belge P0/P1 maddelerinin urune yansiyan kisimlarini izler, fakat kaynak review dosyasi bilerek repo disinda kalir.
 4. Tum UI Turkce hedefi smoke ile eski terim, onboarding, hafiza senkron, validation ve kritik aksiyon metinleri duzeyinde korunur; tum bundle icin dogal Turkce denetimi tam otomatik degildir.
 
 ## Sonraki somut adaylar
 
-1. Canli GitHub tani akisini token gerektirmeden belgeleyen manuel test checklist'i veya token varliginda opsiyonel entegrasyon testi.
-2. Turkce dogal dil denetimi icin smoke listesini ileride hata banner'lari ve nadir kenar durum metinleriyle genisletmek.
-3. Pixel baseline gerektiren tam gorsel regression arsivi icin ileride ek artefakt karsilastirma kapisi.
+1. Turkce dogal dil denetimi icin smoke listesini ileride hata banner'lari ve nadir kenar durum metinleriyle genisletmek.
+2. Pixel baseline gerektiren tam gorsel regression arsivi icin ileride ek artefakt karsilastirma kapisi.

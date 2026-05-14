@@ -149,6 +149,26 @@ test("runner proje kaydini allowlist registry dosyasina ekler ve gunceller", asy
   }
 });
 
+test("runner credential ve sistem konfigurasyon klasorlerini proje koku olarak reddeder", async () => {
+  const dir = await mkdtemp(join(tmpdir(), "ctxlab-runner-"));
+  const homeLikeDir = await mkdtemp(join(tmpdir(), "ctxlab-home-"));
+  const credentialDir = join(homeLikeDir, ".ssh");
+
+  try {
+    await mkdir(credentialDir, { recursive: true });
+    await assert.rejects(
+      () => registerProject(buildRunnerPaths(dir), {
+        name: "credential-root",
+        path: credentialDir
+      }),
+      /Kimlik bilgisi/
+    );
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+    await rm(homeLikeDir, { recursive: true, force: true });
+  }
+});
+
 test("memory mirror config ve path bilgisi owner repo branch ile normalize edilir", () => {
   const config = normalizeMemoryMirrorConfig({
     repoInput: "https://github.com/cagrisahin58/work-memory.git",

@@ -100,6 +100,7 @@ export function normalizeProjectDraft(input = {}) {
 export async function registerProject(paths = buildRunnerPaths(), input = {}, options = {}) {
   await ensureRunnerHome(paths);
   const draft = normalizeProjectDraft(input);
+  assertSafeProjectRoot(draft.path);
   const details = await stat(draft.path).catch(() => {
     throw new Error("Proje klasoru bulunamadi.");
   });
@@ -122,6 +123,28 @@ export async function registerProject(paths = buildRunnerPaths(), input = {}, op
     : [...registry.projects, project];
   await saveProjectRegistry(paths, { version: registry.version, projects });
   return project;
+}
+
+function assertSafeProjectRoot(projectPath) {
+  const sensitiveSegments = new Set([
+    ".ssh",
+    ".gnupg",
+    ".aws",
+    ".azure",
+    ".gcloud",
+    ".kube",
+    ".docker",
+    ".git",
+    ".codex",
+    ".claude"
+  ]);
+  const segments = resolve(projectPath)
+    .split(/[\\/]+/)
+    .map((segment) => segment.toLowerCase())
+    .filter(Boolean);
+  if (segments.some((segment) => sensitiveSegments.has(segment))) {
+    throw new Error("Kimlik bilgisi veya sistem konfigurasyon klasoru proje koku olarak kaydedilemez.");
+  }
 }
 
 export function codexCandidates(env = process.env, platform = process.platform) {

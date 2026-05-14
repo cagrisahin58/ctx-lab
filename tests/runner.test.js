@@ -582,7 +582,34 @@ test("runner server kok endpointinde saglik ve endpoint listesini sunar", async 
 
     assert.equal(response.status, 200);
     assert.equal(body.service, "ctx-lab-runner");
-    assert.deepEqual(body.endpoints, ["/health", "/projects", "/runs", "/runs/codex", "/memory/status", "/memory/index", "/memory/sync"]);
+    assert.deepEqual(body.endpoints, ["/health", "/projects", "/runs", "/runs/events", "/runs/codex", "/memory/status", "/memory/index", "/memory/sync"]);
+  } finally {
+    await new Promise((resolve) => server.close(resolve));
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test("runner server /runs/events endpointinden olay gunlugunu sunar", async () => {
+  const dir = await mkdtemp(join(tmpdir(), "ctxlab-runner-"));
+  const paths = buildRunnerPaths(dir);
+  const server = createRunnerServer({ paths });
+  const runId = "run_2026-05-14T13-10-00-000Z_ctx-lab";
+
+  try {
+    await ensureRunnerHome(paths);
+    await writeFile(join(paths.runsDir, `${runId}.events.jsonl`), [
+      JSON.stringify({ event: "stdout", at: "2026-05-14T13:10:01.000Z", runId, text: "ilerleme" }),
+      JSON.stringify({ event: "finish", at: "2026-05-14T13:10:02.000Z", runId, status: "succeeded", exitCode: 0 })
+    ].join("\n"), "utf8");
+    await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
+    const { port } = server.address();
+    const response = await fetch(`http://127.0.0.1:${port}/runs/events?runId=${runId}&limit=1`);
+    const body = await response.json();
+
+    assert.equal(response.status, 200);
+    assert.equal(body.status, "ok");
+    assert.equal(body.events.length, 1);
+    assert.equal(body.events[0].event, "finish");
   } finally {
     await new Promise((resolve) => server.close(resolve));
     await rm(dir, { recursive: true, force: true });

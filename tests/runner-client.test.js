@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import {
   fetchRunnerHealth,
   fetchRunnerProjects,
+  fetchRunnerRunEvents,
   fetchRunnerRuns,
   fetchMemoryMirrorIndex,
   fetchMemoryMirrorStatus,
@@ -49,7 +50,7 @@ test("runner client proje kaydini JSON olarak gonderir", async () => {
   assert.equal(result.project.name, "ctx-lab");
 });
 
-test("runner client run listesi ve codex run endpointini kullanir", async () => {
+test("runner client run listesi, olay gunlugu ve codex run endpointini kullanir", async () => {
   const calls = [];
   const runs = await fetchRunnerRuns({
     baseUrl: "http://runner.test",
@@ -57,6 +58,14 @@ test("runner client run listesi ve codex run endpointini kullanir", async () => 
     fetch: async (url, options) => {
       calls.push({ url, options });
       return jsonResponse(200, { runs: [{ id: "run_1" }] });
+    }
+  });
+  const events = await fetchRunnerRunEvents("run_1", {
+    baseUrl: "http://runner.test",
+    limit: 12,
+    fetch: async (url, options) => {
+      calls.push({ url, options });
+      return jsonResponse(200, { runId: "run_1", events: [{ event: "finish" }] });
     }
   });
   const started = await startRunnerCodexRun({ projectId: "project_1", prompt: "Brif" }, {
@@ -68,8 +77,10 @@ test("runner client run listesi ve codex run endpointini kullanir", async () => 
   });
 
   assert.equal(calls[0].url, "http://runner.test/runs?limit=5");
-  assert.equal(JSON.parse(calls[1].options.body).projectId, "project_1");
+  assert.equal(calls[1].url, "http://runner.test/runs/events?runId=run_1&limit=12");
+  assert.equal(JSON.parse(calls[2].options.body).projectId, "project_1");
   assert.equal(runs.runs[0].id, "run_1");
+  assert.equal(events.events[0].event, "finish");
   assert.equal(started.status, "dry_run");
 });
 
@@ -125,6 +136,7 @@ test("runner client masaustu IPC varsa HTTP yerine onu kullanir", async () => {
     registerProject: async (project) => ({ project }),
     selectProjectDirectory: async () => ({ path: "C:\\repo" }),
     runnerRuns: async () => ({ runs: [{ id: "run_desktop" }] }),
+    runnerRunEvents: async (input) => ({ runId: input.runId, events: [{ event: "stdout" }] }),
     startCodexRun: async (run) => ({ ...run, status: "dry_run" }),
     memoryStatus: async () => ({ indexed: true }),
     memoryIndex: async () => ({ records: [{ id: "sess_desktop" }] }),
@@ -136,6 +148,7 @@ test("runner client masaustu IPC varsa HTTP yerine onu kullanir", async () => {
   assert.equal((await registerRunnerProject({ name: "x" }, { desktopApi })).project.name, "x");
   assert.equal((await selectRunnerProjectDirectory({ desktopApi })).path, "C:\\repo");
   assert.equal((await fetchRunnerRuns({ desktopApi })).runs[0].id, "run_desktop");
+  assert.equal((await fetchRunnerRunEvents("run_desktop", { desktopApi })).events[0].event, "stdout");
   assert.equal((await startRunnerCodexRun({ prompt: "x" }, { desktopApi })).status, "dry_run");
   assert.equal((await fetchMemoryMirrorStatus({}, { desktopApi })).indexed, true);
   assert.equal((await fetchMemoryMirrorIndex({}, { desktopApi })).records[0].id, "sess_desktop");

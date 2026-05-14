@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { buildRunnerPaths } from "../scripts/ctxlab-runner.mjs";
@@ -72,5 +72,28 @@ test("desktop runtime test klasor secimini env kancasi ile dondurur", async () =
   } finally {
     await rm(dir, { recursive: true, force: true });
     await rm(projectDir, { recursive: true, force: true });
+  }
+});
+
+test("desktop runtime codex run olaylarini IPC yuzeyinden okur", async () => {
+  const dir = await mkdtemp(join(tmpdir(), "ctxlab-desktop-"));
+  const paths = buildRunnerPaths(dir);
+  const runId = "run_2026-05-14T13-00-00-000Z_ctx-lab";
+  const runtime = createDesktopRuntime({ paths });
+
+  try {
+    await mkdir(paths.runsDir, { recursive: true });
+    await writeFile(join(paths.runsDir, `${runId}.events.jsonl`), [
+      JSON.stringify({ event: "stdout", at: "2026-05-14T13:00:01.000Z", runId, text: "ilerleme" }),
+      JSON.stringify({ event: "finish", at: "2026-05-14T13:00:02.000Z", runId, status: "succeeded", exitCode: 0 })
+    ].join("\n"), "utf8");
+
+    const events = await runtime.runEvents({ runId, limit: 5 });
+
+    assert.equal(events.status, "ok");
+    assert.equal(events.events[0].event, "stdout");
+    assert.equal(events.events[1].status, "succeeded");
+  } finally {
+    await rm(dir, { recursive: true, force: true });
   }
 });

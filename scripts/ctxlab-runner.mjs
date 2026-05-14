@@ -514,7 +514,7 @@ export function createRunnerServer(options = {}) {
       if (request.method === "GET" && url.pathname === "/") {
         return sendJson(response, 200, {
           ...(await buildHealthPayload(paths, options)),
-          endpoints: ["/health", "/projects", "/runs", "/runs/codex", "/memory/status", "/memory/index", "/memory/sync"]
+          endpoints: ["/health", "/projects", "/runs", "/runs/events", "/runs/codex", "/memory/status", "/memory/index", "/memory/sync"]
         });
       }
       if (request.method === "GET" && url.pathname === "/health") {
@@ -531,6 +531,9 @@ export function createRunnerServer(options = {}) {
       }
       if (request.method === "GET" && url.pathname === "/runs") {
         return sendJson(response, 200, { runs: await listCodexRuns(paths, url.searchParams.get("limit")) });
+      }
+      if (request.method === "GET" && url.pathname === "/runs/events") {
+        return sendJson(response, 200, await listCodexRunEvents(paths, Object.fromEntries(url.searchParams)));
       }
       if (request.method === "POST" && url.pathname === "/runs/codex") {
         const body = await readJsonBody(request);

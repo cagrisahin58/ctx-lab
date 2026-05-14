@@ -2,6 +2,7 @@ import {
   buildHealthPayload,
   buildRunnerPaths,
   getMemoryMirrorStatus,
+  listCodexRunEvents,
   listCodexRuns,
   readProjectRegistry,
   registerProject,
@@ -16,6 +17,7 @@ export const DESKTOP_IPC_CHANNELS = Object.freeze({
   registerProject: "ctxlab:projects:register",
   selectProjectDirectory: "ctxlab:projects:select-directory",
   listRuns: "ctxlab:runs:list",
+  runEvents: "ctxlab:runs:events",
   startCodexRun: "ctxlab:runs:start-codex",
   memoryStatus: "ctxlab:memory:status",
   memoryIndex: "ctxlab:memory:index",
@@ -58,6 +60,9 @@ export function createDesktopRuntime(options = {}) {
     async listRuns(input = {}) {
       return { runs: await listCodexRuns(paths, input.limit) };
     },
+    async runEvents(input = {}) {
+      return listCodexRunEvents(paths, input);
+    },
     async startCodexRun(input) {
       return startCodexRun(paths, input, options);
     },
@@ -80,6 +85,7 @@ export function registerDesktopIpcHandlers(ipcMain, runtime) {
     [DESKTOP_IPC_CHANNELS.registerProject]: (_event, input) => runtime.registerProject(input),
     [DESKTOP_IPC_CHANNELS.selectProjectDirectory]: () => runtime.selectProjectDirectory(),
     [DESKTOP_IPC_CHANNELS.listRuns]: (_event, input) => runtime.listRuns(input),
+    [DESKTOP_IPC_CHANNELS.runEvents]: (_event, input) => runtime.runEvents(input),
     [DESKTOP_IPC_CHANNELS.startCodexRun]: (_event, input) => runtime.startCodexRun(input),
     [DESKTOP_IPC_CHANNELS.memoryStatus]: (_event, input) => runtime.memoryStatus(input),
     [DESKTOP_IPC_CHANNELS.memoryIndex]: (_event, input) => runtime.memoryIndex(input),

@@ -33,6 +33,17 @@ export async function fetchRunnerRuns(options = {}) {
   return runnerRequest(`/runs?limit=${encodeURIComponent(options.limit || 20)}`, {}, options);
 }
 
+export async function fetchRunnerRunEvents(runId, options = {}) {
+  const desktop = desktopApi(options);
+  const input = { runId, limit: options.limit || 20 };
+  if (desktop) return desktop.runnerRunEvents(input);
+  const params = new URLSearchParams({
+    runId: String(runId || ""),
+    limit: String(options.limit || 20)
+  });
+  return runnerRequest(`/runs/events?${params.toString()}`, {}, options);
+}
+
 export async function startRunnerCodexRun(run, options = {}) {
   const desktop = desktopApi(options);
   if (desktop) return desktop.startCodexRun(run);

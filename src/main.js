@@ -37,6 +37,7 @@ import { deleteFile, diagnoseMemoryRepo, ensureMemoryRepo, getBranchHead, loadMe
 import { demoRecords } from "./fixtures.js";
 import {
   fetchRunnerHealth,
+  fetchRunnerRunEvents,
   fetchMemoryMirrorIndex,
   fetchRunnerProjects,
   fetchRunnerRuns,
@@ -780,6 +781,26 @@ async function startCodexRunFromForm(form) {
   if (dryRun) dryRun.checked = true;
 }
 
+async function refreshRunEvents(runId) {
+  if (!runId) throw new Error("Olay günlüğü için çalıştırma kimliği yok.");
+  const payload = await fetchRunnerRunEvents(runId, { limit: 12 });
+  const events = Array.isArray(payload.events) ? payload.events : [];
+  state.runner.runs = state.runner.runs.map((run) => run.id === runId
+    ? {
+      ...run,
+      eventLogPath: payload.eventLogPath || run.eventLogPath,
+      eventPreview: events,
+      eventPreviewStatus: payload.status
+    }
+    : run);
+  addActivity(
+    `Olay akışı yenilendi: ${runId}`,
+    events.length ? "success" : "warning",
+    events.length ? `${events.length} olay okundu.` : "Olay günlüğü henüz yok."
+  );
+  setToast(events.length ? "Olay akışı yenilendi." : "Olay günlüğü henüz yok.", events.length ? "success" : "warning");
+}
+
 function runFeedbackKind(run) {
   if (run.status === "failed") return "error";
   if (run.status === "blocked") return "warning";
@@ -1500,7 +1521,10 @@ function renderRunEventPreview(run) {
   if (!events.length) {
     return `
       <div class="run-events empty">
-        <h5>Olay Akışı</h5>
+        <div class="run-events-head">
+          <h5>Olay Akışı</h5>
+          <button class="ghost compact" type="button" data-action="refresh-run-events" data-run-id="${escapeHtml(run.id)}">Olayları Yenile</button>
+        </div>
         <p>${escapeHtml(run.eventPreviewError || "Gerçek Codex çalışmasının stdout/stderr olayları burada görünür.")}</p>
       </div>
     `;
@@ -1510,6 +1534,7 @@ function renderRunEventPreview(run) {
       <div class="run-events-head">
         <h5>Olay Akışı</h5>
         <span>son ${events.length} olay</span>
+        <button class="ghost compact" type="button" data-action="refresh-run-events" data-run-id="${escapeHtml(run.id)}">Olayları Yenile</button>
       </div>
       ${events.map((event) => `
         <div class="run-event ${event.event === "stderr" || event.event === "corrupt" ? "warning" : ""}">
@@ -3256,6 +3281,7 @@ function handleAction(action, payload) {
   if (action === "register-runner-project") guarded(() => registerProjectFromForm(payload));
   if (action === "select-project-root") guarded(selectProjectRootForForm);
   if (action === "start-codex-run") guarded(() => startCodexRunFromForm(payload));
+  if (action === "refresh-run-events") guarded(() => refreshRunEvents(payload?.runId));
   if (action === "sync-memory-mirror") guarded(syncMemoryMirrorFromConfig);
   if (action === "generate-onboarding-brief") {
     generateOnboardingBrief();

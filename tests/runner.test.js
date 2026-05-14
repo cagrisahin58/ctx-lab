@@ -148,6 +148,29 @@ test("runner server /health endpointini sunar", async () => {
   }
 });
 
+test("runner server kok endpointinde saglik ve endpoint listesini sunar", async () => {
+  const dir = await mkdtemp(join(tmpdir(), "ctxlab-runner-"));
+  const paths = buildRunnerPaths(dir);
+  const server = createRunnerServer({
+    paths,
+    runCommand: async () => ({ ok: true, stdout: "codex-cli test\n", stderr: "" })
+  });
+
+  try {
+    await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
+    const { port } = server.address();
+    const response = await fetch(`http://127.0.0.1:${port}/`);
+    const body = await response.json();
+
+    assert.equal(response.status, 200);
+    assert.equal(body.service, "ctx-lab-runner");
+    assert.deepEqual(body.endpoints, ["/health", "/projects"]);
+  } finally {
+    await new Promise((resolve) => server.close(resolve));
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
 test("runner server /projects endpointinden proje kaydeder", async () => {
   const dir = await mkdtemp(join(tmpdir(), "ctxlab-runner-"));
   const projectDir = await mkdtemp(join(tmpdir(), "ctxlab-project-"));

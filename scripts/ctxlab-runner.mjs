@@ -173,6 +173,12 @@ export function createRunnerServer(options = {}) {
 
     try {
       const url = new URL(request.url || "/", `http://${host}`);
+      if (request.method === "GET" && url.pathname === "/") {
+        return sendJson(response, 200, {
+          ...(await buildHealthPayload(paths, options)),
+          endpoints: ["/health", "/projects"]
+        });
+      }
       if (request.method === "GET" && url.pathname === "/health") {
         return sendJson(response, 200, await buildHealthPayload(paths, options));
       }

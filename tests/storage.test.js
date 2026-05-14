@@ -37,12 +37,15 @@ test("uygulama ayarları varsayılan branch ile yüklenir ve kaydedilir", () => 
     owner: "",
     repo: "",
     branch: "main",
-    token: ""
+    token: "",
+    onboardingComplete: false
   });
 
-  const saved = saveAppConfig({ owner: "cagrisahin58", repo: "work-memory", token: "x" }, storage);
+  const saved = saveAppConfig({ owner: "cagrisahin58", repo: "work-memory", token: "x", onboardingComplete: true }, storage);
   assert.equal(saved.branch, "main");
+  assert.equal(saved.onboardingComplete, true);
   assert.equal(JSON.parse(storage.getItem(CONFIG_STORAGE_KEY)).repo, "work-memory");
+  assert.equal(loadAppConfig(storage).onboardingComplete, true);
 });
 
 test("memory önbelleği owner repo ve branch kapsamıyla ayrılır", () => {

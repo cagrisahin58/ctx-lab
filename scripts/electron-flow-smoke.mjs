@@ -207,8 +207,48 @@ function memoryFixtureConfig() {
     owner: "cagrisahin58",
     repo: "ctx-lab",
     branch: "main",
-    token: "test-token"
+    token: "test-token",
+    onboardingComplete: true
   };
+}
+
+async function installGitHubDiagnosticsMock(page) {
+  await page.route("https://api.github.com/**", async (route) => {
+    const request = route.request();
+    const url = new URL(request.url());
+    const method = request.method();
+    const path = url.pathname;
+    const ok = (body, status = 200) => route.fulfill({
+      status,
+      contentType: "application/json",
+      body: JSON.stringify(body)
+    });
+
+    if (method === "GET" && path === "/repos/cagrisahin58/ctx-lab") {
+      return ok({
+        private: true,
+        default_branch: "main",
+        permissions: { push: true }
+      });
+    }
+    if (method === "GET" && path === "/repos/cagrisahin58/ctx-lab/branches/main") {
+      return ok({ name: "main", commit: { sha: "diagnostic-head" } });
+    }
+    if (method === "GET" && path === "/repos/cagrisahin58/ctx-lab/contents/config.yaml") {
+      return ok({ sha: "config-sha", content: "" });
+    }
+    if (method === "GET" && /^\/repos\/cagrisahin58\/ctx-lab\/contents\/(inbox|work_items|decisions|handoffs|archive)$/.test(path)) {
+      return ok([{ type: "file", name: ".gitkeep", path: `${path.split("/").pop()}/.gitkeep` }]);
+    }
+    if (method === "PUT" && path === "/repos/cagrisahin58/ctx-lab/contents/archive/.ctxlab-write-test") {
+      return ok({ content: { sha: "write-test-sha" } });
+    }
+    if (method === "DELETE" && path === "/repos/cagrisahin58/ctx-lab/contents/archive/.ctxlab-write-test") {
+      return ok({ commit: { sha: "write-test-delete-sha" } });
+    }
+
+    return ok({ message: `mock eksik: ${method} ${path}` }, 404);
+  });
 }
 
 function localChangeFixtureRecords() {
@@ -377,12 +417,36 @@ try {
   await page.getByText("Token nasıl üretilir?").click();
   await expectVisibleText(page, "Read and write");
   await expectVisibleText(page, "GitHub token ekranını aç");
+  await installGitHubDiagnosticsMock(page);
   await page.waitForFunction(() => {
     const text = document.body.innerText || "";
     return !text.includes("Kontrol bekliyor") && !text.includes("Codex kontrol bekliyor");
   }, null, { timeout: 20_000 }).catch(() => {
     console.warn("[electron-flow] Runner health bekleyisi tamamlanmadi; UI akisi devam ediyor.");
   });
+
+  markPhase("Onboarding bitirme kapisini dogrulama");
+  const configForm = page.locator("#onboarding-config-form");
+  await configForm.locator('input[name="repoInput"]').fill("cagrisahin58/ctx-lab");
+  await configForm.locator('input[name="branch"]').fill("main");
+  await configForm.locator('input[name="token"]').fill("test-token");
+  await configForm.getByRole("button", { name: "Bağlantıyı Kaydet" }).click();
+  await expectVisibleText(page, "Hafıza bağlantısı kaydedildi.");
+  await page.reload({ waitUntil: "domcontentloaded" });
+  await expectVisibleText(page, "Kısa Kurulum");
+  await expectVisibleText(page, "Kurulum Akışı");
+  assert.equal(await page.locator('[data-action="finish-onboarding"]').first().isDisabled(), true);
+
+  const completionConfig = {
+    owner: "cagrisahin58",
+    repo: "ctx-lab",
+    branch: "main",
+    token: "test-token",
+    onboardingComplete: false
+  };
+  await seedMemoryIndex(completionConfig, validationFixtureRecords());
+  await page.getByRole("button", { name: "Codex CLI Kontrolü" }).click();
+  await expectVisibleText(page, "Yerel çalıştırıcı durumu güncellendi.");
 
   markPhase("Proje kokunu kaydetme");
   const projectForm = page.locator("#onboarding-project-form");
@@ -402,6 +466,20 @@ try {
 
   await page.getByRole("button", { name: "Örnek Devam Brifi Üret" }).click();
   await expectVisibleText(page, "Codex için ctx-lab devam brifi");
+  await page.getByRole("button", { name: "Bağlantıyı Tanıla" }).click();
+  await expectVisibleText(page, "Hafıza tanılaması temiz.");
+  await expectVisibleText(page, "Yazma testi");
+  assert.equal(await page.locator('[data-action="finish-onboarding"]').first().isEnabled(), true);
+  await page.locator('[data-action="finish-onboarding"]').first().click();
+  await expectVisibleText(page, "Kurulum tamamlandı. Proje Çalışma Merkezi açıldı.");
+  await expectVisibleText(page, "Güncel Bağlam");
+  await page.reload({ waitUntil: "domcontentloaded" });
+  await expectVisibleText(page, "Güncel Bağlam");
+  assert.equal(await page.getByText("Kurulum Akışı").count(), 0);
+
+  await page.evaluate(() => localStorage.clear());
+  await page.reload({ waitUntil: "domcontentloaded" });
+  await expectVisibleText(page, "Kısa Kurulum");
 
   markPhase("Calisma merkezini ve komut paletini dogrulama");
   await page.getByRole("button", { name: "Önce Gez" }).click();

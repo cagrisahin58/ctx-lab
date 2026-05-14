@@ -7,21 +7,30 @@ export const DEFAULT_CONFIG = {
   owner: "",
   repo: "",
   branch: "main",
-  token: ""
+  token: "",
+  onboardingComplete: false
 };
 
 export function loadAppConfig(storage = localStorage) {
   try {
-    return { ...DEFAULT_CONFIG, ...(JSON.parse(storage.getItem(CONFIG_STORAGE_KEY)) || {}) };
+    return normalizeAppConfig(JSON.parse(storage.getItem(CONFIG_STORAGE_KEY)) || {});
   } catch {
     return { ...DEFAULT_CONFIG };
   }
 }
 
 export function saveAppConfig(config, storage = localStorage) {
-  const normalized = { ...DEFAULT_CONFIG, ...config };
+  const normalized = normalizeAppConfig(config);
   storage.setItem(CONFIG_STORAGE_KEY, JSON.stringify(normalized));
   return normalized;
+}
+
+function normalizeAppConfig(config = {}) {
+  return {
+    ...DEFAULT_CONFIG,
+    ...config,
+    onboardingComplete: Boolean(config.onboardingComplete)
+  };
 }
 
 export function loadTheme(storage = localStorage) {

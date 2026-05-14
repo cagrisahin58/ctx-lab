@@ -81,7 +81,7 @@ npm run verify:desktop
 
 Bu komut Electron güvenlik/IPC smoke kontrolünü ve kullanıcı seviyesindeki masaüstü akışını birlikte çalıştırır. GitHub Actions aynı kapıyı Windows runner üzerinde statik smoke, Electron boot smoke ve kullanıcı akışı olarak ayrı adımlarda çalıştırır; ek olarak Windows launcher deneme kontrolünü yapar.
 
-İlk açılışta `Kısa Kurulum` ekranı hafıza reposu bağlantısı, repo tanılaması, yerel ayna/indeks, proje kökü, Codex CLI kontrolü ve örnek devam brifi adımlarını tek akışta gösterir. Kurulum tamamlandığında kullanıcı doğrudan `Proje Çalışma Merkezi` ekranına geçer.
+İlk açılışta `Kısa Kurulum` ekranı hafıza reposu bağlantısı, repo tanılaması, yerel ayna/indeks, proje kökü, Codex CLI kontrolü ve örnek devam brifi adımlarını tek akışta gösterir. Sadece owner/repo/token kaydetmek kurulumu bitirmiş sayılmaz; tüm kontrol listesi tamamlanıp `Çalışma Merkezine Geç` seçildiğinde kalıcı kurulum bayrağı yazılır ve sonraki açılışta kullanıcı doğrudan `Proje Çalışma Merkezi` ekranına geçer.
 
 Kalite kapısı:
 

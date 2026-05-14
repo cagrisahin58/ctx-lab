@@ -55,7 +55,8 @@ const initialConfig = loadAppConfig();
 const initialCache = loadRecordCache(initialConfig);
 const initialTheme = loadTheme();
 const initialActivityLog = loadActivityLog(initialConfig);
-const needsInitialOnboarding = !initialConfig.owner || !initialConfig.repo || !initialConfig.token;
+const hasInitialConnection = Boolean(initialConfig.owner && initialConfig.repo && initialConfig.token);
+const needsInitialOnboarding = !hasInitialConnection || !initialConfig.onboardingComplete;
 document.documentElement.dataset.theme = initialTheme;
 
 const state = {
@@ -109,7 +110,12 @@ let keyPrefix = "";
 let keyPrefixTimer = 0;
 
 function saveConfig(config) {
-  state.config = saveAppConfig(config);
+  const nextConfig = { ...state.config, ...config };
+  const connectionChanged = ["owner", "repo", "branch", "token"].some((key) => String(state.config[key] || "") !== String(nextConfig[key] || ""));
+  state.config = saveAppConfig({
+    ...nextConfig,
+    onboardingComplete: connectionChanged ? false : nextConfig.onboardingComplete
+  });
   const cache = loadRecordCache(state.config);
   state.records = cache.records;
   state.cacheMeta = {
@@ -969,7 +975,13 @@ function finishOnboarding() {
     setToast(`Kurulum henüz tamamlanmadı: ${missing}`);
     return;
   }
+  state.config = saveAppConfig({
+    ...state.config,
+    onboardingComplete: true
+  });
   state.view = "workspace";
+  state.activityOpen = true;
+  addActivity("Kurulum tamamlandı. Proje Çalışma Merkezi açıldı.", "success");
   setToast("Kurulum tamamlandı. Proje Çalışma Merkezi açıldı.", "success");
 }
 
@@ -2855,7 +2867,7 @@ function renderDiagnostics({ embedded = false } = {}) {
   return `
     <section class="${wrapperClass}">
       <h3>Bağlantı Tanılaması</h3>
-      ${state.diagnostics.ok ? renderDiagnosticSuccessActions() : ""}
+      ${state.diagnostics.ok ? renderDiagnosticSuccessActions({ embedded }) : ""}
       <div class="diagnostic-list">
         ${items.map(renderDiagnosticItem).join("")}
       </div>
@@ -2863,7 +2875,8 @@ function renderDiagnostics({ embedded = false } = {}) {
   `;
 }
 
-function renderDiagnosticSuccessActions() {
+function renderDiagnosticSuccessActions({ embedded = false } = {}) {
+  const complete = isOnboardingComplete(onboardingChecklist());
   return `
     <div class="diagnostic-success">
       <div>
@@ -2871,8 +2884,9 @@ function renderDiagnosticSuccessActions() {
         <span>Hafıza reposu erişimi, dal, klasör yapısı ve yazma testi temiz görünüyor.</span>
       </div>
       <div class="toolbar-actions">
-        <button data-view="inbox">Oturum Akışına Git</button>
-        <button class="primary" data-view="workspace">Çalışma Merkezine Git</button>
+        ${embedded
+          ? `<button data-action="finish-onboarding" ${complete ? "" : "disabled"}>Çalışma Merkezine Geç</button>`
+          : `<button data-view="inbox">Oturum Akışına Git</button><button class="primary" data-view="workspace">Çalışma Merkezine Git</button>`}
       </div>
     </div>
   `;

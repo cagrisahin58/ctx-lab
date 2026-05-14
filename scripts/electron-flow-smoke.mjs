@@ -245,6 +245,8 @@ function memoryFixtureConfig() {
 }
 
 async function installGitHubDiagnosticsMock(page) {
+  const createdPaths = new Set();
+  const memoryDirs = ["inbox", "work_items", "decisions", "handoffs", "archive"];
   await page.route("https://api.github.com/**", async (route) => {
     const request = route.request();
     const url = new URL(request.url());
@@ -267,10 +269,29 @@ async function installGitHubDiagnosticsMock(page) {
       return ok({ name: "main", commit: { sha: "diagnostic-head" } });
     }
     if (method === "GET" && path === "/repos/cagrisahin58/ctx-lab/contents/config.yaml") {
-      return ok({ sha: "config-sha", content: "" });
+      return createdPaths.has("config.yaml")
+        ? ok({ sha: "config-sha", content: "" })
+        : ok({ message: "config.yaml yok" }, 404);
+    }
+    for (const dir of memoryDirs) {
+      if (method === "GET" && path === `/repos/cagrisahin58/ctx-lab/contents/${dir}/.gitkeep`) {
+        return createdPaths.has(`${dir}/.gitkeep`)
+          ? ok({ sha: `${dir}-gitkeep-sha`, content: "" })
+          : ok({ message: `${dir}/.gitkeep yok` }, 404);
+      }
     }
     if (method === "GET" && /^\/repos\/cagrisahin58\/ctx-lab\/contents\/(inbox|work_items|decisions|handoffs|archive)$/.test(path)) {
       return ok([{ type: "file", name: ".gitkeep", path: `${path.split("/").pop()}/.gitkeep` }]);
+    }
+    if (method === "PUT" && path === "/repos/cagrisahin58/ctx-lab/contents/config.yaml") {
+      createdPaths.add("config.yaml");
+      return ok({ content: { sha: "config-sha" }, commit: { sha: "config-commit-sha" } });
+    }
+    const gitkeepPut = path.match(/^\/repos\/cagrisahin58\/ctx-lab\/contents\/(inbox|work_items|decisions|handoffs|archive)\/\.gitkeep$/);
+    if (method === "PUT" && gitkeepPut) {
+      const createdPath = `${gitkeepPut[1]}/.gitkeep`;
+      createdPaths.add(createdPath);
+      return ok({ content: { sha: `${gitkeepPut[1]}-gitkeep-sha` }, commit: { sha: `${gitkeepPut[1]}-commit-sha` } });
     }
     if (method === "PUT" && path === "/repos/cagrisahin58/ctx-lab/contents/archive/.ctxlab-write-test") {
       return ok({ content: { sha: "write-test-sha" } });
@@ -281,6 +302,7 @@ async function installGitHubDiagnosticsMock(page) {
 
     return ok({ message: `mock eksik: ${method} ${path}` }, 404);
   });
+  return { createdPaths };
 }
 
 function localChangeFixtureRecords() {
@@ -451,7 +473,7 @@ try {
   await page.getByText("Token nasıl üretilir?").click();
   await expectVisibleText(page, "Read and write");
   await expectVisibleText(page, "GitHub token ekranını aç");
-  await installGitHubDiagnosticsMock(page);
+  const githubMock = await installGitHubDiagnosticsMock(page);
   await page.waitForFunction(() => {
     const text = document.body.innerText || "";
     return !text.includes("Kontrol bekliyor") && !text.includes("Codex kontrol bekliyor");
@@ -466,6 +488,20 @@ try {
   await configForm.locator('input[name="token"]').fill("test-token");
   await configForm.getByRole("button", { name: "Bağlantıyı Kaydet" }).click();
   await expectVisibleText(page, "Hafıza bağlantısı kaydedildi.");
+  await configForm.getByRole("button", { name: "Hafıza Yapısını Hazırla" }).click();
+  await expectVisibleText(page, "Hafıza reposu senkronize edildi.");
+  assert.deepEqual(
+    [...githubMock.createdPaths].sort(),
+    [
+      "archive/.gitkeep",
+      "config.yaml",
+      "decisions/.gitkeep",
+      "handoffs/.gitkeep",
+      "inbox/.gitkeep",
+      "work_items/.gitkeep"
+    ],
+    "Onboarding hafıza yapısı config.yaml ve beş memory klasör tutucusunu oluşturmalı."
+  );
   await page.reload({ waitUntil: "domcontentloaded" });
   await expectVisibleText(page, "Kısa Kurulum");
   await expectVisibleText(page, "Kurulum Akışı");

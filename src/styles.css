@@ -976,7 +976,12 @@ kbd {
   border: 1px solid rgba(45, 212, 191, 0.24);
   border-radius: 12px;
   padding: 16px;
-  background: linear-gradient(135deg, rgba(45, 212, 191, 0.14), rgba(96, 165, 250, 0.08));
+  background: rgba(45, 212, 191, 0.1);
+}
+
+.handoff-studio.target-claude .handoff-hero {
+  border-color: rgba(245, 158, 11, 0.28);
+  background: rgba(245, 158, 11, 0.1);
 }
 
 .handoff-hero h3,
@@ -1019,6 +1024,45 @@ kbd {
 .target-switch button.active.claude {
   background: var(--warning);
   color: #2f1700;
+}
+
+.target-chip,
+.preview-target {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  border: 1px solid rgba(45, 212, 191, 0.24);
+  border-radius: 999px;
+  padding: 5px 9px;
+  background: rgba(45, 212, 191, 0.1);
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.target-chip {
+  margin-top: 10px;
+}
+
+.target-claude .target-chip,
+.target-claude .preview-target {
+  border-color: rgba(245, 158, 11, 0.32);
+  background: rgba(245, 158, 11, 0.12);
+}
+
+.target-brief {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 8px;
+  align-items: center;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px 12px;
+  background: rgba(148, 163, 184, 0.06);
+}
+
+.target-brief span {
+  color: var(--muted);
 }
 
 .handoff-source-row label {
@@ -1081,6 +1125,10 @@ kbd {
   background: var(--surface);
   font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
   line-height: 1.5;
+}
+
+.preview-target {
+  margin-bottom: 10px;
 }
 
 .md-line {

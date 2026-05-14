@@ -526,6 +526,9 @@ try {
   await expectVisibleText(page, "Tahmini token");
   await expectVisibleText(page, "Paket İçeriği");
   await expectVisibleText(page, "Paket Kaynakları");
+  await expectVisibleText(page, "Hedef araç: Codex");
+  await expectVisibleText(page, "Codex için hazırlanıyor");
+  await expectVisibleText(page, "Önizleme hedefi: Codex");
   await expectVisibleText(page, "İş hattı kaynağı");
   await expectVisibleText(page, "Oturum kaynağı");
   await expectVisibleText(page, "Karar kaynağı");
@@ -533,6 +536,9 @@ try {
   await expectVisibleText(page, "Codex Çalıştırma Kaydı");
   await page.getByRole("button", { name: "Claude Code" }).click();
   await page.locator(".target-switch .claude.active").waitFor({ state: "visible", timeout: 15_000 });
+  await expectVisibleText(page, "Hedef araç: Claude Code");
+  await expectVisibleText(page, "Claude Code için hazırlanıyor");
+  await expectVisibleText(page, "Önizleme hedefi: Claude Code");
   await page.keyboard.press("Control+K");
   await page.locator("[data-command-search]").fill("hafıza sağlığı");
   await page.locator('[data-command-id="view:health"]').click();

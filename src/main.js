@@ -2367,20 +2367,26 @@ function renderHandoff() {
   const prompt = selected ? buildContextPack(state.records, selected, state.handoffTarget) : "";
   const bundle = selected ? handoffBundle(selected, prompt) : null;
   const metrics = bundle?.metrics || null;
+  const target = handoffTargetMeta(state.handoffTarget);
   return `
     ${renderHeader("Devam Brifi", "Seçili iş hattı veya oturum kaydından Codex/Claude devam brifi üret.")}
-    <section class="panel detail handoff-studio">
+    <section class="panel detail handoff-studio target-${escapeHtml(target.id)}">
       ${selected ? `
         <div class="handoff-hero">
           <div>
             <span class="eyebrow">Devam Brifi</span>
             <h3>${escapeHtml(selected.title)}</h3>
             <p>${escapeHtml(selected.repo || selected.project || selected.path)}</p>
+            <span class="target-chip">Hedef araç: ${escapeHtml(target.label)}</span>
           </div>
           <div class="target-switch" role="group" aria-label="Devam brifi hedefi">
-            <button class="${state.handoffTarget === "codex" ? "active" : ""}" data-action="set-handoff-target" data-target="codex">Codex</button>
-            <button class="${state.handoffTarget === "claude" ? "active claude" : "claude"}" data-action="set-handoff-target" data-target="claude">Claude Code</button>
+            <button class="${state.handoffTarget === "codex" ? "active" : ""}" aria-pressed="${state.handoffTarget === "codex"}" data-action="set-handoff-target" data-target="codex">Codex</button>
+            <button class="${state.handoffTarget === "claude" ? "active claude" : "claude"}" aria-pressed="${state.handoffTarget === "claude"}" data-action="set-handoff-target" data-target="claude">Claude Code</button>
           </div>
+        </div>
+        <div class="target-brief">
+          <strong>${escapeHtml(target.label)} için hazırlanıyor</strong>
+          <span>${escapeHtml(target.description)}</span>
         </div>
         <div class="handoff-source-row">
           <label>
@@ -2410,11 +2416,27 @@ function renderHandoff() {
           <button data-action="copy-handoff">Kopyala</button>
         </div>
         <div class="handoff-preview" aria-label="Devam brifi önizlemesi">
+          <div class="preview-target">Önizleme hedefi: ${escapeHtml(target.label)}</div>
           ${renderMarkdownPreview(prompt)}
         </div>
       ` : `<div class="empty">Devam brifi üretmek için önce bir oturum kaydı veya iş hattı oluşturun.</div>`}
     </section>
   `;
+}
+
+function handoffTargetMeta(target) {
+  if (target === "claude") {
+    return {
+      id: "claude",
+      label: "Claude Code",
+      description: "Claude Code oturumunda kullanılacak çalışma kuralı ve kaynak diliyle biçimlendirilir."
+    };
+  }
+  return {
+    id: "codex",
+    label: "Codex",
+    description: "Codex CLI veya Codex sohbetinde devam edecek görev için kontrollü çalışma kuralı eklenir."
+  };
 }
 
 function handoffBundle(record, prompt) {

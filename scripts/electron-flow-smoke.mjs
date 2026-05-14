@@ -5,7 +5,7 @@ import { dirname, join } from "node:path";
 import { createRequire } from "node:module";
 import { inflateSync } from "node:zlib";
 import { _electron as electron } from "playwright-core";
-import { parseMemoryFile } from "../src/domain.js";
+import { parseMemoryFile, validateMemoryRecords } from "../src/domain.js";
 import { CONFIG_STORAGE_KEY, RECORD_CACHE_STORAGE_KEY } from "../src/storage.js";
 import { buildMemoryMirrorPaths, buildRunnerPaths } from "../scripts/ctxlab-runner.mjs";
 
@@ -205,7 +205,32 @@ created_at: ${updatedAt}
 ---
 
 # Duplicate B
-`, "fixture-duplicate-b")
+`, "fixture-duplicate-b"),
+    parseMemoryFile("handoffs/missing-run-status.md", `---
+id: codex_run_missing_status
+kind: codex_run
+source_run: run_missing_status
+project: ctx-lab
+repo: cagrisahin58/ctx-lab
+status: active
+created_at: ${updatedAt}
+---
+
+# Codex Çalıştırma Kaydı
+`, "fixture-missing-run-status"),
+    parseMemoryFile("handoffs/invalid-run-status.md", `---
+id: codex_run_invalid_status
+kind: codex_run
+source_run: run_invalid_status
+project: ctx-lab
+repo: cagrisahin58/ctx-lab
+status: active
+run_status: paused
+created_at: ${updatedAt}
+---
+
+# Codex Çalıştırma Kaydı
+`, "fixture-invalid-run-status")
   ];
 }
 
@@ -313,7 +338,7 @@ async function seedMemoryIndex(config, records) {
     indexedAt: "2026-05-14T08:06:00.000Z",
     lastCommit: "validation-fixture-head",
     recordCount: records.length,
-    warningCount: 4,
+    warningCount: validateMemoryRecords(records).length,
     counts: records.reduce((counts, record) => {
       counts[record.type] = (counts[record.type] || 0) + 1;
       return counts;
@@ -744,6 +769,8 @@ try {
     0,
     "Uygulamanın kaydettiği devam brifi status uyarısı üretmemeli."
   );
+  await expectNoVisibleText(page, "run_status alanı eksik");
+  await expectNoVisibleText(page, "bilinmeyen Codex çalıştırma durumu");
 
   markPhase("Tamamlanan is hattini arsivleme akisini dogrulama");
   await page.keyboard.press("Control+K");
@@ -772,6 +799,10 @@ try {
   await expectVisibleText(page, "bozuk frontmatter");
   await expectVisibleText(page, "inbox/duplicate-b.md");
   await expectVisibleText(page, "duplicate id");
+  await expectVisibleText(page, "handoffs/missing-run-status.md");
+  await expectVisibleText(page, "run_status alanı eksik");
+  await expectVisibleText(page, "handoffs/invalid-run-status.md");
+  await expectVisibleText(page, "bilinmeyen Codex çalıştırma durumu");
   await page.keyboard.press("Control+K");
   await page.locator("[data-command-search]").fill("çalıştırıcı");
   await page.locator('[data-command-id="view:runner"]').click();

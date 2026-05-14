@@ -1,6 +1,8 @@
 {
   "name": "ctx-lab",
   "version": "0.1.0",
+  "description": "Turkce masaustu AI calisma hafizasi uygulamasi.",
+  "author": "Cagri Sahin",
   "private": true,
   "type": "module",
   "main": "electron/main.mjs",
@@ -11,6 +13,8 @@
     "desktop:build": "npm run build && electron .",
     "desktop:smoke": "npm run build && node scripts/desktop-smoke.mjs && electron . --smoke",
     "desktop:flow": "npm run build && node scripts/electron-flow-smoke.mjs",
+    "desktop:pack": "npm run build && electron-builder --dir",
+    "desktop:dist": "npm run build && electron-builder --win portable",
     "start:windows": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/start-windows.ps1",
     "runner": "node scripts/ctxlab-runner.mjs",
     "runner:check": "node scripts/ctxlab-runner.mjs --dry-run",
@@ -22,6 +26,7 @@
   },
   "devDependencies": {
     "electron": "^42.0.1",
+    "electron-builder": "^26.8.1",
     "playwright-core": "^1.60.0",
     "vite": "^6.0.0"
   }

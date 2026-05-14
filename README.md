@@ -45,6 +45,15 @@ npm run desktop:smoke
 
 Electron kabuğu renderer tarafında Node entegrasyonunu kapalı tutar; proje klasörü seçimi, runner sağlığı, proje registry ve Codex run kayıtları yalnızca izinli IPC kanallarından geçer.
 
+Windows paketleme hazırlığı:
+
+```bash
+npm run desktop:pack
+npm run desktop:dist
+```
+
+`desktop:pack` production renderer çıktısını `release/win-unpacked` altında paketlenmiş Electron klasörü olarak hazırlar. `desktop:dist` aynı yapılandırmayla Windows portable artefact üretir. Paketleme çıktıları git dışında tutulur.
+
 Kullanıcı seviyesindeki masaüstü akışını doğrulamak için:
 
 ```bash

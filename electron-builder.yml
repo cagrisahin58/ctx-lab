@@ -1,0 +1,19 @@
+appId: com.cagrisahin.ctxlab
+productName: ctx-lab
+asar: true
+npmRebuild: false
+directories:
+  output: release
+files:
+  - package.json
+  - dist/**/*
+  - electron/**/*
+  - scripts/ctxlab-runner.mjs
+  - src/domain.js
+win:
+  signAndEditExecutable: false
+  target:
+    - target: portable
+      arch:
+        - x64
+  artifactName: "${productName}-${version}-${arch}.${ext}"

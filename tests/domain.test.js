@@ -527,7 +527,26 @@ Timeline event katmanı eklenecek.
 `,
     "sha-decision"
   );
-  const events = buildTimelineEvents([session, work, decision], [
+  const handoff = parseMemoryFile(
+    "handoffs/handoff_work_ctx-lab_codex.md",
+    `---
+id: handoff_work_ctx-lab_codex
+title: ctx-lab devam brifi
+source_record: work_ctx-lab
+source_work_item: work_ctx-lab
+project: ctx-lab
+repo: cagrisahin58/ctx-lab
+target: codex
+created_at: 2026-05-14T12:25:00.000Z
+---
+
+# Devam Brifi
+
+ctx-lab icin devam brifi.
+`,
+    "sha-handoff"
+  );
+  const events = buildTimelineEvents([session, work, decision, handoff], [
     { id: "project_1", name: "ctx-lab", path: "C:\\repo", updatedAt: "2026-05-14T12:20:00.000Z" }
   ], [
     {
@@ -550,6 +569,7 @@ Timeline event katmanı eklenecek.
   assert.ok(events.some((event) => event.kind === "commit_application" && event.summary.includes("Commit SHA: abc123")));
   assert.ok(events.some((event) => event.kind === "session" && event.recordId === "sess_test"));
   assert.ok(events.some((event) => event.kind === "decision" && event.summary.includes("Timeline event")));
+  assert.ok(events.some((event) => event.kind === "handoff" && event.label === "Devam brifi" && event.project === "ctx-lab"));
 });
 
 test("timeline GitHub senkron ve yerel ayna olaylarını gösterir", () => {

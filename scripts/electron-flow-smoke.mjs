@@ -726,6 +726,11 @@ try {
     timeout: 15_000
   });
   await expectVisibleText(page, "handoffs/handoff_work_ctx_lab_redesign_claude.md");
+  await page.locator('button[data-view="workspace"]').click();
+  await page.locator('[data-action="set-timeline-filter"][data-filter="handoff"]').click();
+  await expectVisibleText(page, "Devam brifi");
+  await expectVisibleText(page, "ctx-lab yeniden tasarım devam brifi");
+  await page.locator('[data-action="set-timeline-filter"][data-filter="all"]').click();
   await page.keyboard.press("Control+K");
   await page.locator("[data-command-search]").fill("hafıza sağlığı");
   await page.locator('[data-command-id="view:health"]').click();

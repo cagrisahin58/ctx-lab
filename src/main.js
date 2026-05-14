@@ -29,6 +29,7 @@ import {
   parseMemoryFile,
   replaceFrontmatter,
   resolveWorkContext,
+  serializeFrontmatter,
   slugify,
   suggestWorkItemForSession,
   updateWorkItemNextActionContent,
@@ -520,6 +521,7 @@ function selectedProjectAllEvents() {
 function timelineEventGroup(kind) {
   if (kind === "session") return "session";
   if (kind === "decision") return "decision";
+  if (kind === "handoff") return "handoff";
   if (kind === "codex_run" || kind === "commit_application") return "codex";
   if (kind === "github_sync" || kind === "mirror_sync") return "sync";
   return "workflow";
@@ -663,12 +665,18 @@ async function saveHandoff(target) {
   const record = contextRecord();
   if (!record) return;
   const prompt = buildContextPack(state.records, record, target);
-  const content = `---
-id: handoff_${record.id}_${target}
-source_record: ${record.id}
-target: ${target}
-created_at: ${new Date().toISOString()}
----
+  const content = `${serializeFrontmatter({
+    id: `handoff_${record.id}_${target}`,
+    title: `${record.title || record.id} devam brifi`,
+    source_record: record.id,
+    source_path: record.path || "",
+    source_work_item: record.type === "work_items" ? record.id : record.linkedWorkItem || "",
+    project: record.project || "",
+    repo: record.repo || "",
+    branch: record.branch || "",
+    target,
+    created_at: new Date().toISOString()
+  })}
 
 # Devam Brifi
 
@@ -1036,7 +1044,7 @@ function clearQuickFilter() {
 }
 
 function setTimelineFilter(filter) {
-  const allowed = ["all", "session", "workflow", "decision", "codex", "sync"];
+  const allowed = ["all", "session", "workflow", "handoff", "decision", "codex", "sync"];
   state.timelineFilter = allowed.includes(filter) ? filter : "all";
   render();
 }
@@ -1688,6 +1696,7 @@ function renderTimelineFilters(events) {
     all: events.length,
     session: 0,
     workflow: 0,
+    handoff: 0,
     decision: 0,
     codex: 0,
     sync: 0
@@ -1700,6 +1709,7 @@ function renderTimelineFilters(events) {
     ["all", "Tümü"],
     ["session", "Oturumlar"],
     ["workflow", "İş değişimleri"],
+    ["handoff", "Devam brifleri"],
     ["decision", "Kararlar"],
     ["codex", "Codex"],
     ["sync", "Senkron"]

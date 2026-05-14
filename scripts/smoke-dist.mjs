@@ -68,6 +68,7 @@ for (const expected of [
   "Zaman akisi",
   "Oturumlar",
   "Is degisimleri",
+  "Devam brifleri",
   "Senkron",
   "Bu filtrede zaman akisi olayi yok",
   "Dal",

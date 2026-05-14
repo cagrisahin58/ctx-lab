@@ -642,7 +642,7 @@ function buildCodexRunPrompt(project, input, automationLevel, template) {
     `Proje koku: ${project.path}`,
     `Prompt sablonu: ${templateText}`,
     `Otomasyon seviyesi: ${levelText}`,
-    "Yasak islemler: git reset --hard, git clean -fd, git branch -D, git push --force, credential dosyasi okuma.",
+    "Yasak islemler: git reset --hard, git clean -fd, git checkout --, git restore, git branch -D, git push --force/--delete, credential dosyasi okuma.",
     "Tum gorunur kullanici metinleri Turkce tutulacak.",
     "",
     userPrompt
@@ -651,11 +651,15 @@ function buildCodexRunPrompt(project, input, automationLevel, template) {
 
 function assertSafeAutomationPrompt(prompt) {
   const forbidden = [
-    /git\s+reset\s+--hard/i,
-    /git\s+clean\s+-[a-z]*f/i,
-    /git\s+branch\s+-D/i,
-    /git\s+push\s+--force/i,
-    /push\s+-f/i
+    /\bgit\s+reset\s+--hard\b/i,
+    /\bgit\s+clean\s+-[^\s]*f[^\s]*/i,
+    /\bgit\s+checkout\s+--\s+/i,
+    /\bgit\s+restore\b/i,
+    /\bgit\s+branch\s+-D\b/i,
+    /\bgit\s+branch\s+--delete\s+--force\b/i,
+    /\bgit\s+push\s+--force(?:-with-lease)?\b/i,
+    /\bgit\s+push\s+-[^\s]*f[^\s]*/i,
+    /\bgit\s+push\b[^\n;&|]*(?:--delete|:\S|\+\S)/i
   ];
   if (forbidden.some((pattern) => pattern.test(prompt))) {
     throw new Error("Destructive git islemi iceren Codex promptu reddedildi.");

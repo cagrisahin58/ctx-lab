@@ -309,14 +309,28 @@ test("codex run destructive git promptunu reddeder", async () => {
       name: "ctx-lab",
       path: projectDir
     });
-    await assert.rejects(
-      () => startCodexRun(paths, {
-        projectId: project.id,
-        prompt: "git reset --hard calistir",
-        dryRun: true
-      }),
-      /Destructive git/
-    );
+    const destructivePrompts = [
+      "git reset --hard calistir",
+      "git clean -fdx ile temizle",
+      "git checkout -- src/main.js",
+      "git restore .",
+      "git branch -D eski-dal",
+      "git push --force origin main",
+      "git push -f origin main",
+      "git push --delete origin eski-dal",
+      "git push origin :main",
+      "git push origin +main"
+    ];
+    for (const prompt of destructivePrompts) {
+      await assert.rejects(
+        () => startCodexRun(paths, {
+          projectId: project.id,
+          prompt,
+          dryRun: true
+        }),
+        /Destructive git/
+      );
+    }
   } finally {
     await rm(dir, { recursive: true, force: true });
     await rm(projectDir, { recursive: true, force: true });

@@ -12,6 +12,9 @@ let mainWindow;
 let tray;
 
 app.setName("ctx-lab");
+if (process.env.CTX_LAB_ELECTRON_USER_DATA) {
+  app.setPath("userData", process.env.CTX_LAB_ELECTRON_USER_DATA);
+}
 
 function createMenu() {
   const template = [

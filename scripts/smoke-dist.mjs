@@ -12,8 +12,13 @@ const html = readFileSync(indexPath, "utf8");
 assert.match(html, /<html lang="tr">/, "HTML dili Turkce olmali.");
 assert.match(html, /ctx-lab/, "HTML basligi ctx-lab icermeli.");
 
-const assetMatches = [...html.matchAll(/(?:src|href)="([^"]+\.(?:js|css))"/g)].map((match) =>
-  match[1].replace(/^\//, "")
+const rawAssetMatches = [...html.matchAll(/(?:src|href)="([^"]+\.(?:js|css))"/g)].map((match) => match[1]);
+assert.ok(
+  rawAssetMatches.every((asset) => !asset.startsWith("/")),
+  "Build asset yollari Electron file:// icin goreli olmali."
+);
+const assetMatches = rawAssetMatches.map((asset) =>
+  asset.replace(/^\.\//, "").replace(/^\//, "")
 );
 assert.ok(assetMatches.some((asset) => asset.endsWith(".js")), "Build JS asseti bulunamadi.");
 assert.ok(assetMatches.some((asset) => asset.endsWith(".css")), "Build CSS asseti bulunamadi.");

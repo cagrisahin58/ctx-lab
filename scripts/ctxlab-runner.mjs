@@ -160,6 +160,14 @@ export function codexCandidates(env = process.env, platform = process.platform) 
 }
 
 export async function detectCodex(options = {}) {
+  if (options.mockCodexVersion) {
+    return {
+      available: true,
+      command: options.mockCodexCommand || "codex-smoke",
+      version: String(options.mockCodexVersion)
+    };
+  }
+
   const candidates = options.candidates || codexCandidates(options.env, options.platform);
   const run = options.runCommand || runCommand;
   const timeoutMs = options.timeoutMs || 3000;

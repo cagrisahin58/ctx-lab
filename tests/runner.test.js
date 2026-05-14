@@ -72,6 +72,23 @@ test("detectCodex çalışan ilk adayı döndürür", async () => {
   assert.equal(result.version, "codex-cli 0.test");
 });
 
+test("detectCodex smoke mock ile komut calistirmadan sonuc dondurur", async () => {
+  let called = false;
+  const result = await detectCodex({
+    mockCodexVersion: "codex-cli smoke",
+    mockCodexCommand: "codex-smoke",
+    runCommand: async () => {
+      called = true;
+      return { ok: true, stdout: "unexpected\n", stderr: "" };
+    }
+  });
+
+  assert.equal(result.available, true);
+  assert.equal(result.command, "codex-smoke");
+  assert.equal(result.version, "codex-cli smoke");
+  assert.equal(called, false);
+});
+
 test("detectCodex aday komutlarini kisa timeout ile cagirir", async () => {
   const seen = [];
   const result = await detectCodex({

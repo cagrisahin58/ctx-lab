@@ -99,7 +99,9 @@ app.whenReady().then(async () => {
   const runtime = createDesktopRuntime({
     paths,
     dialog,
-    mockProjectDirectory: process.env.CTX_LAB_ELECTRON_PROJECT_DIR || ""
+    mockProjectDirectory: process.env.CTX_LAB_ELECTRON_PROJECT_DIR || "",
+    mockCodexVersion: process.env.CTX_LAB_ELECTRON_MOCK_CODEX_VERSION || "",
+    mockCodexCommand: process.env.CTX_LAB_ELECTRON_MOCK_CODEX_COMMAND || ""
   });
   registerDesktopIpcHandlers(ipcMain, runtime);
   createMenu();

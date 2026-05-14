@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { chmod, mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { createRequire } from "node:module";
@@ -13,7 +13,6 @@ const require = createRequire(import.meta.url);
 const electronPath = require("electron");
 const root = process.cwd();
 const userData = await mkdtemp(join(tmpdir(), "ctxlab-electron-flow-"));
-const mockCodexPath = await createMockCodex();
 let phase = "Electron baslatma";
 
 function markPhase(value) {
@@ -31,16 +30,6 @@ function escapeAnnotation(value) {
 
 function reportFailure(error) {
   console.error(`::error title=Electron flow smoke failed::${escapeAnnotation(phase)}: ${escapeAnnotation(error?.message || error)}`);
-}
-
-async function createMockCodex() {
-  const filePath = join(userData, process.platform === "win32" ? "codex-smoke.cmd" : "codex-smoke");
-  const content = process.platform === "win32"
-    ? "@echo off\r\necho codex-cli smoke\r\nexit /b 0\r\n"
-    : "#!/bin/sh\necho codex-cli smoke\n";
-  await writeFile(filePath, content, "utf8");
-  if (process.platform !== "win32") await chmod(filePath, 0o755);
-  return filePath;
 }
 
 function assertRenderedScreenshot(png) {
@@ -391,7 +380,8 @@ const env = {
   ...process.env,
   CTX_LAB_ELECTRON_USER_DATA: userData,
   CTX_LAB_ELECTRON_PROJECT_DIR: root,
-  CTX_LAB_CODEX_PATH: mockCodexPath,
+  CTX_LAB_ELECTRON_MOCK_CODEX_VERSION: "codex-cli smoke",
+  CTX_LAB_ELECTRON_MOCK_CODEX_COMMAND: "codex-smoke",
   ELECTRON_DISABLE_SECURITY_WARNINGS: "true"
 };
 delete env.VITE_DEV_SERVER_URL;

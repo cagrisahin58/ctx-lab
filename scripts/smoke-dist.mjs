@@ -65,6 +65,9 @@ for (const expected of [
   "GitHub hafiza reposu",
   "Hafizayi bagla",
   "Hafiza Yapisini Hazirla",
+  "Hafiza tanilamasi temiz",
+  "Yazma testi",
+  "Kurulum tamamlandi",
   "Zaman akisi",
   "Oturumlar",
   "Is degisimleri",
@@ -99,6 +102,10 @@ for (const expected of [
   "Sesli Oku",
   "Sesli okuma hazir",
   "Yerel onbellek",
+  "GitHub ile ayni",
+  "Kayit yollari ve ozet alanlari eslesiyor",
+  "Yerel degisiklik var",
+  "Yerel onbellek ayna indeksinden daha yeni",
   "Yeni Is Hatti",
   "Is hatti, proje veya durum ara",
   "Yeni Karar",
@@ -162,6 +169,10 @@ for (const expected of [
   "Is Hattini Arsivle",
   "Yalnizca tamamlanan is hatlari arsivlenebilir",
   "Proje Koku",
+  "Proje koku secildi",
+  "Proje koku yerel calistiriciya kaydedildi",
+  "run_status alani eksik",
+  "bilinmeyen Codex calistirma durumu",
   "Oturum Kapanis"
 ]) {
   assert.ok(normalizedBundleText.includes(expected), `UI metni eksik: ${expected}`);

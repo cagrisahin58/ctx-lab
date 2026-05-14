@@ -56,10 +56,10 @@ Not: `desktop:pack:smoke`, Windows exe politikasi nedeniyle `app.asar` fallback 
 1. Canli GitHub private repo yazma testi otomasyon icinde mock'lanir. Kod gercek Contents API yazma testi yapiyor, fakat CI'da token kullanilmadigi icin canli private repo uzerinde dogrulanmaz.
 2. Gorsel kalite icin screenshot smoke nonblank/kontrast ve ana akislari dogrular; CI screenshot artefakti manuel inceleme icin saklanir. Tasarimin "profesyonel masaustu araci gibi gorunmesi" halen kismen manuel degerlendirme ister.
 3. `claude-review.md` untracked oldugu icin kanit olarak commitlenmez. Bu belge P0/P1 maddelerinin urune yansiyan kisimlarini izler, fakat kaynak review dosyasi bilerek repo disinda kalir.
-4. Tum UI Turkce hedefi smoke ile eski terim ve kritik metin duzeyinde korunur; tum bundle icin dogal Turkce denetimi tam otomatik degildir.
+4. Tum UI Turkce hedefi smoke ile eski terim, onboarding, hafiza senkron, validation ve kritik aksiyon metinleri duzeyinde korunur; tum bundle icin dogal Turkce denetimi tam otomatik degildir.
 
 ## Sonraki somut adaylar
 
 1. Canli GitHub tani akisini token gerektirmeden belgeleyen manuel test checklist'i veya token varliginda opsiyonel entegrasyon testi.
-2. `smoke-dist` icinde Turkce dil denetimini genisletmek: kritik butonlar, hata banner'lari ve onboarding adimlari icin daha fazla beklenen metin.
-3. Screenshot artefaktina ek olarak ana bolge yerlesimi icin daha deterministik alan/konum denetimi.
+2. Screenshot artefaktina ek olarak ana bolge yerlesimi icin daha deterministik alan/konum denetimi.
+3. Turkce dogal dil denetimi icin smoke listesini ileride hata banner'lari ve nadir kenar durum metinleriyle genisletmek.

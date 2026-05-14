@@ -590,6 +590,7 @@ async function startCodexRunFromForm(form) {
     template: data.get("template"),
     prompt: data.get("prompt"),
     dryRun: data.get("dryRun") === "on",
+    confirmCommitPush: data.get("confirmCommitPush") === "on",
     sourceRecordId: sourceRecord?.id || "",
     sourceRecordPath: sourceRecord?.path || "",
     sourceWorkItemId: sourceWorkItem?.id || ""
@@ -1209,6 +1210,7 @@ function renderCodexRunPanel() {
       </label>
       <label class="check-row"><input type="checkbox" name="dryRun" checked> Dry-run olarak kaydet</label>
       <label class="check-row"><input type="checkbox" name="linkMemory" checked> Run sonucunu seçili iş hattına bağla</label>
+      <label class="check-row caution"><input type="checkbox" name="confirmCommitPush"> Commit + push için ayrı onay verdim</label>
       <button class="primary" type="submit" ${projects.length ? "" : "disabled"}>Run kaydı oluştur</button>
       ${state.runner.runs.length ? `<div class="run-list">${state.runner.runs.slice(0, 4).map(renderRunMini).join("")}</div>` : ""}
       ${renderRunEvidence(evidenceRun)}
@@ -1259,7 +1261,7 @@ function renderRunEvidence(run) {
           <h4>Run Kanıtı</h4>
           <p>${escapeHtml(run.id)}</p>
         </div>
-        <span class="badge ${run.status === "failed" ? "blocked" : "active"}">${escapeHtml(run.status || "durum yok")}</span>
+        <span class="badge ${["failed", "blocked"].includes(run.status) ? "blocked" : "active"}">${escapeHtml(run.status || "durum yok")}</span>
       </div>
       <div class="run-evidence-grid">
         ${runFact("Otomasyon", automationLevelLabel(run.automationLevel))}

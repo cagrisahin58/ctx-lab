@@ -946,6 +946,14 @@ kbd {
   width: auto;
 }
 
+.check-row.caution {
+  padding: 8px 10px;
+  border: 1px solid rgba(245, 158, 11, 0.34);
+  border-radius: 8px;
+  background: rgba(245, 158, 11, 0.08);
+  color: var(--text);
+}
+
 .run-list {
   display: grid;
   gap: 8px;

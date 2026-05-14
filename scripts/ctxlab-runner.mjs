@@ -377,6 +377,19 @@ export async function startCodexRun(paths = buildRunnerPaths(), input = {}, opti
     return record;
   }
 
+  if (automationLevel === "commit_push" && input.confirmCommitPush !== true) {
+    const record = {
+      ...baseRecord,
+      status: "blocked",
+      summary: "Commit/push seviyesi gerçek çalışma için ayrı kullanıcı onayı gerektirir.",
+      error: "Commit/push onayı verilmedi.",
+      testResult: "not_run",
+      commitGate: commitGateForAutomationLevel(automationLevel)
+    };
+    await writeRunLog(logPath, record);
+    return record;
+  }
+
   const codex = await detectCodex(options);
   if (!codex.available) {
     const record = {

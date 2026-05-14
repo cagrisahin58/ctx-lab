@@ -460,6 +460,7 @@ try {
   await runForm.locator('textarea[name="prompt"]').fill("ctx-lab Electron smoke icin deneme devam brifi hazirla.");
   await runForm.getByRole("button", { name: "Çalıştırma kaydı oluştur" }).click();
   await expectVisibleText(page, "Codex deneme kaydı hazırlandı.");
+  await expectVisibleText(page, "Codex çalıştırma kaydı hafızaya bağlandı:");
   await expectVisibleText(page, "Deneme kaydı");
   await expectVisibleText(page, "Çalıştırma Kanıtı");
   await expectVisibleText(page, "Test sonucu");
@@ -498,6 +499,8 @@ try {
   await expectVisibleText(page, "İş hattı kaynağı");
   await expectVisibleText(page, "Oturum kaynağı");
   await expectVisibleText(page, "Karar kaynağı");
+  await expectVisibleText(page, "Çalıştırma kaynağı");
+  await expectVisibleText(page, "Codex Çalıştırma Kaydı");
   await page.getByRole("button", { name: "Claude Code" }).click();
   await page.locator(".target-switch .claude.active").waitFor({ state: "visible", timeout: 15_000 });
   await page.keyboard.press("Control+K");

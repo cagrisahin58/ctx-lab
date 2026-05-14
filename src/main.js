@@ -674,6 +674,7 @@ async function saveHandoff(target) {
     project: record.project || "",
     repo: record.repo || "",
     branch: record.branch || "",
+    status: "active",
     target,
     created_at: new Date().toISOString()
   })}
@@ -1290,6 +1291,7 @@ async function saveDailyBrief() {
   const content = `---
 id: ${id}
 target: codex
+status: active
 created_at: ${now.toISOString()}
 ---
 

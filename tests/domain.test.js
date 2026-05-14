@@ -536,6 +536,7 @@ source_record: work_ctx-lab
 source_work_item: work_ctx-lab
 project: ctx-lab
 repo: cagrisahin58/ctx-lab
+status: active
 target: codex
 created_at: 2026-05-14T12:25:00.000Z
 ---

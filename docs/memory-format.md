@@ -172,10 +172,11 @@ Plan oturumu.
 
 tek bir devam brifi içinde birleştirilir. Bu dosyalar temiz AI oturumlarında ilk prompt olarak kullanılmak üzere tasarlanır.
 `Devam Brifi` ekranında kaynak kayıt ve hedef araç seçildiğinde önizleme aynı seçimle güncellenir; kaydedilen dosyada `target` alanı `codex` veya `claude` olarak tutulur.
+Kaydedilen devam brifi kayıtları validation panelinde temiz kalmak için `status: active` alanını taşır; eski status'süz devam brifleri okunmaya devam eder ancak sağlık panelinde eksik alan uyarısı verebilir.
 Karar ve devam brifi kayıtları aynı path ile tekrar kaydedilirse yeni kopya üretmek yerine mevcut dosya `sha` ile güncellenir.
 GitHub 409/422 yazma hatalarında dosyanın güncel `sha` değeri okunur ve yazma bir kez yeniden denenir.
 
-`Günlük Devam Brifi` kaydedildiğinde `handoffs/daily-YYYY-MM-DD.md` yolu kullanılır ve aynı gün yeniden kaydedilirse dosya güncellenir.
+`Günlük Devam Brifi` kaydedildiğinde `handoffs/daily-YYYY-MM-DD.md` yolu kullanılır, `status: active` ile yazılır ve aynı gün yeniden kaydedilirse dosya güncellenir.
 
 ## Codex çalıştırma kaydı
 

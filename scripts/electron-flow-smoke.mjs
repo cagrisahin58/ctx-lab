@@ -736,6 +736,14 @@ try {
   await page.locator('[data-command-id="view:health"]').click();
   await expectVisibleText(page, "Hafıza Sağlığı");
   await expectVisibleText(page, "Format, yaşam döngüsü ve arşiv önerileri burada izlenir.");
+  const savedHandoffWarnings = page.locator(".health-item", {
+    hasText: "handoffs/handoff_work_ctx_lab_redesign_claude.md"
+  });
+  assert.equal(
+    await savedHandoffWarnings.getByText("status alanı eksik").count(),
+    0,
+    "Uygulamanın kaydettiği devam brifi status uyarısı üretmemeli."
+  );
 
   markPhase("Tamamlanan is hattini arsivleme akisini dogrulama");
   await page.keyboard.press("Control+K");

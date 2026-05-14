@@ -309,7 +309,7 @@ export function isOnboardingComplete(checklist = []) {
   return Array.isArray(checklist) && checklist.length > 0 && checklist.every((item) => item.done);
 }
 
-export function buildTimelineEvents(records, runnerProjects = [], runs = []) {
+export function buildTimelineEvents(records, runnerProjects = [], runs = [], sync = {}) {
   const events = [];
 
   for (const record of records) {
@@ -398,6 +398,40 @@ export function buildTimelineEvents(records, runnerProjects = [], runs = []) {
       nextAction: "",
       path: project.path || "",
       at: project.updatedAt || project.createdAt || ""
+    });
+  }
+
+  if (sync.cacheMeta?.syncedAt) {
+    events.push({
+      id: "sync:github-cache",
+      recordId: "",
+      kind: "github_sync",
+      label: "GitHub senkron",
+      project: sync.project || "genel",
+      repo: sync.repo || "",
+      status: "synced",
+      title: "GitHub hafıza senkronizasyonu",
+      summary: `${sync.recordCount ?? records.length} kayıt yerel önbelleğe alındı.`,
+      nextAction: "",
+      path: "",
+      at: sync.cacheMeta.syncedAt
+    });
+  }
+
+  if (sync.memory?.lastIndexedAt) {
+    events.push({
+      id: "sync:memory-mirror",
+      recordId: "",
+      kind: "mirror_sync",
+      label: "Yerel ayna",
+      project: sync.project || "genel",
+      repo: sync.repo || "",
+      status: sync.memory.indexed ? "indexed" : "waiting",
+      title: "Yerel hafıza aynası indekslendi",
+      summary: `${sync.memory.recordCount || 0} kayıt yerel aynadan okundu.`,
+      nextAction: "",
+      path: sync.memory.cloneDir || "",
+      at: sync.memory.lastIndexedAt
     });
   }
 

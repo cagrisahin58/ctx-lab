@@ -463,6 +463,32 @@ Timeline event katmanı eklenecek.
   assert.ok(events.some((event) => event.kind === "decision" && event.summary.includes("Timeline event")));
 });
 
+test("timeline GitHub senkron ve yerel ayna olaylarını gösterir", () => {
+  const session = parseMemoryFile("inbox/test.md", sample, "sha");
+  const events = buildTimelineEvents([session], [], [], {
+    cacheMeta: { syncedAt: "2026-05-14T08:05:00.000Z" },
+    memory: {
+      indexed: true,
+      recordCount: 1,
+      cloneDir: "C:\\ctx-lab\\memory\\git\\ctx-lab",
+      lastIndexedAt: "2026-05-14T08:06:00.000Z"
+    },
+    project: "ctx-lab",
+    repo: "cagrisahin58/ctx-lab",
+    recordCount: 1
+  });
+
+  const github = events.find((event) => event.kind === "github_sync");
+  const mirror = events.find((event) => event.kind === "mirror_sync");
+
+  assert.equal(github.label, "GitHub senkron");
+  assert.equal(github.title, "GitHub hafıza senkronizasyonu");
+  assert.equal(github.summary, "1 kayıt yerel önbelleğe alındı.");
+  assert.equal(mirror.label, "Yerel ayna");
+  assert.equal(mirror.title, "Yerel hafıza aynası indekslendi");
+  assert.equal(mirror.summary, "1 kayıt yerel aynadan okundu.");
+});
+
 test("kayıtları çok kelimeli arama metniyle süzer", () => {
   const session = parseMemoryFile("inbox/test.md", sample, "sha-session");
   const decision = parseMemoryFile(

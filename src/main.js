@@ -448,7 +448,14 @@ function selectedProjectRuns() {
 function selectedProjectEvents() {
   const name = selectedProjectName();
   const projects = name ? state.runner.projects.filter((project) => (project.name || "proje") === name) : state.runner.projects;
-  return buildTimelineEvents(selectedProjectRecords(), projects, selectedProjectRuns());
+  const records = selectedProjectRecords();
+  return buildTimelineEvents(records, projects, selectedProjectRuns(), {
+    cacheMeta: state.cacheMeta,
+    memory: state.runner.memory,
+    project: name || "genel",
+    repo: state.config.owner && state.config.repo ? `${state.config.owner}/${state.config.repo}` : records[0]?.repo || "",
+    recordCount: state.records.length
+  });
 }
 
 function selectedProjectWorkItem() {

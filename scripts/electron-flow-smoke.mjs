@@ -440,6 +440,11 @@ try {
   await expectVisibleText(page, "Yerel değişiklik var");
   await expectVisibleText(page, "1 kayıt ayna içinde yok");
   await expectVisibleText(page, "Yerel önbellek ayna indeksinden daha yeni");
+  await page.keyboard.press("Control+K");
+  await page.locator("[data-command-search]").fill("proje çalışma");
+  await page.locator('[data-command-id="view:workspace"]').click();
+  await expectVisibleText(page, "GitHub hafıza senkronizasyonu");
+  await expectVisibleText(page, "Yerel hafıza aynası indekslendi");
 
   const title = await electronApp.evaluate(({ BrowserWindow }) => {
     return BrowserWindow.getAllWindows()[0]?.getTitle();

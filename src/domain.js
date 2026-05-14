@@ -1087,7 +1087,7 @@ export function generateHandoffPrompt(record, target = "codex") {
 
 export function buildDecisionFromSession(session) {
   const decisions = getSection(session.sections, "decisions");
-  if (!decisions.trim()) return null;
+  if (!hasMeaningfulDecisionText(decisions)) return null;
   const decisionId = `dec_${slugify(session.id)}`;
   const content = `${serializeFrontmatter({
     id: decisionId,
@@ -1104,6 +1104,31 @@ ${decisions}
 - ${session.path}
 `;
   return { id: decisionId, path: `decisions/${decisionId}.md`, content };
+}
+
+function hasMeaningfulDecisionText(value) {
+  const normalized = String(value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/ı/g, "i")
+    .replace(/İ/g, "I")
+    .toLocaleLowerCase("tr-TR")
+    .split(/\r?\n/)
+    .map((line) => line.replace(/^[\s>*-]+/, "").trim())
+    .filter(Boolean)
+    .join(" ")
+    .replace(/[.!?]+$/g, "")
+    .trim();
+  return ![
+    "",
+    "yok",
+    "karar yok",
+    "kayitli karar yok",
+    "kayitli karar bulunmuyor",
+    "karar kaydi yok",
+    "n/a",
+    "na"
+  ].includes(normalized);
 }
 
 export function buildManualDecision(draft, now = new Date()) {

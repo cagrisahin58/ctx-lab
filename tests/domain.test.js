@@ -123,6 +123,23 @@ test("decision içeriği üretir", () => {
   assert.match(decision.content, /GitHub source-of-truth olacak/);
 });
 
+test("varsayılan boş karar metninden karar kaydı üretmez", () => {
+  const summary = buildInboxSessionSummary(
+    {
+      id: "sess_no_decision",
+      source: "codex",
+      project: "ctx-lab",
+      goal: "Kapanış özetini kaydet.",
+      happened: "Karar alınmadan ilerleme kaydedildi.",
+      next: "Sonraki işi planla."
+    },
+    new Date("2026-05-13T12:00:00.000Z")
+  );
+  const record = parseMemoryFile(summary.path, summary.content, "sha-summary");
+
+  assert.equal(buildDecisionFromSession(record), null);
+});
+
 test("manuel karar kaydı üretir ve iş hattı kaynağını taşır", () => {
   const decision = buildManualDecision(
     {

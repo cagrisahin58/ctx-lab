@@ -2767,6 +2767,7 @@ function renderRecordDetail(record, withActions) {
   const suggestion = withActions && record.type === "inbox"
     ? suggestWorkItemForSession(state.records, record)
     : null;
+  const canExtractDecision = withActions && record.type === "inbox" && Boolean(buildDecisionFromSession(record));
   const archiveLabel = state.pendingArchiveId === record.id ? "Arşivi Onayla" : "Arşivle";
   return `
     <h3>${escapeHtml(record.title)}</h3>
@@ -2778,7 +2779,7 @@ function renderRecordDetail(record, withActions) {
     ${withActions ? `
       <div class="toolbar-actions">
         <button class="primary" data-action="create-work">Yeni/Proje İş Kartına Bağla</button>
-        <button data-action="save-decision">Karar Çıkar</button>
+        ${canExtractDecision ? `<button data-action="save-decision">Karar Çıkar</button>` : ""}
         <button class="${state.pendingArchiveId === record.id ? "danger" : ""}" data-action="archive">${archiveLabel}</button>
       </div>
       ${suggestion ? renderTriageSuggestion(suggestion) : ""}

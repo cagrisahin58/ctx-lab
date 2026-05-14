@@ -792,7 +792,7 @@ function buildCodexRunPrompt(project, input, automationLevel, template) {
     edit_no_commit: "Gerekli dosya degisikliklerini yap; commit atma.",
     test: "Gerekli testleri calistir; commit atma.",
     commit_prepare: "Degisiklik ozetini ve commit taslagini hazirla; kullanici onayi olmadan commit atma.",
-    commit_push: "Test sonucu ve commit ozetini gorunur yap; destructive git islemleri yapma."
+    commit_push: "Test sonucu ve commit ozetini gorunur yap; commit veya push yapma."
   }[automationLevel];
 
   return [
@@ -803,7 +803,8 @@ function buildCodexRunPrompt(project, input, automationLevel, template) {
     `Proje koku: ${project.path}`,
     `Prompt sablonu: ${templateText}`,
     `Otomasyon seviyesi: ${levelText}`,
-    "Yasak islemler: git reset --hard, git clean -fd, git checkout --, git restore, git branch -D, git push --force/--delete, credential dosyasi okuma.",
+    "Yasak islemler: git commit, git push, git reset --hard, git clean -fd, git checkout --, git restore, git branch -D, git push --force/--delete, credential dosyasi okuma.",
+    "Commit veya push gerekiyorsa yalnizca ctx-lab'in kullanici onayli commit uygulama kapisi kullanilacak.",
     "Tum gorunur kullanici metinleri Turkce tutulacak.",
     "",
     userPrompt
@@ -824,6 +825,9 @@ function assertSafeAutomationPrompt(prompt) {
   ];
   if (forbidden.some((pattern) => pattern.test(prompt))) {
     throw new Error("Destructive git islemi iceren Codex promptu reddedildi.");
+  }
+  if (/\bgit\s+(commit|push)\b/i.test(prompt)) {
+    throw new Error("Git commit veya push isteyen Codex promptu reddedildi; commit/push yalniz ctx-lab onay kapisindan uygulanir.");
   }
   if (SENSITIVE_PROMPT_PATTERNS.some((pattern) => pattern.test(prompt))) {
     throw new Error("Kimlik bilgisi veya sistem konfigurasyon dosyasi isteyen Codex promptu reddedildi.");
@@ -896,6 +900,13 @@ function attachCommitReview(record) {
 function buildCommitReadiness(record = {}) {
   if (!["commit_prepare", "commit_push"].includes(record.automationLevel)) return null;
   const changedFiles = Array.isArray(record.gitAfter?.changedFiles) ? record.gitAfter.changedFiles : [];
+  const headUnchanged = Boolean(
+    record.gitBefore?.available &&
+    record.gitAfter?.available &&
+    record.gitBefore?.head &&
+    record.gitAfter?.head &&
+    record.gitBefore.head === record.gitAfter.head
+  );
   const checks = [
     {
       id: "run",
@@ -916,6 +927,12 @@ function buildCommitReadiness(record = {}) {
       detail: commitReadinessTestDetail(record.testResult)
     },
     {
+      id: "head",
+      label: "Git HEAD değişmedi",
+      ok: headUnchanged,
+      detail: commitReadinessHeadDetail(record)
+    },
+    {
       id: "changes",
       label: "Dosya değişikliği",
       ok: Boolean(record.gitAfter?.available && changedFiles.length),
@@ -933,6 +950,15 @@ function buildCommitReadiness(record = {}) {
       : "Commit/push için eksik kanıt var.",
     checks
   };
+}
+
+function commitReadinessHeadDetail(record = {}) {
+  if (!record.gitBefore?.available || !record.gitAfter?.available) return "Git başlangıç veya sonuç snapshotı okunamadı.";
+  const before = record.gitBefore.head || "";
+  const after = record.gitAfter.head || "";
+  if (!before || !after) return "Git HEAD bilgisi eksik.";
+  if (before === after) return "Run sırasında commit uygulanmadı.";
+  return `Run sırasında Git HEAD değişti: ${before.slice(0, 8)} -> ${after.slice(0, 8)}. Commit/push ctx-lab onay kapısından uygulanmalı.`;
 }
 
 function buildCommitDraft(record = {}) {

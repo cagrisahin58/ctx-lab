@@ -359,6 +359,32 @@ test("codex run destructive git promptunu reddeder", async () => {
   }
 });
 
+test("codex run git commit veya push isteyen promptu reddeder", async () => {
+  const dir = await mkdtemp(join(tmpdir(), "ctxlab-runner-"));
+  const projectDir = await mkdtemp(join(tmpdir(), "ctxlab-project-"));
+  const paths = buildRunnerPaths(dir);
+
+  try {
+    const project = await registerProject(paths, {
+      name: "ctx-lab",
+      path: projectDir
+    });
+    for (const prompt of ["git commit -am test", "git push origin main"]) {
+      await assert.rejects(
+        () => startCodexRun(paths, {
+          projectId: project.id,
+          prompt,
+          dryRun: true
+        }),
+        /Git commit veya push/
+      );
+    }
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+    await rm(projectDir, { recursive: true, force: true });
+  }
+});
+
 test("codex run credential ve sistem konfigurasyon path isteyen promptu reddeder", async () => {
   const dir = await mkdtemp(join(tmpdir(), "ctxlab-runner-"));
   const projectDir = await mkdtemp(join(tmpdir(), "ctxlab-project-"));
@@ -524,6 +550,59 @@ test("codex run test sonucunu ve commit kapisini loglar", async () => {
     assert.equal(log.testResult, "passed");
     assert.equal(log.commitReadiness.ready, true);
     assert.equal(log.commitDraft.ready, true);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+    await rm(projectDir, { recursive: true, force: true });
+  }
+});
+
+test("codex run commit seviyesinde HEAD degisirse commit taslagini hazir saymaz", async () => {
+  const dir = await mkdtemp(join(tmpdir(), "ctxlab-runner-"));
+  const projectDir = await mkdtemp(join(tmpdir(), "ctxlab-project-"));
+  const paths = buildRunnerPaths(dir);
+  let statusCalls = 0;
+  let headCalls = 0;
+
+  try {
+    const project = await registerProject(paths, {
+      name: "ctx-lab",
+      path: projectDir
+    });
+    const run = await startCodexRun(paths, {
+      projectId: project.id,
+      automationLevel: "commit_prepare",
+      prompt: "Testleri calistir ve commit taslagini hazirla.",
+      dryRun: false
+    }, {
+      now: new Date("2026-05-14T12:31:00.000Z"),
+      finishedAt: new Date("2026-05-14T12:32:00.000Z"),
+      candidates: ["codex.cmd"],
+      runCommand: async (_command, args) => {
+        if (args.includes("--version")) return { ok: true, stdout: "codex-cli test\n", stderr: "", code: 0 };
+        return { ok: true, stdout: "npm test\nall tests passed\n", stderr: "", code: 0 };
+      },
+      gitCommand: async (_command, args) => {
+        if (args.includes("--is-inside-work-tree")) return { ok: true, stdout: "true\n", stderr: "", code: 0 };
+        if (args.includes("--abbrev-ref")) return { ok: true, stdout: "main\n", stderr: "", code: 0 };
+        if (args.includes("HEAD")) {
+          headCalls += 1;
+          return { ok: true, stdout: headCalls === 1 ? "abcdef1234567890\n" : "fedcba0987654321\n", stderr: "", code: 0 };
+        }
+        if (args.includes("status")) {
+          statusCalls += 1;
+          return { ok: true, stdout: statusCalls === 1 ? "" : " M src/main.js\n", stderr: "", code: 0 };
+        }
+        return { ok: false, stdout: "", stderr: "beklenmeyen git komutu", code: 1 };
+      }
+    });
+    const headCheck = run.commitReadiness.checks.find((check) => check.id === "head");
+
+    assert.equal(run.status, "succeeded");
+    assert.equal(run.testResult, "passed");
+    assert.equal(headCheck.ok, false);
+    assert.match(headCheck.detail, /Git HEAD değişti/);
+    assert.equal(run.commitReadiness.ready, false);
+    assert.equal(run.commitDraft.ready, false);
   } finally {
     await rm(dir, { recursive: true, force: true });
     await rm(projectDir, { recursive: true, force: true });

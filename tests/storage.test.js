@@ -3,11 +3,14 @@ import assert from "node:assert/strict";
 import {
   CONFIG_STORAGE_KEY,
   RECORD_CACHE_STORAGE_KEY,
+  THEME_STORAGE_KEY,
   loadAppConfig,
   loadRecordCache,
+  loadTheme,
   memoryCacheScope,
   saveAppConfig,
-  saveRecordCache
+  saveRecordCache,
+  saveTheme
 } from "../src/storage.js";
 
 class MemoryStorage {
@@ -64,4 +67,15 @@ test("bozuk veya eksik önbellek güvenli biçimde boş döner", () => {
   assert.equal(cache.scope, "cagrisahin58/work-memory@main");
   assert.equal(cache.syncedAt, "");
   assert.deepEqual(cache.records, []);
+});
+
+test("tema tercihi açık ve koyu seçenekleriyle saklanır", () => {
+  const storage = new MemoryStorage();
+
+  assert.equal(loadTheme(storage), "dark");
+  assert.equal(saveTheme("light", storage), "light");
+  assert.equal(storage.getItem(THEME_STORAGE_KEY), "light");
+  assert.equal(loadTheme(storage), "light");
+  assert.equal(saveTheme("bilinmeyen", storage), "dark");
+  assert.equal(loadTheme(storage), "dark");
 });

@@ -32,6 +32,7 @@ for (const expected of [
   "Oturum Akisi",
   "Proje Calisma Merkezi",
   "Komut Paleti",
+  "Temayi Degistir",
   "Kisayollar",
   "Hafiza Sagligi",
   "Hafiza Senkron Durumu",

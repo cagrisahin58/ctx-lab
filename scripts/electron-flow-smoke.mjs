@@ -64,6 +64,10 @@ try {
   await expectVisibleText(page, "Codex'e Devret");
   await expectVisibleText(page, "Çalışma Günlüğü");
   await expectVisibleText(page, "Tek tıkla devam brifi");
+  await page.locator('[data-action="toggle-theme"]').click();
+  assert.equal(await page.evaluate(() => document.documentElement.dataset.theme), "light");
+  await page.locator('[data-action="toggle-theme"]').click();
+  assert.equal(await page.evaluate(() => document.documentElement.dataset.theme), "dark");
 
   await page.keyboard.press("Control+K");
   await expectVisibleText(page, "Komut Paleti");

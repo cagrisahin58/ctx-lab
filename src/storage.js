@@ -1,5 +1,6 @@
 export const CONFIG_STORAGE_KEY = "ctxlab.config.v1";
 export const RECORD_CACHE_STORAGE_KEY = "ctxlab.records.cache.v1";
+export const THEME_STORAGE_KEY = "ctxlab.theme.v1";
 
 export const DEFAULT_CONFIG = {
   owner: "",
@@ -19,6 +20,17 @@ export function loadAppConfig(storage = localStorage) {
 export function saveAppConfig(config, storage = localStorage) {
   const normalized = { ...DEFAULT_CONFIG, ...config };
   storage.setItem(CONFIG_STORAGE_KEY, JSON.stringify(normalized));
+  return normalized;
+}
+
+export function loadTheme(storage = localStorage) {
+  const value = storage.getItem(THEME_STORAGE_KEY);
+  return value === "light" ? "light" : "dark";
+}
+
+export function saveTheme(theme, storage = localStorage) {
+  const normalized = theme === "light" ? "light" : "dark";
+  storage.setItem(THEME_STORAGE_KEY, normalized);
   return normalized;
 }
 

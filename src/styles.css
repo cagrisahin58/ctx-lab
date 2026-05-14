@@ -20,6 +20,27 @@
   --shadow: 0 18px 50px rgba(0, 0, 0, 0.28);
 }
 
+:root[data-theme="light"] {
+  color-scheme: light;
+  --bg: #eef3f7;
+  --rail: #f8fafc;
+  --panel: #ffffff;
+  --panel-soft: #f1f5f9;
+  --surface: #e2e8f0;
+  --text: #0f172a;
+  --muted: #475569;
+  --faint: #64748b;
+  --line: rgba(15, 23, 42, 0.14);
+  --accent: #0d9488;
+  --accent-strong: #0f766e;
+  --blue: #2563eb;
+  --violet: #7c3aed;
+  --warning: #b45309;
+  --danger: #dc2626;
+  --success: #059669;
+  --shadow: 0 18px 50px rgba(15, 23, 42, 0.14);
+}
+
 * {
   box-sizing: border-box;
 }
@@ -164,6 +185,22 @@ label {
   border-color: rgba(45, 212, 191, 0.22);
 }
 
+.theme-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  background: transparent;
+}
+
+.theme-toggle span {
+  color: var(--muted);
+}
+
+.theme-toggle strong {
+  font-size: 13px;
+}
+
 kbd {
   min-width: 24px;
   border: 1px solid var(--line);
@@ -194,7 +231,7 @@ kbd {
 }
 
 .nav button {
-  color: #cad6e4;
+  color: var(--muted);
   padding: 9px 10px;
 }
 

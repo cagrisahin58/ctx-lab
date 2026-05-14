@@ -13,6 +13,7 @@ AI sohbet geçmişine güvenmek yerine, her önemli oturumdan sonra kısa ve ins
 - karar defterini kaynaklı tutar,
 - Codex veya Claude için iş hattı merkezli, içerik metrikleri görünen devam brifi üretir.
 - `Ctrl+K` komut paletiyle görünüm, proje, GitHub yenileme ve Codex Runner aksiyonlarına hızlı erişim sağlar.
+- Açık/koyu tema tercihini yerelde saklar.
 - Hafıza Sağlığı panelinde duplicate id, eksik alan ve bilinmeyen status uyarılarını gösterir.
 - Hafıza Senkron Durumu panelinde GitHub cache, yerel mirror ve index farkını açıkça gösterir.
 

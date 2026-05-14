@@ -43,16 +43,19 @@ import {
   syncMemoryMirror,
   startRunnerCodexRun
 } from "./runner-client.js";
-import { loadAppConfig, loadRecordCache, saveAppConfig, saveRecordCache } from "./storage.js";
+import { loadAppConfig, loadRecordCache, loadTheme, saveAppConfig, saveRecordCache, saveTheme } from "./storage.js";
 
 const app = document.querySelector("#app");
 const initialConfig = loadAppConfig();
 const initialCache = loadRecordCache(initialConfig);
+const initialTheme = loadTheme();
 const needsInitialOnboarding = !initialConfig.owner || !initialConfig.repo || !initialConfig.token;
+document.documentElement.dataset.theme = initialTheme;
 
 const state = {
   view: needsInitialOnboarding ? "onboarding" : "workspace",
   config: initialConfig,
+  theme: initialTheme,
   records: initialCache.records,
   selectedId: initialCache.records[0]?.id || "",
   selectedProject: "",
@@ -149,6 +152,13 @@ function setToast(message, kind = "info") {
 function setView(view) {
   state.view = view;
   keepSelectionVisible();
+  render();
+}
+
+function toggleTheme() {
+  state.theme = saveTheme(state.theme === "dark" ? "light" : "dark");
+  document.documentElement.dataset.theme = state.theme;
+  addActivity(state.theme === "dark" ? "Koyu tema seçildi." : "Açık tema seçildi.", "info");
   render();
 }
 
@@ -835,6 +845,10 @@ function render() {
           <span>Komut Paleti</span>
           <kbd>Ctrl K</kbd>
         </button>
+        <button class="theme-toggle" data-action="toggle-theme">
+          <span>Tema</span>
+          <strong>${state.theme === "dark" ? "Koyu" : "Açık"}</strong>
+        </button>
         <nav class="nav" aria-label="Ana gezinme">
           ${navButton("onboarding", "Kurulum")}
           ${navButton("workspace", "Proje Çalışma Merkezi")}
@@ -1021,6 +1035,7 @@ function commandItems() {
     { id: "new:decision", title: "Yeni Karar", subtitle: "Kaynaklı karar kaydı oluştur", shortcut: "n d", keywords: "yeni karar decision", run: () => setView("new-decision") },
     { id: "action:sync", title: "GitHub'dan Yenile", subtitle: repoLabel(), shortcut: "s", keywords: "sync yenile github", run: () => handleAction("sync") },
     { id: "action:refresh-runner", title: "Runner Durumunu Yenile", subtitle: "Codex CLI ve proje kökleri", keywords: "runner refresh codex", run: () => handleAction("refresh-runner") },
+    { id: "action:theme", title: "Temayı Değiştir", subtitle: state.theme === "dark" ? "Açık temaya geç" : "Koyu temaya geç", keywords: "tema dark light acik koyu", run: () => handleAction("toggle-theme") },
     { id: "action:demo", title: "Örnek Verilerle Dene", subtitle: "Demo çalışma hafızası yükle", keywords: "demo ornek veri", run: () => handleAction("demo") },
     { id: "action:copy-context", title: "Devam Brifini Kopyala", subtitle: selectedProjectName() || "Seçili kayıt", keywords: "kopyala devam brifi context", run: () => handleAction("copy-context-pack") },
     { id: "help:shortcuts", title: "Kısayollar", subtitle: "Klavye akışını aç", shortcut: "?", keywords: "yardim kisayol shortcut", run: () => openCommandPalette("shortcuts") },
@@ -2534,6 +2549,7 @@ function handleAction(action, payload) {
   };
 
   if (action === "sync") guarded(syncFromGitHub);
+  if (action === "toggle-theme") toggleTheme();
   if (action === "open-command-palette") openCommandPalette();
   if (action === "open-shortcuts") openCommandPalette("shortcuts");
   if (action === "close-command-palette") closeCommandPalette();

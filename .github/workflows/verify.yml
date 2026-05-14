@@ -40,8 +40,14 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Run desktop smoke and user flow
-        run: npm run verify:desktop
+      - name: Run desktop static smoke
+        run: npm run build && node scripts/desktop-smoke.mjs
+
+      - name: Run Electron boot smoke
+        run: npm run build && node scripts/electron-smoke-launch.mjs
+
+      - name: Run Electron user flow
+        run: npm run desktop:flow
 
       - name: Run Windows launcher dry-run
         shell: pwsh

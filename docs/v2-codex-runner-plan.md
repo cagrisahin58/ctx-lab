@@ -78,4 +78,5 @@ ctx-lab v2, GitHub-backed hafiza katmanini koruyarak proje timeline merkezli, Tu
 - runner unit testleri
 - runner dry-run health check
 - Windows launcher dry-run
+- Electron desktop smoke ve kullanici seviyesi desktop flow
 - GitHub Actions verify

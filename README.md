@@ -70,6 +70,14 @@ npm run desktop:flow
 
 Bu kontrol Electron'u izole bir kullanıcı veri klasörüyle açar; ilk kurulum ekranını, yerel proje kökü kaydını, örnek devam brifi üretimini, demo veriden çalışma merkezine geçişi, Codex dry-run kaydı oluşturmayı ve ekran görüntüsü alınabildiğini doğrular.
 
+Masaüstü kapısını toplu çalıştırmak için:
+
+```bash
+npm run verify:desktop
+```
+
+Bu komut Electron güvenlik/IPC smoke kontrolünü ve kullanıcı seviyesindeki masaüstü akışını birlikte çalıştırır. GitHub Actions aynı kapıyı Linux üzerinde `xvfb-run` ile çalıştırır.
+
 İlk açılışta `Kısa Kurulum` ekranı hafıza reposu bağlantısı, repo tanılaması, yerel mirror/index, proje kökü, Codex CLI kontrolü ve örnek devam brifi adımlarını tek akışta gösterir. Kurulum tamamlandığında kullanıcı doğrudan `Proje Çalışma Merkezi` ekranına geçer.
 
 Kalite kapısı:

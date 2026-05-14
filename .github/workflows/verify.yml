@@ -24,3 +24,6 @@ jobs:
 
       - name: Run tests, build and smoke checks
         run: npm run verify
+
+      - name: Run desktop smoke and user flow
+        run: xvfb-run -a npm run verify:desktop

@@ -15,6 +15,7 @@
     "desktop:flow": "npm run build && node scripts/electron-flow-smoke.mjs",
     "desktop:pack": "npm run build && electron-builder --dir",
     "desktop:dist": "npm run build && electron-builder --win portable",
+    "verify:desktop": "npm run desktop:smoke && npm run desktop:flow",
     "start:windows": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/start-windows.ps1",
     "runner": "node scripts/ctxlab-runner.mjs",
     "runner:check": "node scripts/ctxlab-runner.mjs --dry-run",

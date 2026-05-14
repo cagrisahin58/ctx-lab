@@ -564,6 +564,7 @@ export async function applyCodexRunCommit(paths = buildRunnerPaths(), input = {}
 export function createRunnerServer(options = {}) {
   const paths = options.paths || buildRunnerPaths(options.appDataDir);
   const host = options.host || "127.0.0.1";
+  const runnerToken = String(options.runnerToken || process.env.CTX_LAB_RUNNER_TOKEN || "").trim();
 
   return createServer(async (request, response) => {
     response.setHeader("Access-Control-Allow-Origin", options.allowOrigin || "http://127.0.0.1:5173");
@@ -577,6 +578,9 @@ export function createRunnerServer(options = {}) {
     }
 
     try {
+      if (runnerToken && request.headers["x-ctxlab-runner-token"] !== runnerToken) {
+        return sendJson(response, 401, { ok: false, error: "Runner token eksik veya geçersiz." });
+      }
       const url = new URL(request.url || "/", `http://${host}`);
       if (request.method === "GET" && url.pathname === "/") {
         return sendJson(response, 200, {
@@ -1154,6 +1158,7 @@ function readCliArgs(argv) {
   const args = {
     port: DEFAULT_RUNNER_PORT,
     host: "127.0.0.1",
+    runnerToken: process.env.CTX_LAB_RUNNER_TOKEN || "",
     dryRun: false
   };
 
@@ -1161,6 +1166,7 @@ function readCliArgs(argv) {
     const item = argv[index];
     if (item === "--port") args.port = Number(argv[index + 1] || DEFAULT_RUNNER_PORT);
     if (item === "--host") args.host = argv[index + 1] || "127.0.0.1";
+    if (item === "--token") args.runnerToken = argv[index + 1] || "";
     if (item === "--dry-run") args.dryRun = true;
   }
 
@@ -1177,8 +1183,9 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
     process.exit(payload.codex.available ? 0 : 2);
   }
 
-  const server = createRunnerServer({ paths, host: args.host });
+  const server = createRunnerServer({ paths, host: args.host, runnerToken: args.runnerToken });
   server.listen(args.port, args.host, () => {
-    console.log(`ctx-lab çalıştırıcı hazır: http://${args.host}:${args.port}`);
+    const tokenState = args.runnerToken ? " token koruması açık" : "";
+    console.log(`ctx-lab çalıştırıcı hazır: http://${args.host}:${args.port}${tokenState}`);
   });
 }

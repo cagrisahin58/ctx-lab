@@ -28,10 +28,14 @@ if (-not $SkipInstall -and -not (Test-Path (Join-Path $repoRoot "node_modules"))
 
 $url = "http://127.0.0.1:$Port"
 $runnerUrl = "http://127.0.0.1:$RunnerPort"
+$runnerToken = ""
 
 if ($Web) {
+  $runnerToken = [guid]::NewGuid().ToString("N")
+  $env:CTX_LAB_RUNNER_TOKEN = $runnerToken
+  $env:VITE_CTX_LAB_RUNNER_TOKEN = $runnerToken
   Write-Host "ctx-lab web hazir: $url"
-  Write-Host "ctx-lab calistirici: $runnerUrl"
+  Write-Host "ctx-lab calistirici: $runnerUrl (token korumali)"
 } else {
   Write-Host "ctx-lab masaustu kabugu baslatilacak."
   Write-Host "Vite dev server: $url"

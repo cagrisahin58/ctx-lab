@@ -51,6 +51,7 @@ assert.ok(builder.includes("icon: electron/assets/icon.ico"), "Windows paket iko
 const readme = readFileSync(join(root, "README.md"), "utf8");
 assert.ok(readme.includes("main process içindeki güvenli IPC"), "README Electron IPC calistirici omurgasini anlatmali");
 assert.ok(readme.includes("yalnızca `127.0.0.1` üzerinde HTTP servisi"), "README web fallback localhost sinirini anlatmali");
+assert.ok(readme.includes("x-ctxlab-runner-token"), "README web fallback runner token korumasini anlatmali");
 assert.ok(!readme.includes("`start-windows` komutu ayrıca `scripts/ctxlab-runner.mjs` servislerini başlatır"), "README varsayilan launcher icin eski localhost runner anlatimini tasimamali");
 
 const desktopDev = readFileSync(join(root, "scripts/desktop-dev.mjs"), "utf8");
@@ -63,5 +64,7 @@ const windowsLauncher = readFileSync(join(root, "scripts/start-windows.ps1"), "u
 assert.ok(windowsLauncher.includes("run desktop:dev"), "Windows launcher varsayilan olarak Electron masaustu kabugunu acmali");
 assert.ok(windowsLauncher.includes("run desktop:smoke"), "Windows launcher deneme kontrolunde masaustu smoke calistirmali");
 assert.ok(windowsLauncher.includes("if ($Web)"), "Windows launcher web fallback anahtarini korumali");
+assert.ok(windowsLauncher.includes("CTX_LAB_RUNNER_TOKEN"), "Windows web launcher runner token uretmeli");
+assert.ok(windowsLauncher.includes("VITE_CTX_LAB_RUNNER_TOKEN"), "Windows web launcher tokeni renderer dev servera tasimali");
 
 console.log("desktop smoke ok");

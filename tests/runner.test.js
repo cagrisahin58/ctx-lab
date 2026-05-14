@@ -733,6 +733,35 @@ test("runner server kok endpointinde saglik ve endpoint listesini sunar", async 
   }
 });
 
+test("runner server token korumasi varsa HTTP isteklerini dogrular", async () => {
+  const dir = await mkdtemp(join(tmpdir(), "ctxlab-runner-"));
+  const paths = buildRunnerPaths(dir);
+  const server = createRunnerServer({
+    paths,
+    runnerToken: "secret-token",
+    runCommand: async () => ({ ok: true, stdout: "codex-cli test\n", stderr: "" })
+  });
+
+  try {
+    await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
+    const { port } = server.address();
+    const rejected = await fetch(`http://127.0.0.1:${port}/health`);
+    const rejectedBody = await rejected.json();
+    const accepted = await fetch(`http://127.0.0.1:${port}/health`, {
+      headers: { "x-ctxlab-runner-token": "secret-token" }
+    });
+    const acceptedBody = await accepted.json();
+
+    assert.equal(rejected.status, 401);
+    assert.match(rejectedBody.error, /token/);
+    assert.equal(accepted.status, 200);
+    assert.equal(acceptedBody.service, "ctx-lab-runner");
+  } finally {
+    await new Promise((resolve) => server.close(resolve));
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
 test("runner server /runs/events endpointinden olay gunlugunu sunar", async () => {
   const dir = await mkdtemp(join(tmpdir(), "ctxlab-runner-"));
   const paths = buildRunnerPaths(dir);

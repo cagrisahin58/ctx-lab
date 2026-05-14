@@ -86,10 +86,12 @@ export async function syncMemoryMirror(config, options = {}) {
 async function runnerRequest(path, requestOptions = {}, options = {}) {
   const fetchImpl = options.fetch || fetch;
   const baseUrl = options.baseUrl || DEFAULT_RUNNER_URL;
+  const runnerToken = options.runnerToken || defaultRunnerToken();
   const response = await fetchImpl(`${baseUrl}${path}`, {
     ...requestOptions,
     headers: {
       "Content-Type": "application/json",
+      ...(runnerToken ? { "x-ctxlab-runner-token": runnerToken } : {}),
       ...(requestOptions.headers || {})
     }
   });
@@ -98,6 +100,10 @@ async function runnerRequest(path, requestOptions = {}, options = {}) {
     throw new Error(payload.error || `Yerel çalıştırıcı HTTP ${response.status}`);
   }
   return payload;
+}
+
+function defaultRunnerToken() {
+  return import.meta.env?.VITE_CTX_LAB_RUNNER_TOKEN || "";
 }
 
 function memoryParams(config = {}) {

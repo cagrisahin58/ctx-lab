@@ -115,7 +115,7 @@ Token ve son başarılı hafıza anlık görüntüsü yalnızca tarayıcı local
 
 ## Yerel Codex Çalıştırıcı
 
-Electron masaüstü kabuğunda yerel çalıştırıcı omurgası main process içindeki güvenli IPC kanallarından yürür; aynı çalışma zamanı fonksiyonları `scripts/ctxlab-runner.mjs` içinde tutulur. Web fallback için `.\scripts\start-windows.cmd -Web` kullanıldığında bu modül yalnızca `127.0.0.1` üzerinde HTTP servisi olarak açılır. Her iki yüzey de Codex CLI durumunu denetler, `%APPDATA%/ctx-lab` altında yerel hafıza klasörlerini hazırlar ve otomasyon kapsamına alınacak proje köklerini `projects.json` dosyasında tutar.
+Electron masaüstü kabuğunda yerel çalıştırıcı omurgası main process içindeki güvenli IPC kanallarından yürür; aynı çalışma zamanı fonksiyonları `scripts/ctxlab-runner.mjs` içinde tutulur. Web fallback için `.\scripts\start-windows.cmd -Web` kullanıldığında bu modül yalnızca `127.0.0.1` üzerinde HTTP servisi olarak açılır ve geçici `x-ctxlab-runner-token` header'ı ile korunur. Her iki yüzey de Codex CLI durumunu denetler, `%APPDATA%/ctx-lab` altında yerel hafıza klasörlerini hazırlar ve otomasyon kapsamına alınacak proje köklerini `projects.json` dosyasında tutar.
 
 `Yerel Codex Çalıştırıcı` ekranında çalıştırıcı sağlığı, Codex CLI sürümü ve kayıtlı proje kökleri görülür. Bir proje kökü kaydedilmeden Codex otomasyonu o klasörde dosya değiştirmeyecek şekilde tasarlanır.
 

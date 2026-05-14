@@ -28,6 +28,20 @@ test("runner client health endpointini okur", async () => {
   assert.equal(health.service, "ctx-lab-runner");
 });
 
+test("runner client HTTP token headerini gonderir", async () => {
+  const calls = [];
+  await fetchRunnerHealth({
+    baseUrl: "http://runner.test",
+    runnerToken: "secret-token",
+    fetch: async (url, options) => {
+      calls.push({ url, options });
+      return jsonResponse(200, { ok: true, service: "ctx-lab-runner" });
+    }
+  });
+
+  assert.equal(calls[0].options.headers["x-ctxlab-runner-token"], "secret-token");
+});
+
 test("runner client proje registry endpointini okur", async () => {
   const registry = await fetchRunnerProjects({
     baseUrl: "http://runner.test",

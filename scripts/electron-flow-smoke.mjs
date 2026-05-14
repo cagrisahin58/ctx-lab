@@ -41,6 +41,19 @@ try {
   await expectVisibleText(page, "Codex CLI Kontrolü");
   await expectVisibleText(page, "Örnek Devam Brifi");
   await expectVisibleText(page, "Proje Çalışma Merkezi");
+  await page.waitForFunction(() => {
+    const text = document.body.innerText || "";
+    return !text.includes("Kontrol bekliyor") && !text.includes("Codex kontrol bekliyor");
+  }, null, { timeout: 20_000 });
+
+  const projectForm = page.locator("#onboarding-project-form");
+  await projectForm.locator('input[name="name"]').fill("ctx-lab");
+  await projectForm.locator('input[name="repo"]').fill("cagrisahin58/ctx-lab");
+  await projectForm.locator('input[name="branch"]').fill("main");
+  await projectForm.locator('input[name="path"]').fill(root);
+  await projectForm.getByRole("button", { name: "Proje Kökünü Kaydet" }).click();
+  await expectVisibleText(page, "Proje kökü yerel runner'a kaydedildi.");
+  await expectVisibleText(page, "1 kayıtlı kök");
 
   await page.getByRole("button", { name: "Örnek Devam Brifi Üret" }).click();
   await expectVisibleText(page, "Codex için ctx-lab devam brifi");
@@ -51,6 +64,12 @@ try {
   await expectVisibleText(page, "Codex'e Devret");
   await expectVisibleText(page, "Çalışma Günlüğü");
   await expectVisibleText(page, "Tek tıkla devam brifi");
+
+  const runForm = page.locator("#codex-run-form");
+  await runForm.locator('textarea[name="prompt"]').fill("ctx-lab Electron smoke icin dry-run devam brifi hazirla.");
+  await runForm.getByRole("button", { name: "Run kaydı oluştur" }).click();
+  await expectVisibleText(page, "Codex dry-run kaydı hazırlandı.");
+  await expectVisibleText(page, "dry_run");
 
   const title = await electronApp.evaluate(({ BrowserWindow }) => {
     return BrowserWindow.getAllWindows()[0]?.getTitle();

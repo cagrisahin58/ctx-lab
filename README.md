@@ -51,7 +51,7 @@ Kullanıcı seviyesindeki masaüstü akışını doğrulamak için:
 npm run desktop:flow
 ```
 
-Bu kontrol Electron'u izole bir kullanıcı veri klasörüyle açar; ilk kurulum ekranını, örnek devam brifi üretimini, demo veriden çalışma merkezine geçişi ve ekran görüntüsü alınabildiğini doğrular.
+Bu kontrol Electron'u izole bir kullanıcı veri klasörüyle açar; ilk kurulum ekranını, yerel proje kökü kaydını, örnek devam brifi üretimini, demo veriden çalışma merkezine geçişi, Codex dry-run kaydı oluşturmayı ve ekran görüntüsü alınabildiğini doğrular.
 
 İlk açılışta `Kısa Kurulum` ekranı hafıza reposu bağlantısı, repo tanılaması, yerel mirror/index, proje kökü, Codex CLI kontrolü ve örnek devam brifi adımlarını tek akışta gösterir. Kurulum tamamlandığında kullanıcı doğrudan `Proje Çalışma Merkezi` ekranına geçer.
 

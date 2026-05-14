@@ -78,6 +78,8 @@ for (const expected of [
   "Karar Detayi",
   "Devam Brifi",
   "Paket icerigi",
+  "Kaydedilen Devam Brifleri",
+  "Henuz kaydedilmis devam brifi yok",
   "Tahmini token",
   "Baglantiyi Tanila",
   "Hafiza baglantisi hazir",

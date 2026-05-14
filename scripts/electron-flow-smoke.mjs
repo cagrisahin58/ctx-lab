@@ -606,6 +606,8 @@ try {
   await expectVisibleText(page, "Tahmini token");
   await expectVisibleText(page, "Paket İçeriği");
   await expectVisibleText(page, "Paket Kaynakları");
+  await expectVisibleText(page, "Kaydedilen Devam Brifleri");
+  await expectVisibleText(page, "Henüz kaydedilmiş devam brifi yok.");
   await expectVisibleText(page, "Hedef araç: Codex");
   await expectVisibleText(page, "Codex için hazırlanıyor");
   await expectVisibleText(page, "Önizleme hedefi: Codex");
@@ -631,6 +633,13 @@ try {
   const claudeHref = await claudeLink.getAttribute("href");
   assert.ok(claudeHref?.startsWith("https://claude.ai/new?prompt="), "Claude linki yeni sohbet prompt URL'si olmalı");
   assert.match(decodeURIComponent(claudeHref.split("prompt=").slice(1).join("prompt=")), /Claude Code için ctx-lab devam brifi/);
+  await page.getByRole("button", { name: "Devam Brifini Kaydet" }).click();
+  await expectVisibleText(page, "Devam brifi kaydı hazırlandı.");
+  await page.locator(".handoff-history-item").filter({ hasText: "Claude Code" }).first().waitFor({
+    state: "visible",
+    timeout: 15_000
+  });
+  await expectVisibleText(page, "handoffs/handoff_work_ctx_lab_redesign_claude.md");
   await page.keyboard.press("Control+K");
   await page.locator("[data-command-search]").fill("hafıza sağlığı");
   await page.locator('[data-command-id="view:health"]').click();

@@ -2499,6 +2499,12 @@ function renderHandoff() {
             ${renderHandoffSources(bundle)}
           </div>
         </section>
+        <section class="handoff-history">
+          <h4>Kaydedilen Devam Brifleri</h4>
+          <div class="handoff-history-list" aria-label="Kaydedilen devam brifleri">
+            ${renderHandoffHistory(selected)}
+          </div>
+        </section>
         <div class="toolbar-actions">
           <button class="primary" data-action="save-handoff-current">Devam Brifini Kaydet</button>
           <button data-action="copy-handoff">Kopyala</button>
@@ -2527,6 +2533,34 @@ function handoffTargetMeta(target) {
     label: "Codex",
     description: "Codex CLI veya Codex sohbetinde devam edecek görev için kontrollü çalışma kuralı eklenir."
   };
+}
+
+function handoffHistoryRecords(record) {
+  if (!record) return [];
+  return state.records
+    .filter((item) =>
+      item.type === "handoffs" &&
+      item.frontmatter?.kind !== "codex_run" &&
+      item.frontmatter?.source_record === record.id
+    )
+    .sort((a, b) => recordTimestamp(b) - recordTimestamp(a))
+    .slice(0, 5);
+}
+
+function renderHandoffHistory(record) {
+  const history = handoffHistoryRecords(record);
+  if (!history.length) return `<div class="empty compact">Henüz kaydedilmiş devam brifi yok.</div>`;
+  return history.map((item) => {
+    const target = handoffTargetMeta(item.frontmatter?.target || "codex");
+    return `
+      <div class="handoff-history-item">
+        <span class="badge ${target.id === "claude" ? "waiting" : "active"}">${escapeHtml(target.label)}</span>
+        <strong>${escapeHtml(item.title || "Devam Brifi")}</strong>
+        <span>${escapeHtml(recordDateLabel(item) || "Tarih yok")}</span>
+        <small>${escapeHtml(item.path)}</small>
+      </div>
+    `;
+  }).join("");
 }
 
 function handoffBundle(record, prompt) {

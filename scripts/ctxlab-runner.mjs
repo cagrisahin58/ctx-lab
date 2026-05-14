@@ -480,7 +480,8 @@ export async function startCodexRun(paths = buildRunnerPaths(), input = {}, opti
 
   await writeRunLog(logPath, { ...baseRecord, codex, gitBefore });
   const sandbox = sandboxForAutomationLevel(automationLevel);
-  await appendRunEvent(eventLogPath, {
+  const { queueRunEvent, flushRunEvents } = createRunEventWriter(eventLogPath);
+  await queueRunEvent({
     event: "start",
     at: new Date().toISOString(),
     runId: id,
@@ -499,13 +500,13 @@ export async function startCodexRun(paths = buildRunnerPaths(), input = {}, opti
   ], {
     cwd: project.path,
     input: prompt,
-    onStdout: (chunk) => appendRunEvent(eventLogPath, {
+    onStdout: (chunk) => queueRunEvent({
       event: "stdout",
       at: new Date().toISOString(),
       runId: id,
       text: chunk
     }),
-    onStderr: (chunk) => appendRunEvent(eventLogPath, {
+    onStderr: (chunk) => queueRunEvent({
       event: "stderr",
       at: new Date().toISOString(),
       runId: id,
@@ -514,6 +515,7 @@ export async function startCodexRun(paths = buildRunnerPaths(), input = {}, opti
   });
 
   const finishedAt = (options.finishedAt || new Date()).toISOString();
+  await flushRunEvents();
   const gitAfter = await readGitSnapshot(project.path, options.gitCommand);
   const record = {
     ...baseRecord,
@@ -532,7 +534,7 @@ export async function startCodexRun(paths = buildRunnerPaths(), input = {}, opti
     exitCode: result.code ?? (result.ok ? 0 : 1)
   };
   attachCommitReview(record);
-  await appendRunEvent(eventLogPath, {
+  await queueRunEvent({
     event: "finish",
     at: finishedAt,
     runId: id,
@@ -540,6 +542,7 @@ export async function startCodexRun(paths = buildRunnerPaths(), input = {}, opti
     exitCode: record.exitCode,
     testResult: record.testResult
   });
+  await flushRunEvents();
   await writeRunLog(logPath, record);
   return attachRunEventPreview(paths, record);
 }
@@ -1178,6 +1181,24 @@ async function writeRunLog(logPath, record) {
 
 async function appendRunEvent(eventLogPath, event) {
   await appendFile(eventLogPath, `${JSON.stringify(event)}\n`, "utf8");
+}
+
+function createRunEventWriter(eventLogPath) {
+  let chain = Promise.resolve();
+  let failure = null;
+  const queueRunEvent = (event) => {
+    chain = chain
+      .then(() => appendRunEvent(eventLogPath, event))
+      .catch((error) => {
+        failure ||= error;
+      });
+    return chain;
+  };
+  const flushRunEvents = async () => {
+    await chain;
+    if (failure) throw failure;
+  };
+  return { queueRunEvent, flushRunEvents };
 }
 
 async function attachRunEventPreview(paths, run) {

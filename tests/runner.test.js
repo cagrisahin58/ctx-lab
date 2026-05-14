@@ -70,6 +70,21 @@ test("detectCodex çalışan ilk adayı döndürür", async () => {
   assert.equal(result.version, "codex-cli 0.test");
 });
 
+test("detectCodex aday komutlarini kisa timeout ile cagirir", async () => {
+  const seen = [];
+  const result = await detectCodex({
+    candidates: ["codex.cmd"],
+    timeoutMs: 123,
+    runCommand: async (_command, _args, options) => {
+      seen.push(options.timeoutMs);
+      return { ok: false, stdout: "", stderr: "timeout" };
+    }
+  });
+
+  assert.equal(result.available, false);
+  assert.deepEqual(seen, [123]);
+});
+
 test("runner health payload app-data, proje sayısı ve codex durumunu döndürür", async () => {
   const dir = await mkdtemp(join(tmpdir(), "ctxlab-runner-"));
   const paths = buildRunnerPaths(dir);

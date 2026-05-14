@@ -133,9 +133,10 @@ export function codexCandidates(env = process.env, platform = process.platform) 
 export async function detectCodex(options = {}) {
   const candidates = options.candidates || codexCandidates(options.env, options.platform);
   const run = options.runCommand || runCommand;
+  const timeoutMs = options.timeoutMs || 3000;
 
   for (const candidate of candidates) {
-    const result = await run(candidate, ["--version"]);
+    const result = await run(candidate, ["--version"], { timeoutMs });
     if (result.ok) {
       return {
         available: true,
@@ -759,6 +760,14 @@ function sendJson(response, status, payload) {
 
 function runCommand(command, args, options = {}) {
   return new Promise((resolveResult) => {
+    let settled = false;
+    let timeout;
+    const finish = (result) => {
+      if (settled) return;
+      settled = true;
+      if (timeout) clearTimeout(timeout);
+      resolveResult(result);
+    };
     const spawnOptions = {
       cwd: options.cwd,
       windowsHide: true
@@ -775,14 +784,26 @@ function runCommand(command, args, options = {}) {
       stderr += chunk;
     });
     child.on("error", (error) => {
-      resolveResult({ ok: false, stdout, stderr: error.message });
+      finish({ ok: false, stdout, stderr: error.message });
     });
     if (options.input) {
       child.stdin.write(options.input);
     }
     child.stdin.end();
+    if (options.timeoutMs) {
+      timeout = setTimeout(() => {
+        child.kill();
+        finish({
+          ok: false,
+          stdout,
+          stderr: stderr || `Komut zaman asimina ugradi (${options.timeoutMs} ms).`,
+          code: null,
+          timedOut: true
+        });
+      }, options.timeoutMs);
+    }
     child.on("close", (code) => {
-      resolveResult({ ok: code === 0, stdout, stderr, code });
+      finish({ ok: code === 0, stdout, stderr, code });
     });
   });
 }

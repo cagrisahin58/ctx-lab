@@ -85,6 +85,7 @@ for (const expected of [
   "Gunluk",
   "Olay gunlugu",
   "Olay Akisi",
+  "Durum degisimi",
   "Olaylari Yenile",
   "Codex'e Devret",
   "Calistirma Kaniti",

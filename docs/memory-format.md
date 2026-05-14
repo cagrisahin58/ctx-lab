@@ -25,7 +25,7 @@ Geçerli durumlar: `needs_triage`, `linked`, `active`, `waiting`, `blocked`, `do
 
 ## Zaman akışı event katmanı
 
-v2 arayüzü mevcut markdown/frontmatter formatını bozmadan kayıtlardan türetilmiş bir zaman akışı katmanı oluşturur. Bu katman kalıcı şemayı değiştirmez; `inbox` oturumları, `work_items` iş hattı güncellemeleri, `decisions` kararlar, `handoffs` devam brifleri, `archive` kayıtları, yerel proje kökleri ve Codex çalıştırma günlükleri tek sıralı olay listesine dönüştürülür. Eski kayıtlar zaman akışı içinde görünmeye devam eder.
+v2 arayüzü mevcut markdown/frontmatter formatını bozmadan kayıtlardan türetilmiş bir zaman akışı katmanı oluşturur. Bu katman kalıcı şemayı değiştirmez; `inbox` oturumları, `work_items` iş hattı güncellemeleri, iş hattı `status_history` durum değişimleri, `decisions` kararlar, `handoffs` devam brifleri, `archive` kayıtları, yerel proje kökleri, GitHub/yerel ayna senkron olayları ve Codex çalıştırma/commit uygulama günlükleri tek sıralı olay listesine dönüştürülür. Eski kayıtlar zaman akışı içinde görünmeye devam eder.
 
 Yerel masaüstü aynası bu kayıtları `%APPDATA%/ctx-lab/memory/git` altında Git clone olarak, özet indeksi de `%APPDATA%/ctx-lab/memory/index/<owner>__<repo>__<branch>.json` teknik yolu altında tutar. İndeks türetilmiş veridir; GitHub hafıza reposu kaynak gerçeklik olmaya devam eder.
 
@@ -101,6 +101,8 @@ tags:
 sessions:
   - sess_2026-05-13T12-34-56-789Z_ctx-lab_codex
 decisions:
+status_history:
+  - 2026-05-13T12:45:00.000Z|active->blocked
 ---
 
 ## Objective
@@ -124,7 +126,7 @@ Yeni bir oturum kaydı aynı `work_<project>` id'sine denk gelirse ctx-lab yeni 
 Oturum Akışı ekranında kullanıcı farklı bir mevcut iş kartını seçerse aynı güncelleme seçilen kart için yapılır ve oturum kaydındaki `linked_work_item` bu iş kartının id'sine çekilir.
 Oturum Akışı, `project`, `repo`, ortak `tags` ve son güncellenme tarihine göre mevcut iş hattı önerisi gösterebilir. Kullanıcı öneriyi reddederse inbox frontmatter alanına `triage_suggestion_dismissed` listesi yazılır ve aynı iş hattı tekrar önerilmez.
 Oturum Akışı varsayılan olarak `needs_triage` kayıtlarını gösterir; `linked`, `archived` ve tüm kayıtlar UI filtresiyle görülebilir.
-Pano üzerinden durum değiştirildiğinde yalnızca iş kartının frontmatter alanındaki `status` ve `updated_at` değerleri güncellenir; gövde korunur.
+Pano üzerinden durum değiştirildiğinde iş kartının frontmatter alanındaki `status` ve `updated_at` değerleri güncellenir, ayrıca geriye uyumlu `status_history` listesine `ISO_ZAMAN|eski_durum->yeni_durum` biçiminde bir olay eklenir; gövde korunur. Eski kayıtlarda `status_history` alanı yoksa iş kartı yine tek güncel durum olayı olarak gösterilir.
 Pano üzerinden `Next Action` bölümü güncellendiğinde ilgili markdown section değiştirilir ve `updated_at` yenilenir.
 Oturum kaydından karar çıkarıldığında ilgili iş kartı bulunabiliyorsa karar id'si iş kartının `decisions` listesine otomatik eklenir.
 Oturum kaydı arşive taşındığında archive dosyasına `status: archived` ve `archived_at` yazılır; ardından kaynak inbox dosyası silinir.

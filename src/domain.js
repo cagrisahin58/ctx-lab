@@ -215,6 +215,7 @@ export function validateMemoryRecords(records, now = new Date()) {
     }
     if (record.type === "work_items") {
       warnings.push(...workItemLifecycleWarnings(record, nowTime));
+      warnings.push(...workItemStatusHistoryWarnings(record));
     }
   }
 
@@ -238,6 +239,21 @@ function workItemLifecycleWarnings(record, nowTime) {
     return [`${record.path}: iş hattı ${ageDays} gündür güncellenmedi, sonraki adım gözden geçirilmeli`];
   }
   return [];
+}
+
+function workItemStatusHistoryWarnings(record) {
+  const warnings = [];
+  for (const item of normalizeArray(record.frontmatter?.status_history)) {
+    const parsed = parseStatusHistoryEntry(item);
+    if (!parsed) {
+      warnings.push(`${record.path}: status_history kaydı okunamadı (${item})`);
+      continue;
+    }
+    if (!WORK_STATUSES.includes(parsed.from) || !WORK_STATUSES.includes(parsed.to)) {
+      warnings.push(`${record.path}: status_history içinde bilinmeyen durum (${parsed.from}->${parsed.to})`);
+    }
+  }
+  return warnings;
 }
 
 function coerceTime(value) {
@@ -342,6 +358,18 @@ export function buildTimelineEvents(records, runnerProjects = [], runs = [], syn
         summary: getSection(record.sections || {}, "current") || base.summary,
         at: record.frontmatter?.updated_at || base.at
       });
+      for (const change of parseStatusHistory(record.frontmatter?.status_history)) {
+        events.push({
+          ...base,
+          id: `status:${record.id}:${change.at}:${change.from}-${change.to}`,
+          kind: "status_change",
+          label: "Durum değişimi",
+          status: change.to,
+          title: `${timelineStatusLabel(change.from)} → ${timelineStatusLabel(change.to)}`,
+          summary: `${record.title || record.id} iş hattı ${timelineStatusLabel(change.to).toLocaleLowerCase("tr")} durumuna taşındı.`,
+          at: change.at
+        });
+      }
     } else if (record.type === "decisions") {
       events.push({
         ...base,
@@ -462,6 +490,31 @@ function statusFromType(type) {
   if (type === "inbox") return "needs_triage";
   if (type === "archive") return "archived";
   return "active";
+}
+
+function parseStatusHistory(value) {
+  return normalizeArray(value)
+    .map(parseStatusHistoryEntry)
+    .filter(Boolean);
+}
+
+function parseStatusHistoryEntry(value) {
+  const match = String(value || "").trim().match(/^([^|]+)\|([A-Za-z0-9_-]+)->([A-Za-z0-9_-]+)$/);
+  if (!match) return null;
+  return {
+    at: match[1],
+    from: match[2],
+    to: match[3]
+  };
+}
+
+function timelineStatusLabel(status) {
+  return {
+    active: "Aktif",
+    waiting: "Beklemede",
+    blocked: "Engelli",
+    done: "Tamamlandı"
+  }[status] || status || "Durum yok";
 }
 
 function compactSummary(sections) {
@@ -710,9 +763,20 @@ export function updateWorkItemStatusContent(workItem, status, now = new Date()) 
   if (!WORK_STATUSES.includes(status)) {
     throw new Error(`Geçersiz iş kartı durumu: ${status}`);
   }
+  const updatedAt = now.toISOString();
+  const previousStatus = workItem.status || workItem.frontmatter?.status || "";
+  const statusPatch = previousStatus && previousStatus !== status
+    ? {
+        status_history: [
+          ...normalizeArray(workItem.frontmatter?.status_history),
+          `${updatedAt}|${previousStatus}->${status}`
+        ]
+      }
+    : {};
   return replaceFrontmatter(workItem.raw, {
     status,
-    updated_at: now.toISOString()
+    updated_at: updatedAt,
+    ...statusPatch
   });
 }
 

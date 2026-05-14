@@ -536,7 +536,21 @@ test("iş kartı durumunu frontmatter içinde günceller", () => {
 
   assert.equal(parsed.frontmatter.status, "blocked");
   assert.equal(parsed.frontmatter.updated_at, "2026-05-13T12:00:00.000Z");
+  assert.deepEqual(parsed.frontmatter.status_history, ["2026-05-13T12:00:00.000Z|active->blocked"]);
   assert.match(parsed.body, /Current State/);
+
+  const blockedWork = parseMemoryFile(work.path, updated, "sha-blocked");
+  const done = updateWorkItemStatusContent(blockedWork, "done", new Date("2026-05-13T12:30:00.000Z"));
+  const doneWork = parseMemoryFile(work.path, done, "sha-done");
+  const statusEvents = buildTimelineEvents([doneWork]).filter((event) => event.kind === "status_change");
+
+  assert.deepEqual(doneWork.frontmatter.status_history, [
+    "2026-05-13T12:00:00.000Z|active->blocked",
+    "2026-05-13T12:30:00.000Z|blocked->done"
+  ]);
+  assert.equal(statusEvents[0].label, "Durum değişimi");
+  assert.equal(statusEvents[0].title, "Engelli → Tamamlandı");
+  assert.match(statusEvents[0].summary, /tamamlandı durumuna taşındı/);
   assert.throws(() => updateWorkItemStatusContent(work, "needs_triage"), /Geçersiz iş kartı durumu/);
 });
 
@@ -784,10 +798,24 @@ status: needs_triage
 `,
     "sha-unclosed"
   );
-  const warnings = validateMemoryRecords([missingStatus, missingId, malformed, unclosed]);
+  const malformedStatusHistory = parseMemoryFile(
+    "work_items/malformed-status-history.md",
+    buildManualWorkItem({
+      title: "Durum geçmişi testi",
+      project: "ctx-lab",
+      repo: "cagrisahin58/ctx-lab",
+      branch: "main",
+      objective: "Durum geçmişi doğrulansın.",
+      current: "Test kaydı.",
+      next: "Validation panelinde göster."
+    }).content.replace("status: active", "status: active\nstatus_history:\n  - bozuk-kayit"),
+    "sha-history"
+  );
+  const warnings = validateMemoryRecords([missingStatus, missingId, malformed, unclosed, malformedStatusHistory]);
 
   assert.ok(warnings.some((warning) => warning.includes("missing-status.md") && warning.includes("status alan")));
   assert.ok(warnings.some((warning) => warning.includes("missing-id.md") && warning.includes("id alan")));
   assert.ok(warnings.some((warning) => warning.includes("malformed.md") && warning.includes("bozuk frontmatter")));
   assert.ok(warnings.some((warning) => warning.includes("unclosed.md") && warning.includes("kapanış")));
+  assert.ok(warnings.some((warning) => warning.includes("malformed-status-history.md") && warning.includes("status_history")));
 });

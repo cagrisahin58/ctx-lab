@@ -459,6 +459,17 @@ async function dismissTriageSuggestion(workItemId) {
   setToast("Akıllı eşleşme önerisi reddedildi.");
 }
 
+async function linkSuggestedWorkFromSelected() {
+  const record = selectedRecord();
+  if (!record || record.type !== "inbox") return;
+  const suggestion = suggestWorkItemForSession(state.records, record);
+  if (!suggestion) {
+    setToast("Bu oturum için güvenilir akıllı eşleşme yok.");
+    return;
+  }
+  await createWorkFromSelected(suggestion.workItem.id);
+}
+
 async function archiveSelected() {
   const record = selectedRecord();
   if (!record || record.type !== "inbox") return;
@@ -1111,6 +1122,7 @@ function shortcutRows() {
     { keys: "/", label: "Aramayı odakla" },
     { keys: "↑ ↓ / J K", label: "Listedeki kaydı değiştir" },
     { keys: "Enter", label: "Seçili kaydın aksiyonlarına geç" },
+    { keys: "L", label: "Akıllı eşleşmeye bağla" },
     { keys: "A / Backspace", label: "Seçili oturumu arşivleme onayı" },
     { keys: "Esc", label: "Paneli kapat" }
   ];
@@ -2927,6 +2939,7 @@ function handleAction(action, payload) {
     const target = payload?.suggestedWorkId || "";
     guarded(() => dismissTriageSuggestion(target));
   }
+  if (action === "link-current-suggestion") guarded(linkSuggestedWorkFromSelected);
   if (action === "link-existing-work") {
     const target = document.querySelector("[data-link-work-target]")?.value || "";
     guarded(() => createWorkFromSelected(target));
@@ -3030,6 +3043,13 @@ function handleGlobalKeydown(event) {
   }
   if (event.key === "Enter") {
     if (focusDetailAction()) event.preventDefault();
+    return;
+  }
+  if (key === "l") {
+    if (state.view === "inbox" && selectedRecord()?.type === "inbox") {
+      event.preventDefault();
+      handleAction("link-current-suggestion");
+    }
     return;
   }
   if (key === "a" || key === "backspace" || key === "delete") {

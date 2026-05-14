@@ -81,6 +81,7 @@ for (const expected of [
   "GitHub token ekranini ac",
   "GitHub hafiza reposu disaridan guncellendi",
   "J K",
+  "Akilli eslesmeye bagla",
   "A / Backspace",
   "Listedeki kaydi degistir",
   "Secili oturumu arsivleme onayi",

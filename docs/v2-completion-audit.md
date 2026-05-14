@@ -3,14 +3,15 @@
 Bu belge, masaustu odakli ctx-lab v2 hedefini gercek repo artefaktlari ve calisan test kanitlariyla takip eder. Amac "bitti" demek degil; hangi gereksinimin hangi dosya, test veya CI sonucu ile kapandigini ve hangi noktalarda kanitin zayif kaldigini gorunur tutmaktir.
 
 Son denetim tarihi: 2026-05-14
-Son denetlenen commit: `d181063` (`Force desktop viewport in flow smoke`)
-GitHub Actions: `Verify` run `25863565037`, `verify` ve `desktop-verify` basarili.
+Son denetlenen uygulama commit'i: `6ed9b24` (`Add optional GitHub live diagnostics`)
+GitHub Actions: `Verify` run `25863917996`, `verify` ve `desktop-verify` basarili; `desktop-verify` screenshot artefakti uretti.
+Not: Bu belge yalnizca audit kanitini guncelleyen sonraki dokumantasyon commit'lerinden etkilenmemek icin "uygulama commit'i" terimini kullanir.
 
 ## Kalite kapisi kanitlari
 
 | Kapi | Son yerel kanit | CI kaniti | Durum |
 | --- | --- | --- | --- |
-| `npm test` | `npm run verify` icinde 108 test basarili | `verify` job basarili | Kapali |
+| `npm test` | `npm run verify` icinde 111 test basarili | `verify` job basarili | Kapali |
 | `npm run build` | `npm run verify` ve `npm run verify:desktop` icinde basarili | `verify` ve `desktop-verify` job'lari basarili | Kapali |
 | `npm run smoke` | `npm run verify` icinde `dist smoke ok` | `verify` job basarili | Kapali |
 | `npm run verify` | Basarili | `verify` job basarili | Kapali |
@@ -39,7 +40,7 @@ Not: `desktop:pack:smoke`, Windows exe politikasi nedeniyle `app.asar` fallback 
 | Destructive git islemleri kapali | `rejectUnsafePrompt`, commit/push prompt retleri | `runner.test.js` destructive git ve commit/push isteyen prompt testleri | Kapali |
 | Commit/push oncesi ozet ve test sonucu gorunsun | `buildCommitDraft`, `renderRunEvidence`, `applyCodexRunCommit` | `runner.test.js`, `desktop:flow` commit/push onay kapisi | Kapali |
 | GitHub tani: repo, branch, config, klasorler, yazma testi | `diagnoseMemoryRepo`, `ensureMemoryRepo` | `github.test.js`, onboarding `desktop:flow` GitHub mock'u | Kapali, canli private repo yazma testi opsiyonel |
-| Opsiyonel canli GitHub tani komutu | `scripts/github-live-diagnostics.mjs`, `npm run github:diagnose`, `README.md` | `github-live-diagnostics.test.js`; token yokken ag cagrisina cikmadan skip, token varken gercek `diagnoseMemoryRepo` | Kapali; CI token saglamadigi icin canli private repo yazma testi opsiyonel |
+| Opsiyonel canli GitHub tani komutu | `scripts/github-live-diagnostics.mjs`, `npm run github:diagnose`, `README.md`, `.github/workflows/verify.yml` | `github-live-diagnostics.test.js`; CI token yokken ag cagrisina cikmadan skip adimini calistirir, token varken gercek `diagnoseMemoryRepo` | Kapali; CI token saglamadigi icin canli private repo yazma testi opsiyonel |
 | 404/403 hata aciklamalari Turkce olsun | `github.js` hata esleme | `github.test.js` 403 ve 404 testleri | Kapali |
 | Markdown/frontmatter geriye uyumlu kalsin | `src/domain.js` parser, serializer, aliaslar | `domain.test.js`, `docs/memory-format.md` | Kapali |
 | Timeline event katmani eklensin | `buildTimelineEvents`, `renderWorkspace`, timeline filtreleri | `domain.test.js`, `desktop:flow` timeline filtreleri | Kapali |

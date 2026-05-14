@@ -22,6 +22,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Run optional GitHub live diagnostics gate
+        run: npm run github:diagnose
+
       - name: Run tests, build and smoke checks
         run: npm run verify
 

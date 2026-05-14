@@ -519,24 +519,30 @@ async function linkSuggestedWorkFromSelected() {
 
 async function archiveSelected() {
   const record = selectedRecord();
-  if (!record || record.type !== "inbox") return;
+  if (!isArchivableRecord(record)) {
+    setToast(archiveBlockedMessage(record));
+    return;
+  }
   const fileName = record.path.split("/").pop();
   const archivePath = `archive/${fileName}`;
   const archivedContent = buildArchivedRecordContent(record);
   const parsed = await saveMemoryRecord(archivePath, archivedContent, `archive: ${record.id}`);
   if (!state.demo) {
-    const result = await deleteFile(state.config, record.path, record.sha, `archive: ${record.id} kaynak inbox kaydını sil`);
+    const result = await deleteFile(state.config, record.path, record.sha, `archive: ${record.id} kaynak ${archiveSourceLabel(record)} kaydını sil`);
     rememberRemoteHead(result?.commit?.sha || state.cacheMeta.remoteHead || "");
   }
 
   state.selectedId = parsed.id;
   refreshWarnings();
-  setToast("Oturum kaydı arşivlendi.");
+  setToast(record.type === "work_items" ? "İş hattı arşivlendi." : "Oturum kaydı arşivlendi.");
 }
 
 async function requestArchiveSelected() {
   const record = selectedRecord();
-  if (!record || record.type !== "inbox") return;
+  if (!isArchivableRecord(record)) {
+    setToast(archiveBlockedMessage(record));
+    return;
+  }
   if (state.pendingArchiveId !== record.id) {
     state.pendingArchiveId = record.id;
     setToast("Arşivlemek için tekrar onay ver.");
@@ -545,6 +551,19 @@ async function requestArchiveSelected() {
   }
   state.pendingArchiveId = "";
   await archiveSelected();
+}
+
+function isArchivableRecord(record) {
+  return record?.type === "inbox" || (record?.type === "work_items" && record.status === "done");
+}
+
+function archiveBlockedMessage(record) {
+  if (record?.type === "work_items") return "Yalnızca tamamlanan iş hatları arşivlenebilir.";
+  return "Arşivlemek için oturum kaydı veya tamamlanan iş hattı seç.";
+}
+
+function archiveSourceLabel(record) {
+  return record.type === "work_items" ? "iş hattı" : "inbox";
 }
 
 async function saveDecisionFromSelected() {
@@ -2055,6 +2074,7 @@ function renderDailyBrief() {
 function renderWorkContext(workItem) {
   const prompt = buildContextPack(state.records, workItem, "codex");
   const nextAction = getSection(workItem.sections, "next");
+  const archiveLabel = state.pendingArchiveId === workItem.id ? "Arşivi Onayla" : "İş Hattını Arşivle";
   return `
     <h3>${escapeHtml(workItem.title)}</h3>
     <div class="meta">
@@ -2067,6 +2087,7 @@ function renderWorkContext(workItem) {
       <select class="status-select" data-status-select data-work-id="${escapeHtml(workItem.id)}" aria-label="İş kartı durumu">
         ${WORK_STATUSES.map((status) => `<option value="${status}" ${workItem.status === status ? "selected" : ""}>${statusLabel(status)}</option>`).join("")}
       </select>
+      ${workItem.status === "done" ? `<button class="${state.pendingArchiveId === workItem.id ? "danger" : ""}" data-action="archive">${archiveLabel}</button>` : ""}
     </div>
     ${detailSection("Amaç", getSection(workItem.sections, "objective"))}
     ${detailSection("Güncel Durum", getSection(workItem.sections, "current"))}

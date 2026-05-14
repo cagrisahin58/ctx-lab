@@ -98,6 +98,8 @@ for (const expected of [
   "Listedeki kaydi degistir",
   "Secili oturumu arsivleme onayi",
   "Arsivi Onayla",
+  "Is Hattini Arsivle",
+  "Yalnizca tamamlanan is hatlari arsivlenebilir",
   "Proje Koku",
   "Oturum Kapanis"
 ]) {

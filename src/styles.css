@@ -1140,6 +1140,9 @@ kbd {
   display: grid;
   grid-template-columns: repeat(4, minmax(220px, 1fr));
   gap: 12px;
+  min-width: 0;
+  overflow-x: auto;
+  padding-bottom: 4px;
 }
 
 .board-layout {
@@ -1491,13 +1494,12 @@ kbd {
 }
 
 .activity-drawer {
-  position: fixed;
-  right: 18px;
-  bottom: 18px;
-  z-index: 12;
+  position: static;
+  justify-self: end;
   width: min(420px, calc(100vw - 36px));
   max-height: min(560px, calc(100vh - 128px));
   overflow: auto;
+  margin-top: 14px;
 }
 
 .activity-drawer .activity-log {

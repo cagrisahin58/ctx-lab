@@ -128,6 +128,7 @@ Pano üzerinden durum değiştirildiğinde yalnızca iş kartının frontmatter 
 Pano üzerinden `Next Action` bölümü güncellendiğinde ilgili markdown section değiştirilir ve `updated_at` yenilenir.
 Oturum kaydından karar çıkarıldığında ilgili iş kartı bulunabiliyorsa karar id'si iş kartının `decisions` listesine otomatik eklenir.
 Oturum kaydı arşive taşındığında archive dosyasına `status: archived` ve `archived_at` yazılır; ardından kaynak inbox dosyası silinir.
+Tamamlanan (`status: done`) iş hatları da aynı güvenli iki adımlı onayla `archive/` altına taşınabilir. Aktif, bekleyen veya engelli iş hatları arşivlenmez; önce durumun `done` yapılması gerekir.
 
 ## Decision record
 

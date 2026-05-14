@@ -209,6 +209,17 @@ try {
   await expectVisibleText(page, "Hafıza Sağlığı");
   await expectVisibleText(page, "Format, yaşam döngüsü ve arşiv önerileri burada izlenir.");
 
+  markPhase("Tamamlanan is hattini arsivleme akisini dogrulama");
+  await page.keyboard.press("Control+K");
+  await page.locator("[data-command-search]").fill("iş akışı");
+  await page.locator("[data-command-dialog]").getByRole("button", { name: /İş Akışı/ }).click();
+  await moveWorkCardToColumn(page, "work_ctx_lab_redesign", "done");
+  await expectVisibleText(page, "İş Hattını Arşivle");
+  await page.getByRole("button", { name: "İş Hattını Arşivle" }).click();
+  await expectVisibleText(page, "Arşivi Onayla");
+  await page.getByRole("button", { name: "Arşivi Onayla" }).click();
+  await expectVisibleText(page, "İş hattı arşivlendi.");
+
   const title = await electronApp.evaluate(({ BrowserWindow }) => {
     return BrowserWindow.getAllWindows()[0]?.getTitle();
   });

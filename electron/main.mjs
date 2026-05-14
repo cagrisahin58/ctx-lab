@@ -59,8 +59,8 @@ function createTray() {
 
 async function createMainWindow() {
   mainWindow = new BrowserWindow({
-    width: 1480,
-    height: 940,
+    width: isOffscreenFlow ? 1680 : 1480,
+    height: isOffscreenFlow ? 1040 : 940,
     minWidth: 1180,
     minHeight: 760,
     ...(isOffscreenFlow ? { x: -32000, y: -32000 } : {}),

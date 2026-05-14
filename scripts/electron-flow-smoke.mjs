@@ -123,7 +123,7 @@ try {
   await page.locator('button[data-view="inbox"]').click();
   await expectVisibleText(page, "Akıllı eşleşme");
   await expectVisibleText(page, "Önerilen İşe Bağla");
-  await page.keyboard.press("Backspace");
+  await page.keyboard.press("a");
   await expectVisibleText(page, "Arşivi Onayla");
   await page.locator('button[data-view="workspace"]').click();
   await expectVisibleText(page, "Güncel Bağlam");

@@ -80,6 +80,8 @@ for (const expected of [
   "Read and write",
   "GitHub token ekranini ac",
   "GitHub hafiza reposu disaridan guncellendi",
+  "J K",
+  "A / Backspace",
   "Listedeki kaydi degistir",
   "Secili oturumu arsivleme onayi",
   "Arsivi Onayla",

@@ -1109,9 +1109,9 @@ function shortcutRows() {
     { keys: "n d", label: "Yeni Karar" },
     { keys: "s", label: "GitHub'dan Yenile" },
     { keys: "/", label: "Aramayı odakla" },
-    { keys: "↑ ↓", label: "Listedeki kaydı değiştir" },
+    { keys: "↑ ↓ / J K", label: "Listedeki kaydı değiştir" },
     { keys: "Enter", label: "Seçili kaydın aksiyonlarına geç" },
-    { keys: "Backspace", label: "Seçili oturumu arşivleme onayı" },
+    { keys: "A / Backspace", label: "Seçili oturumu arşivleme onayı" },
     { keys: "Esc", label: "Paneli kapat" }
   ];
 }
@@ -3023,15 +3023,16 @@ function handleGlobalKeydown(event) {
     handleAction("sync");
     return;
   }
-  if (event.key === "ArrowDown" || event.key === "ArrowUp") {
-    if (moveSelection(event.key === "ArrowDown" ? 1 : -1)) event.preventDefault();
+  if (event.key === "ArrowDown" || event.key === "ArrowUp" || key === "j" || key === "k") {
+    const direction = event.key === "ArrowDown" || key === "j" ? 1 : -1;
+    if (moveSelection(direction)) event.preventDefault();
     return;
   }
   if (event.key === "Enter") {
     if (focusDetailAction()) event.preventDefault();
     return;
   }
-  if (key === "backspace" || key === "delete") {
+  if (key === "a" || key === "backspace" || key === "delete") {
     if (state.view === "inbox" && selectedRecord()?.type === "inbox") {
       event.preventDefault();
       handleAction("archive");

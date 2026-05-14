@@ -40,7 +40,7 @@ if ($Web) {
 if ($DryRun) {
   & $npm.Source run runner:check
   & $npm.Source run desktop:smoke
-  Write-Host "Dry-run tamamlandi; masaustu smoke gecti."
+  Write-Host "Deneme kontrolu tamamlandi; masaustu smoke gecti."
   exit 0
 }
 

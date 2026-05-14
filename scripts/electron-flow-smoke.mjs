@@ -277,9 +277,9 @@ try {
   await page.locator('button[data-view="workspace"]').click();
   await expectVisibleText(page, "Codex'e Devret");
 
-  markPhase("Codex dry-run kaydi olusturma");
+  markPhase("Codex deneme kaydi olusturma");
   const runForm = page.locator("#codex-run-form");
-  await runForm.locator('textarea[name="prompt"]').fill("ctx-lab Electron smoke icin dry-run devam brifi hazirla.");
+  await runForm.locator('textarea[name="prompt"]').fill("ctx-lab Electron smoke icin deneme devam brifi hazirla.");
   await runForm.getByRole("button", { name: "Çalıştırma kaydı oluştur" }).click();
   await expectVisibleText(page, "Codex deneme kaydı hazırlandı.");
   await expectVisibleText(page, "Deneme kaydı");

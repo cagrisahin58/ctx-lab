@@ -246,7 +246,7 @@ status: needs_triage
   }
 });
 
-test("codex dry-run yalnizca kayitli proje kokunde run logu olusturur", async () => {
+test("codex deneme kaydi yalnizca kayitli proje kokunde calistirma gunlugu olusturur", async () => {
   const dir = await mkdtemp(join(tmpdir(), "ctxlab-runner-"));
   const projectDir = await mkdtemp(join(tmpdir(), "ctxlab-project-"));
   const paths = buildRunnerPaths(dir);

@@ -40,7 +40,7 @@ assert.ok(smokeLaunch.includes("--no-sandbox"), "CI Linux Electron smoke sandbox
 
 const windowsLauncher = readFileSync(join(root, "scripts/start-windows.ps1"), "utf8");
 assert.ok(windowsLauncher.includes("run desktop:dev"), "Windows launcher varsayilan olarak Electron masaustu kabugunu acmali");
-assert.ok(windowsLauncher.includes("run desktop:smoke"), "Windows launcher dry-run masaustu smoke calistirmali");
+assert.ok(windowsLauncher.includes("run desktop:smoke"), "Windows launcher deneme kontrolunde masaustu smoke calistirmali");
 assert.ok(windowsLauncher.includes("if ($Web)"), "Windows launcher web fallback anahtarini korumali");
 
 console.log("desktop smoke ok");

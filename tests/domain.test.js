@@ -628,7 +628,7 @@ test("codex run sonucunu memory kaydina cevirir ve is hattina baglar", () => {
     createdAt: "2026-05-14T12:00:00.000Z",
     updatedAt: "2026-05-14T12:00:00.000Z",
     logPath: "C:\\runs\\run.json",
-    summary: "Dry-run prompt kaydedildi."
+    summary: "Deneme prompt kaydedildi."
   };
   const memory = buildCodexRunMemoryRecord(run, work, new Date("2026-05-14T12:01:00.000Z"));
   const parsedRun = parseMemoryFile(memory.path, memory.content, "sha-run");

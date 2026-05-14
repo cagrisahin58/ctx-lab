@@ -877,8 +877,11 @@ function detectTestResult(stdout = "", stderr = "") {
   const text = `${stdout || ""}\n${stderr || ""}`;
   if (!text.trim()) return "not_detected";
   if (/\bnot\s+ok\b/i.test(text)) return "failed";
-  if (/\b(fail|failed|failing|error|errored|tests?\s+failed)\b/i.test(text)) return "failed";
-  if (/\b(pass|passed|passing|tests?\s+passed|all tests passed|ok)\b/i.test(text)) return "passed";
+  const withoutZeroFailures = text
+    .replace(/\b0\s+(?:fail(?:ed|ures?)?|failing|errors?)\b/gi, "")
+    .replace(/\b(?:fail(?:ed|ures?)?|failing|errors?)\s*:\s*0\b/gi, "");
+  if (/\b(fail|failed|failing|error|errored|tests?\s+failed)\b/i.test(withoutZeroFailures)) return "failed";
+  if (/\b(pass|passed|passing|tests?\s+passed|all tests passed|ok)\b/i.test(withoutZeroFailures)) return "passed";
   return "not_detected";
 }
 

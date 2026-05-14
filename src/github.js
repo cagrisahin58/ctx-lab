@@ -5,11 +5,44 @@ export const MEMORY_DIRS = ["inbox", "work_items", "decisions", "handoffs", "arc
 
 class GitHubHttpError extends Error {
   constructor(status, body) {
-    super(`GitHub ${status}: ${body.slice(0, 300)}`);
+    super(formatGitHubHttpError(status, body));
     this.name = "GitHubHttpError";
     this.status = status;
     this.body = body;
   }
+}
+
+function formatGitHubHttpError(status, body = "") {
+  const detail = extractGitHubErrorDetail(body);
+  if (status === 401) {
+    return `GitHub 401: Token doğrulanamadı. Token süresi, kopyalanan değer veya Authorization izni hatalı olabilir.${detail}`;
+  }
+  if (status === 403) {
+    return `GitHub 403: Erişim reddedildi. Fine-grained token için repo erişimi ve Contents read/write iznini kontrol et; oran limiti de bu hatayı verebilir.${detail}`;
+  }
+  if (status === 404) {
+    return `GitHub 404: Repo, branch veya dosya bulunamadı. Repo private ise token bu repoya erişemiyor olabilir; owner/repo ve branch değerlerini kontrol et.${detail}`;
+  }
+  if (status === 409) {
+    return `GitHub 409: Repo içeriği bu işlem sırasında değişti. ctx-lab son sha ile tekrar deneyecek; hata sürerse GitHub'dan yenile.${detail}`;
+  }
+  if (status === 422) {
+    return `GitHub 422: GitHub isteği kabul etmedi. Dosya zaten var, sha eksik veya branch koruması devrede olabilir.${detail}`;
+  }
+  return `GitHub ${status}: GitHub API isteği başarısız oldu.${detail || ` Ayrıntı: ${String(body).slice(0, 240)}`}`;
+}
+
+function extractGitHubErrorDetail(body) {
+  if (!body) return "";
+  try {
+    const parsed = JSON.parse(body);
+    const message = parsed.message || parsed.error || "";
+    if (message) return ` Ayrıntı: ${String(message).slice(0, 180)}`;
+  } catch {
+    // Plain-text GitHub/proxy responses are handled below.
+  }
+  const text = String(body).trim();
+  return text ? ` Ayrıntı: ${text.slice(0, 180)}` : "";
 }
 
 async function githubRequest(config, path, options = {}) {

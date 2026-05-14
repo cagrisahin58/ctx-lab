@@ -213,7 +213,46 @@ test("diagnoseMemoryRepo yazma izni yoksa yazma testini başarısız gösterir",
     const result = await diagnoseMemoryRepo(config);
     assert.equal(result.ok, false);
     assert.equal(result.writeAccess.ok, false);
-    assert.match(result.writeAccess.message, /GitHub 404/);
+    assert.match(result.writeAccess.message, /GitHub 404: Repo, branch veya dosya bulunamadı/);
+  } finally {
+    mock.restore();
+  }
+});
+
+test("diagnoseMemoryRepo 403 hatasını Türkçe izin açıklamasıyla raporlar", async () => {
+  const mock = installFetchMock((url) => {
+    if (url.endsWith("/repos/cagrisahin58/work-memory")) {
+      return { ok: false, status: 403, json: { message: "Resource not accessible by personal access token" } };
+    }
+    throw new Error(`Beklenmeyen URL: ${url}`);
+  });
+
+  try {
+    const result = await diagnoseMemoryRepo(config);
+    assert.equal(result.ok, false);
+    assert.equal(result.repo.ok, false);
+    assert.match(result.repo.message, /GitHub 403: Erişim reddedildi/);
+    assert.match(result.repo.message, /Contents read\/write/);
+    assert.match(result.repo.message, /Resource not accessible/);
+  } finally {
+    mock.restore();
+  }
+});
+
+test("diagnoseMemoryRepo 404 hatasını owner repo branch kontrolüyle açıklar", async () => {
+  const mock = installFetchMock((url) => {
+    if (url.endsWith("/repos/cagrisahin58/work-memory")) {
+      return { ok: false, status: 404, json: { message: "Not Found" } };
+    }
+    throw new Error(`Beklenmeyen URL: ${url}`);
+  });
+
+  try {
+    const result = await diagnoseMemoryRepo(config);
+    assert.equal(result.ok, false);
+    assert.equal(result.repo.ok, false);
+    assert.match(result.repo.message, /GitHub 404: Repo, branch veya dosya bulunamadı/);
+    assert.match(result.repo.message, /owner\/repo ve branch/);
   } finally {
     mock.restore();
   }

@@ -83,7 +83,7 @@ Private memory repo için fine-grained GitHub token önerilir:
 - Permissions: Contents read/write
 
 Uygulamada `Hafıza Bağlantısı` ekranından owner/repo, branch ve token girilir. `Repo Yapısını Hazırla` düğmesi şu yapıyı otomatik oluşturur:
-`Bağlantıyı Tanıla` düğmesi repo erişimi, branch, `config.yaml`, memory klasörleri ve gerçek Contents yazma iznini kontrol eder. Yazma testi geçici `archive/.ctxlab-write-test` dosyası oluşturup siler.
+`Bağlantıyı Tanıla` düğmesi repo erişimi, branch, `config.yaml`, memory klasörleri ve gerçek Contents yazma iznini kontrol eder. Yazma testi geçici `archive/.ctxlab-write-test` dosyası oluşturup siler. 403/404 gibi GitHub hataları owner/repo, branch, private repo erişimi ve Contents read/write izni açısından Türkçe açıklanır.
 
 ```text
 work-memory/

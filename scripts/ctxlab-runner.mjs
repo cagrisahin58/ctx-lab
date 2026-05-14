@@ -385,6 +385,7 @@ export async function startCodexRun(paths = buildRunnerPaths(), input = {}, opti
     sourceRecordId: String(input.sourceRecordId || ""),
     sourceRecordPath: String(input.sourceRecordPath || ""),
     sourceWorkItemId: String(input.sourceWorkItemId || ""),
+    requestedTask: String(input.prompt || "").trim(),
     prompt,
     logPath,
     eventLogPath
@@ -398,7 +399,7 @@ export async function startCodexRun(paths = buildRunnerPaths(), input = {}, opti
       testResult: "not_run",
       commitGate: commitGateForAutomationLevel(automationLevel)
     };
-    record.commitReadiness = buildCommitReadiness(record);
+    attachCommitReview(record);
     await writeRunLog(logPath, record);
     return record;
   }
@@ -412,7 +413,7 @@ export async function startCodexRun(paths = buildRunnerPaths(), input = {}, opti
       testResult: "not_run",
       commitGate: commitGateForAutomationLevel(automationLevel)
     };
-    record.commitReadiness = buildCommitReadiness(record);
+    attachCommitReview(record);
     await writeRunLog(logPath, record);
     return record;
   }
@@ -427,7 +428,7 @@ export async function startCodexRun(paths = buildRunnerPaths(), input = {}, opti
       gitBefore,
       error: codex.error || "Codex CLI bulunamadi."
     };
-    record.commitReadiness = buildCommitReadiness(record);
+    attachCommitReview(record);
     await writeRunLog(logPath, record);
     return record;
   }
@@ -485,7 +486,7 @@ export async function startCodexRun(paths = buildRunnerPaths(), input = {}, opti
     stderr: result.stderr || "",
     exitCode: result.code ?? (result.ok ? 0 : 1)
   };
-  record.commitReadiness = buildCommitReadiness(record);
+  attachCommitReview(record);
   await appendRunEvent(eventLogPath, {
     event: "finish",
     at: finishedAt,
@@ -784,6 +785,12 @@ function commitGateForAutomationLevel(level) {
   return "";
 }
 
+function attachCommitReview(record) {
+  record.commitReadiness = buildCommitReadiness(record);
+  record.commitDraft = buildCommitDraft(record);
+  return record;
+}
+
 function buildCommitReadiness(record = {}) {
   if (!["commit_prepare", "commit_push"].includes(record.automationLevel)) return null;
   const changedFiles = Array.isArray(record.gitAfter?.changedFiles) ? record.gitAfter.changedFiles : [];
@@ -824,6 +831,50 @@ function buildCommitReadiness(record = {}) {
       : "Commit/push için eksik kanıt var.",
     checks
   };
+}
+
+function buildCommitDraft(record = {}) {
+  if (!["commit_prepare", "commit_push"].includes(record.automationLevel)) return null;
+  const readiness = record.commitReadiness || buildCommitReadiness(record);
+  const changedFiles = Array.isArray(record.gitAfter?.changedFiles) ? record.gitAfter.changedFiles : [];
+  const ready = Boolean(readiness?.ready);
+  const message = ready ? buildCommitDraftMessage(record) : "";
+  const body = ready ? [
+    `Run: ${record.id}`,
+    `Otomasyon: ${record.automationLevel}`,
+    `Test: ${commitReadinessTestDetail(record.testResult)}`,
+    `Degisen dosya: ${changedFiles.length}`
+  ] : [];
+  return {
+    ready,
+    message,
+    body,
+    changedFiles,
+    pushAllowed: record.automationLevel === "commit_push" && ready,
+    note: ready
+      ? "Commit taslağı kullanıcı incelemesine hazır; gerçek commit/push için son onay gerekir."
+      : "Commit taslağı hazır değil; önce başarılı run, test sinyali ve Git değişikliği gerekir."
+  };
+}
+
+function buildCommitDraftMessage(record = {}) {
+  const project = String(record.project?.name || "project").trim() || "project";
+  const task = firstMeaningfulLine(record.requestedTask);
+  const base = task ? task : `Update ${project} with Codex changes`;
+  return truncateCommitSubject(base);
+}
+
+function firstMeaningfulLine(value = "") {
+  return String(value || "")
+    .split(/\r?\n/)
+    .map((line) => line.trim().replace(/\s+/g, " "))
+    .find(Boolean) || "";
+}
+
+function truncateCommitSubject(value = "") {
+  const subject = String(value || "").replace(/[.!?]+$/g, "");
+  if (subject.length <= 72) return subject;
+  return `${subject.slice(0, 69).trimEnd()}...`;
 }
 
 function commitReadinessTestDetail(result) {

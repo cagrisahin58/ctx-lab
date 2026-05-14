@@ -65,7 +65,7 @@ ctx-lab v2, GitHub destekli hafiza katmanini koruyarak proje zaman akisi merkezl
 3. Memory ayna: work-memory clone/pull/indeks. Ilk kesitte token calistiriciya tasinmadan Git/GCM uzerinden clone/fetch/pull ve JSON indeks uretimi yapilir.
 4. Proje zaman akisi veri modeli: legacy kayitlardan timeline event uretimi.
 5. UI yenileme: Turkce terminoloji, zaman akisi, command rail, durum cubugu.
-6. Codex calistirma kaydi: hazir promptlar, deneme kaydi, JSONL stdout/stderr gunlugu, commit/push oncesi gorunur ozet.
+6. Codex calistirma kaydi: hazir promptlar, deneme kaydi, JSONL stdout/stderr gunlugu, commit/push oncesi gorunur ozet ve yapilandirilmis commit taslagi.
 7. Onboarding: hafiza reposu, repo tanilama, yerel ayna/indeks, proje koku, Codex CLI ve ornek devam brifi tek akista dogrulanir.
 8. claude-review P0 UX paketi: dark mode, command palette, activity log, kisa yollar.
 

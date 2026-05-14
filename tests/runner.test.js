@@ -465,8 +465,12 @@ test("codex run test sonucunu ve commit kapisini loglar", async () => {
     assert.match(run.commitGate, /Commit\/push/);
     assert.equal(run.commitReadiness.ready, true);
     assert.equal(run.commitReadiness.status, "ready_for_review");
+    assert.equal(run.commitDraft.ready, true);
+    assert.equal(run.commitDraft.pushAllowed, true);
+    assert.equal(run.commitDraft.message, "Testleri calistir ve commit oncesi ozet hazirla");
     assert.equal(log.testResult, "passed");
     assert.equal(log.commitReadiness.ready, true);
+    assert.equal(log.commitDraft.ready, true);
   } finally {
     await rm(dir, { recursive: true, force: true });
     await rm(projectDir, { recursive: true, force: true });
@@ -549,6 +553,8 @@ test("codex commit push gercek calisma icin ayrica onay ister", async () => {
     assert.equal(run.status, "blocked");
     assert.equal(run.testResult, "not_run");
     assert.equal(run.commitReadiness.ready, false);
+    assert.equal(run.commitDraft.ready, false);
+    assert.equal(run.commitDraft.pushAllowed, false);
     assert.match(run.error, /onayı verilmedi/);
     assert.equal(log.status, "blocked");
     assert.deepEqual(calls, []);

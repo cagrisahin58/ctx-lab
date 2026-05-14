@@ -1562,6 +1562,51 @@ kbd {
   border-color: rgba(248, 113, 113, 0.34);
 }
 
+.run-commit-draft {
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+}
+
+.run-commit-draft.ready {
+  border-color: rgba(96, 165, 250, 0.36);
+}
+
+.run-commit-draft h5,
+.run-commit-draft p,
+.run-commit-draft ul {
+  margin: 0;
+}
+
+.run-commit-draft ul {
+  padding-left: 18px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.commit-draft-message {
+  display: grid;
+  gap: 5px;
+}
+
+.commit-draft-message strong {
+  font-size: 12px;
+}
+
+.commit-draft-message code,
+.commit-draft-files code {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.commit-draft-files {
+  display: grid;
+  gap: 5px;
+}
+
 .run-change-list {
   display: grid;
   gap: 6px;

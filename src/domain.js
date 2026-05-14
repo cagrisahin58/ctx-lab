@@ -836,6 +836,7 @@ export function buildCodexRunMemoryRecord(run, sourceRecord = null, now = new Da
     ? changedFiles.map((file) => `- ${file}`).join("\n")
     : "Git değişikliği tespit edilmedi veya snapshot yok.";
   const commitReadiness = formatCommitReadiness(run.commitReadiness);
+  const commitDraft = formatCommitDraft(run.commitDraft);
   const content = `${serializeFrontmatter({
     id: memoryId,
     kind: "codex_run",
@@ -868,6 +869,9 @@ ${changeSummary}
 
 ${commitReadiness ? `## Commit Hazırlığı
 ${commitReadiness}
+
+` : ""}${commitDraft ? `## Commit Taslağı
+${commitDraft}
 
 ` : ""}## Kaynak
 - Çalıştırma id: ${run.id}
@@ -1134,6 +1138,27 @@ function formatCommitReadiness(readiness) {
   ].filter(Boolean);
   for (const check of readiness.checks || []) {
     lines.push(`- ${check.ok ? "OK" : "Eksik"}: ${check.label || check.id || "Kontrol"} - ${check.detail || ""}`.trim());
+  }
+  return lines.join("\n");
+}
+
+function formatCommitDraft(draft) {
+  if (!draft) return "";
+  const lines = [
+    `Durum: ${draft.ready ? "Hazır" : "Hazır değil"}`,
+    `Commit mesajı: ${draft.message || "hazır değil"}`,
+    `Push durumu: ${draft.pushAllowed ? "Push için hazır" : "Kapalı"}`,
+    draft.note ? `Not: ${draft.note}` : ""
+  ].filter(Boolean);
+  const body = Array.isArray(draft.body) ? draft.body : [];
+  if (body.length) {
+    lines.push("", "Gövde:");
+    for (const line of body) lines.push(`- ${line}`);
+  }
+  const changedFiles = Array.isArray(draft.changedFiles) ? draft.changedFiles : [];
+  if (changedFiles.length) {
+    lines.push("", "Değişen dosyalar:");
+    for (const file of changedFiles) lines.push(`- ${file}`);
   }
   return lines.join("\n");
 }

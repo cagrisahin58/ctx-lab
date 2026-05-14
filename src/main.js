@@ -1506,6 +1506,7 @@ function renderRunEvidence(run) {
       </div>
       ${run.summary ? `<p class="run-summary">${escapeHtml(run.summary)}</p>` : ""}
       ${renderCommitReadiness(run.commitReadiness)}
+      ${renderCommitDraft(run.commitDraft)}
       ${run.commitGate ? `<p class="run-gate">${escapeHtml(run.commitGate)}</p>` : ""}
       ${renderChangedFiles(run)}
       ${renderRunEventPreview(run)}
@@ -1534,6 +1535,28 @@ function renderCommitReadiness(readiness) {
           <span>${escapeHtml(check.detail || "")}</span>
         </div>
       `).join("")}
+    </div>
+  `;
+}
+
+function renderCommitDraft(draft) {
+  if (!draft) return "";
+  const body = Array.isArray(draft.body) ? draft.body : [];
+  const changedFiles = Array.isArray(draft.changedFiles) ? draft.changedFiles : [];
+  const stateLabel = draft.pushAllowed ? "Push için hazır" : (draft.ready ? "Commit için hazır" : "Hazır değil");
+  return `
+    <div class="run-commit-draft ${draft.ready ? "ready" : "not-ready"}">
+      <div class="run-events-head">
+        <h5>Commit Taslağı</h5>
+        <span>${escapeHtml(stateLabel)}</span>
+      </div>
+      <div class="commit-draft-message">
+        <strong>Commit mesajı</strong>
+        <code>${escapeHtml(draft.message || "Hazır değil")}</code>
+      </div>
+      <p>${escapeHtml(draft.note || "")}</p>
+      ${body.length ? `<ul>${body.map((line) => `<li>${escapeHtml(line)}</li>`).join("")}</ul>` : ""}
+      ${changedFiles.length ? `<div class="commit-draft-files">${changedFiles.slice(0, 6).map((file) => `<code>${escapeHtml(file)}</code>`).join("")}</div>` : ""}
     </div>
   `;
 }

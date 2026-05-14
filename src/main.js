@@ -9,6 +9,7 @@ import {
   buildInboxSessionSummaryFromMarkdown,
   buildManualDecision,
   buildManualWorkItem,
+  buildMemoryExportFiles,
   buildOnboardingChecklist,
   buildDecisionFromSession,
   buildContextPack,
@@ -16,6 +17,7 @@ import {
   buildSessionClosePrompt,
   buildTimelineEvents,
   buildWorkItemFromSession,
+  buildZipArchive,
   dismissTriageSuggestionContent,
   filterRecords,
   findWorkItemForSession,
@@ -87,6 +89,7 @@ const state = {
   handoffTarget: "codex",
   onboardingBrief: "",
   dailySpeechActive: false,
+  memoryExport: null,
   projectPathDraft: "",
   tokenVisible: false,
   diagnostics: null,
@@ -1134,6 +1137,30 @@ function downloadTextFile(filename, content) {
   link.remove();
 }
 
+function downloadBlobFile(filename, blob) {
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+function exportMemoryZip() {
+  const bundle = buildMemoryExportFiles(state.records, state.config);
+  const archive = buildZipArchive(bundle.files);
+  state.memoryExport = {
+    filename: bundle.filename,
+    recordCount: bundle.manifest.record_count,
+    byteLength: archive.byteLength,
+    exportedAt: new Date().toISOString()
+  };
+  downloadBlobFile(bundle.filename, new Blob([archive], { type: "application/zip" }));
+  setToast(`${bundle.manifest.record_count} kayıt ZIP olarak indirildi.`);
+}
+
 function handoffDownloadFilename(record, target) {
   const stamp = new Date().toISOString().slice(0, 10);
   const targetSlug = target === "claude" ? "claude-code" : "codex";
@@ -2054,6 +2081,13 @@ function formatDate(value) {
   return date.toLocaleString("tr-TR", { dateStyle: "short", timeStyle: "short" });
 }
 
+function formatBytes(value) {
+  const bytes = Number(value) || 0;
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
 function renderOnboarding() {
   const checklist = onboardingChecklist();
   const complete = isOnboardingComplete(checklist);
@@ -2881,8 +2915,38 @@ function renderConnectionSettings() {
         </div>
       </form>
     </section>
+    ${renderMemoryExportPanel()}
     ${renderDiagnostics()}
     ${renderMemoryHealthPanel()}
+  `;
+}
+
+function renderMemoryExportPanel() {
+  const bundle = buildMemoryExportFiles(state.records, state.config);
+  const counts = Object.entries(bundle.manifest.counts)
+    .map(([type, count]) => `${type}: ${count}`)
+    .join(" · ") || "kayıt yok";
+  return `
+    <section class="panel memory-export-panel">
+      <div class="panel-heading">
+        <span class="eyebrow">Veri Taşınabilirliği</span>
+        <h3>Hafıza Dışa Aktar</h3>
+        <p>Yerel önbellekte görünen work-memory kayıtlarını repo klasör düzeni ve manifest ile tek ZIP dosyası olarak indir.</p>
+      </div>
+      <div class="memory-export-summary">
+        <span>${bundle.manifest.record_count} kayıt</span>
+        <span>${escapeHtml(counts)}</span>
+        <span>${escapeHtml(bundle.filename)}</span>
+      </div>
+      ${state.memoryExport ? `
+        <div class="memory-export-last" aria-live="polite">
+          Son ZIP: ${escapeHtml(state.memoryExport.filename)} · ${escapeHtml(formatBytes(state.memoryExport.byteLength))} · ${escapeHtml(formatDate(state.memoryExport.exportedAt))}
+        </div>
+      ` : `<div class="memory-export-last muted">Henüz dışa aktarım yapılmadı.</div>`}
+      <div class="toolbar-actions">
+        <button type="button" data-action="export-memory-zip">Tüm Hafızayı ZIP İndir</button>
+      </div>
+    </section>
   `;
 }
 
@@ -3789,6 +3853,7 @@ function handleAction(action, payload) {
   if (action === "close-command-palette") closeCommandPalette();
   if (action === "init-repo") guarded(initializeMemoryRepo);
   if (action === "diagnose-repo") guarded(runDiagnostics);
+  if (action === "export-memory-zip") guarded(exportMemoryZip);
   if (action === "refresh-runner") guarded(refreshRunnerStatus);
   if (action === "save-onboarding-config") guarded(() => saveOnboardingConfigFromForm(payload));
   if (action === "register-runner-project") guarded(() => registerProjectFromForm(payload));

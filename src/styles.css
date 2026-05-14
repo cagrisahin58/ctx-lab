@@ -509,6 +509,48 @@ kbd {
   color: var(--warning);
 }
 
+.memory-export-panel {
+  display: grid;
+  gap: 12px;
+}
+
+.memory-export-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  color: var(--muted);
+}
+
+.memory-export-summary span {
+  display: inline-flex;
+  max-width: 100%;
+  min-height: 28px;
+  align-items: center;
+  padding: 5px 9px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.memory-export-last {
+  min-height: 32px;
+  padding: 9px 10px;
+  border: 1px solid rgba(52, 211, 153, 0.28);
+  border-radius: 8px;
+  background: rgba(52, 211, 153, 0.08);
+  color: var(--text);
+  font-size: 13px;
+}
+
+.memory-export-last.muted {
+  border-color: var(--line);
+  background: var(--surface);
+  color: var(--muted);
+}
+
 .form-actions {
   display: flex;
   align-items: center;

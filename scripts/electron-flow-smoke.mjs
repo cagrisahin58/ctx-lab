@@ -552,6 +552,14 @@ try {
   await expectVisibleText(page, "Klavye Akışı");
   await page.getByRole("tab", { name: "Bağlantı" }).click();
   await expectVisibleText(page, "GitHub Token");
+  await expectVisibleText(page, "Hafıza Dışa Aktar");
+  await expectVisibleText(page, "Tüm Hafızayı ZIP İndir");
+  await page.getByRole("button", { name: "Tüm Hafızayı ZIP İndir" }).click();
+  await expectVisibleText(page, "kayıt ZIP olarak indirildi.");
+  await expectVisibleText(page, "Son ZIP:");
+  const exportStatusText = await page.locator(".memory-export-last").textContent();
+  assert.match(exportStatusText || "", /ctx-lab-memory-.+\.zip/);
+  await expectVisibleText(page, "KB");
   await page.locator('button[data-view="workspace"]').click();
   await expectVisibleText(page, "Codex'e Devret");
 

@@ -114,6 +114,8 @@ work-memory/
 
 Token, son başarılı hafıza anlık görüntüsü ve son çalışma günlüğü yalnızca tarayıcı localStorage alanında saklanır. Sunucu tarafı yoktur. Yerel önbellek ve çalışma günlüğü owner/repo/dal kapsamıyla ayrılır; uygulama açıldığında son kayıtları ve son kullanıcı aksiyonlarını hızlı gösterir, GitHub ise kaynak gerçeklik olarak kalır. Son görülen dal HEAD değeri de önbellekte tutulur; yazmadan önce GitHub dalı dışarıdan güncellendiyse ctx-lab yazımı durdurur ve `GitHub'dan Yenile` çağrısı gösterir.
 
+Ayarlar içindeki `Hafıza Dışa Aktar` bölümü, yerel önbellekte görünen work-memory kayıtlarını repo klasör düzenini koruyarak `ctx-lab-export-manifest.json` içeren tek ZIP dosyası olarak indirir. Bu dışa aktarım GitHub kaynak gerçekliğini değiştirmez; yalnızca kullanıcının kendi makinesinde arşivleme, grep veya manuel inceleme yapması içindir.
+
 ## Yerel Codex Çalıştırıcı
 
 Electron masaüstü kabuğunda yerel çalıştırıcı omurgası main process içindeki güvenli IPC kanallarından yürür; aynı çalışma zamanı fonksiyonları `scripts/ctxlab-runner.mjs` içinde tutulur. Web fallback için `.\scripts\start-windows.cmd -Web` kullanıldığında bu modül yalnızca `127.0.0.1` üzerinde HTTP servisi olarak açılır ve geçici `x-ctxlab-runner-token` header'ı ile korunur. Her iki yüzey de Codex CLI durumunu denetler, `%APPDATA%/ctx-lab` altında yerel hafıza klasörlerini hazırlar ve otomasyon kapsamına alınacak proje köklerini `projects.json` dosyasında tutar.

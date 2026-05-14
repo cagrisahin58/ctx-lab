@@ -13,10 +13,12 @@ import {
   buildInboxSessionSummaryFromMarkdown,
   buildManualDecision,
   buildManualWorkItem,
+  buildMemoryExportFiles,
   buildOnboardingChecklist,
   buildSessionClosePrompt,
   buildTimelineEvents,
   buildWorkItemFromSession,
+  buildZipArchive,
   dismissTriageSuggestionContent,
   filterRecords,
   findWorkItemForSession,
@@ -435,6 +437,37 @@ test("açık işler ve işleme bekleyen oturumlar için günlük çalışma brif
   assert.match(brief, /İşleme bekleyen oturum: 1/);
   assert.match(brief, /blocked çalışma hattı \[blocked\]/);
   assert.doesNotMatch(brief, /done çalışma hattı/);
+});
+
+test("memory export dosyaları manifest ve repo klasör düzenini koruyan zip üretir", () => {
+  const session = parseMemoryFile("inbox/test.md", sample, "sha-session");
+  const work = parseMemoryFile(
+    "work_items/work_ctx-lab.md",
+    buildWorkItemFromSession(session).content,
+    "sha-work"
+  );
+  const exportBundle = buildMemoryExportFiles(
+    [work, session],
+    { owner: "cagrisahin58", repo: "ctx-lab", branch: "main" },
+    new Date("2026-05-14T12:00:00.000Z")
+  );
+
+  assert.equal(exportBundle.filename, "ctx-lab-memory-cagrisahin58-ctx-lab-main-2026-05-14.zip");
+  assert.equal(exportBundle.manifest.record_count, 2);
+  assert.deepEqual(exportBundle.manifest.counts, { inbox: 1, work_items: 1 });
+  assert.deepEqual(exportBundle.files.map((file) => file.path), [
+    "ctx-lab-export-manifest.json",
+    "inbox/test.md",
+    "work_items/work_ctx-lab.md"
+  ]);
+
+  const zip = buildZipArchive(exportBundle.files);
+  const zipText = new TextDecoder().decode(zip);
+  assert.equal(zip[0], 0x50);
+  assert.equal(zip[1], 0x4b);
+  assert.match(zipText, /ctx-lab-export-manifest\.json/);
+  assert.match(zipText, /work_items\/work_ctx-lab\.md/);
+  assert.match(zipText, /Yeni uygulama yönünü netleştirmek/);
 });
 
 test("legacy kayıtlardan proje timeline olayları üretir", () => {

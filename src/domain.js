@@ -565,6 +565,167 @@ export function upsertRecord(records, record) {
   ];
 }
 
+export function buildMemoryExportFiles(records, config = {}, now = new Date()) {
+  const source = {
+    owner: config.owner || "",
+    repo: config.repo || "",
+    branch: config.branch || "main"
+  };
+  const sorted = [...(records || [])].sort((a, b) => String(a.path || "").localeCompare(String(b.path || "")));
+  const counts = sorted.reduce((acc, record) => {
+    const type = record.type || "unknown";
+    acc[type] = (acc[type] || 0) + 1;
+    return acc;
+  }, {});
+  const manifest = {
+    exported_at: now.toISOString(),
+    source,
+    record_count: sorted.length,
+    counts,
+    files: sorted.map((record) => ({
+      path: normalizeExportPath(record.path, record),
+      id: record.id || "",
+      type: record.type || "",
+      status: record.status || "",
+      title: record.title || "",
+      project: record.project || "",
+      repo: record.repo || "",
+      updated_at: record.frontmatter?.updated_at || record.createdAt || ""
+    }))
+  };
+
+  const files = [
+    {
+      path: "ctx-lab-export-manifest.json",
+      content: `${JSON.stringify(manifest, null, 2)}\n`
+    },
+    ...sorted.map((record) => ({
+      path: normalizeExportPath(record.path, record),
+      content: record.raw || ""
+    }))
+  ];
+
+  const scope = slugify([source.owner, source.repo, source.branch].filter(Boolean).join("-") || "memory");
+  const date = now.toISOString().slice(0, 10);
+  return {
+    filename: `ctx-lab-memory-${scope}-${date}.zip`,
+    manifest,
+    files
+  };
+}
+
+export function buildZipArchive(files) {
+  const encoder = new TextEncoder();
+  const localParts = [];
+  const centralParts = [];
+  let offset = 0;
+
+  for (const file of files || []) {
+    const nameBytes = encoder.encode(normalizeZipEntryName(file.path));
+    const contentBytes = file.bytes instanceof Uint8Array
+      ? file.bytes
+      : encoder.encode(String(file.content ?? ""));
+    const crc = crc32(contentBytes);
+    const localHeader = new Uint8Array(30 + nameBytes.length);
+    const localView = new DataView(localHeader.buffer);
+    writeZipHeader(localView, 0x04034b50);
+    localView.setUint16(4, 20, true);
+    localView.setUint16(6, 0x0800, true);
+    localView.setUint16(8, 0, true);
+    localView.setUint16(10, 0, true);
+    localView.setUint16(12, 0, true);
+    localView.setUint32(14, crc, true);
+    localView.setUint32(18, contentBytes.length, true);
+    localView.setUint32(22, contentBytes.length, true);
+    localView.setUint16(26, nameBytes.length, true);
+    localView.setUint16(28, 0, true);
+    localHeader.set(nameBytes, 30);
+    localParts.push(localHeader, contentBytes);
+
+    const centralHeader = new Uint8Array(46 + nameBytes.length);
+    const centralView = new DataView(centralHeader.buffer);
+    writeZipHeader(centralView, 0x02014b50);
+    centralView.setUint16(4, 20, true);
+    centralView.setUint16(6, 20, true);
+    centralView.setUint16(8, 0x0800, true);
+    centralView.setUint16(10, 0, true);
+    centralView.setUint16(12, 0, true);
+    centralView.setUint16(14, 0, true);
+    centralView.setUint32(16, crc, true);
+    centralView.setUint32(20, contentBytes.length, true);
+    centralView.setUint32(24, contentBytes.length, true);
+    centralView.setUint16(28, nameBytes.length, true);
+    centralView.setUint16(30, 0, true);
+    centralView.setUint16(32, 0, true);
+    centralView.setUint16(34, 0, true);
+    centralView.setUint16(36, 0, true);
+    centralView.setUint32(38, 0, true);
+    centralView.setUint32(42, offset, true);
+    centralHeader.set(nameBytes, 46);
+    centralParts.push(centralHeader);
+
+    offset += localHeader.length + contentBytes.length;
+  }
+
+  const centralOffset = offset;
+  const centralSize = centralParts.reduce((sum, part) => sum + part.length, 0);
+  const end = new Uint8Array(22);
+  const endView = new DataView(end.buffer);
+  writeZipHeader(endView, 0x06054b50);
+  endView.setUint16(8, centralParts.length, true);
+  endView.setUint16(10, centralParts.length, true);
+  endView.setUint32(12, centralSize, true);
+  endView.setUint32(16, centralOffset, true);
+
+  return concatBytes([...localParts, ...centralParts, end]);
+}
+
+function normalizeExportPath(path, record = {}) {
+  const fallbackType = VALID_TYPES.includes(record.type) ? record.type : "archive";
+  const fallbackName = `${record.id || slugify(record.title || "record")}.md`;
+  const normalized = normalizeZipEntryName(path || `${fallbackType}/${fallbackName}`);
+  return normalized.includes("/") ? normalized : `${fallbackType}/${normalized}`;
+}
+
+function normalizeZipEntryName(path) {
+  const parts = String(path || "record.md")
+    .replace(/\\/g, "/")
+    .split("/")
+    .filter((part) => part && part !== "." && part !== "..");
+  return parts.join("/") || "record.md";
+}
+
+function writeZipHeader(view, signature) {
+  view.setUint32(0, signature, true);
+}
+
+function concatBytes(parts) {
+  const length = parts.reduce((sum, part) => sum + part.length, 0);
+  const output = new Uint8Array(length);
+  let offset = 0;
+  for (const part of parts) {
+    output.set(part, offset);
+    offset += part.length;
+  }
+  return output;
+}
+
+function crc32(bytes) {
+  let crc = 0xffffffff;
+  for (const byte of bytes) {
+    crc = (crc >>> 8) ^ CRC32_TABLE[(crc ^ byte) & 0xff];
+  }
+  return (crc ^ 0xffffffff) >>> 0;
+}
+
+const CRC32_TABLE = Array.from({ length: 256 }, (_, index) => {
+  let crc = index;
+  for (let bit = 0; bit < 8; bit += 1) {
+    crc = (crc & 1) ? (0xedb88320 ^ (crc >>> 1)) : (crc >>> 1);
+  }
+  return crc >>> 0;
+});
+
 export function buildWorkItemFromSession(session) {
   const workId = `work_${slugify(session.project || session.title)}`;
   const now = new Date().toISOString();

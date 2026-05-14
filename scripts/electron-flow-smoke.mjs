@@ -154,6 +154,33 @@ async function expectNoVisibleText(page, text) {
   });
 }
 
+async function selectedRecordCardId(page) {
+  return page.locator(".record-card.selected[data-select]").first().getAttribute("data-select");
+}
+
+async function expectRecordCardCountAtLeast(page, count) {
+  await page.waitForFunction((minimumCount) => {
+    return document.querySelectorAll(".record-card[data-select]").length >= minimumCount;
+  }, count, { timeout: 15_000 });
+  const actualCount = await page.locator(".record-card[data-select]").count();
+  assert.ok(actualCount >= count, `Beklenen en az ${count} kayıt kartı, görünen ${actualCount}.`);
+}
+
+async function expectSelectedRecordCardId(page, expectedId) {
+  await page.waitForFunction((id) => {
+    return document.querySelector(".record-card.selected[data-select]")?.getAttribute("data-select") === id;
+  }, expectedId, { timeout: 15_000 });
+  assert.equal(await selectedRecordCardId(page), expectedId);
+}
+
+async function waitForSelectedRecordCardChange(page, previousId) {
+  await page.waitForFunction((id) => {
+    const currentId = document.querySelector(".record-card.selected[data-select]")?.getAttribute("data-select");
+    return Boolean(currentId && currentId !== id);
+  }, previousId, { timeout: 15_000 });
+  return selectedRecordCardId(page);
+}
+
 async function waitForEnabled(page, selector, message) {
   try {
     await page.waitForFunction((targetSelector) => {
@@ -603,6 +630,18 @@ try {
   await expectVisibleText(page, "Sıradaki adım");
   await expectVisibleText(page, "Akıllı eşleşme");
   await expectVisibleText(page, "Önerilen İşe Bağla");
+  await expectRecordCardCountAtLeast(page, 2);
+  const firstInboxCardId = await selectedRecordCardId(page);
+  assert.ok(firstInboxCardId, "Oturum Akışı ilk seçili kayıt kimliğini göstermeli.");
+  await page.keyboard.press("ArrowDown");
+  const secondInboxCardId = await waitForSelectedRecordCardChange(page, firstInboxCardId);
+  assert.notEqual(secondInboxCardId, firstInboxCardId, "ArrowDown Oturum Akışı seçimini değiştirmeli.");
+  await page.keyboard.press("k");
+  await expectSelectedRecordCardId(page, firstInboxCardId);
+  await page.keyboard.press("j");
+  await expectSelectedRecordCardId(page, secondInboxCardId);
+  await page.keyboard.press("ArrowUp");
+  await expectSelectedRecordCardId(page, firstInboxCardId);
   await page.keyboard.press("a");
   await expectVisibleText(page, "Arşivi Onayla");
   await page.keyboard.press("l");

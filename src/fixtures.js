@@ -71,6 +71,42 @@ GitHub token deneyimi sade olmalı.
 `
   },
   {
+    path: "inbox/2026-05-13-ctx-lab-runner-codex.md",
+    content: `---
+id: sess_20260513_ctx_lab_runner_codex
+source: codex
+project: ctx-lab
+repo: cagrisahin58/ctx-lab
+branch: main
+status: needs_triage
+created_at: ${now}
+tags: [desktop, codex-runner]
+linked_work_item:
+---
+
+# Oturum Özeti
+
+## Amaç
+Masaüstü kabukta Codex CLI çalıştırma akışının kullanıcıya nasıl gösterileceğini netleştirmek.
+
+## Yapılanlar
+- Yerel proje kökü izni, çalışma günlüğü ve Codex run kaydı aynı akışta ele alındı.
+- Commit öncesi test sonucu ve değişiklik özeti görünür olmalı kararı alındı.
+- GitHub hafızası ile yerel ayna durumunun ayrı etiketlerle gösterilmesi gerektiği belirlendi.
+
+## Kararlar
+- Codex çalıştırmaları yalnızca kayıtlı proje köklerinde başlatılacak.
+- İlk otomasyon seviyesi brif hazırlama ve öneri üretme ile sınırlı kalacak.
+
+## Sonraki Adımlar
+- Codex run ilerlemesini timeline olayına bağla.
+- Başarısız çalıştırma loglarını Devam Brifi panelinden erişilebilir yap.
+
+## Kanıtlar
+- scripts/ctxlab-runner.mjs
+`
+  },
+  {
     path: "decisions/dec_20260513_github_sot.md",
     content: `---
 id: dec_20260513_github_sot

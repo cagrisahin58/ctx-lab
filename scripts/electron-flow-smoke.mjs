@@ -142,6 +142,16 @@ try {
   await page.locator("[data-command-search]").fill("proje çalışma");
   await page.locator("[data-command-dialog]").getByRole("button", { name: /Proje Çalışma Merkezi/ }).click();
   await expectVisibleText(page, "Codex'e Devret");
+  await page.keyboard.press("Control+K");
+  await page.locator("[data-command-search]").fill("görünüm");
+  await page.locator('[data-command-id="view:appearance"]').click();
+  await expectVisibleText(page, "Tema Durumu");
+  await expectVisibleText(page, "Kısayol Haritası");
+  await expectVisibleText(page, "Klavye Akışı");
+  await page.getByRole("tab", { name: "Bağlantı" }).click();
+  await expectVisibleText(page, "GitHub Token");
+  await page.locator('button[data-view="workspace"]').click();
+  await expectVisibleText(page, "Codex'e Devret");
 
   markPhase("Codex dry-run kaydi olusturma");
   const runForm = page.locator("#codex-run-form");

@@ -69,6 +69,7 @@ const state = {
   warnings: [],
   query: "",
   pendingArchiveId: "",
+  settingsTab: "connection",
   commandPalette: {
     open: false,
     query: "",
@@ -164,6 +165,14 @@ function setView(view) {
   state.view = view;
   state.pendingArchiveId = "";
   keepSelectionVisible();
+  render();
+}
+
+function setSettingsTab(tab) {
+  if (!["connection", "appearance"].includes(tab)) return;
+  state.settingsTab = tab;
+  state.view = "settings";
+  state.pendingArchiveId = "";
   render();
 }
 
@@ -1125,8 +1134,9 @@ function commandItems() {
     { id: "view:handoff", title: "Devam Brifi", subtitle: "Codex veya Claude için bağlam paketi", shortcut: "g h", keywords: "handoff baglam paketi devam brifi", run: () => setView("handoff") },
     { id: "view:daily", title: "Günlük Devam Brifi", subtitle: "Açık işlerden günlük çalışma metni", keywords: "gunluk brif", run: () => setView("daily") },
     { id: "view:runner", title: "Yerel Codex Runner", subtitle: "CLI, proje kökleri ve run kayıtları", keywords: "codex runner otomasyon", run: () => setView("runner") },
-    { id: "view:settings", title: "Hafıza Bağlantısı", subtitle: "GitHub hafıza reposu ayarları", keywords: "repo baglanti github hafiza", run: () => setView("settings") },
-    { id: "view:health", title: "Hafıza Sağlığı", subtitle: state.warnings.length ? `${state.warnings.length} format uyarısı` : "Format uyarısı yok", keywords: "hafiza saglik validation uyarı duplicate status", run: () => setView("settings") },
+    { id: "view:settings", title: "Hafıza Bağlantısı", subtitle: "GitHub hafıza reposu ayarları", keywords: "repo baglanti github hafiza", run: () => setSettingsTab("connection") },
+    { id: "view:appearance", title: "Görünüm", subtitle: "Tema ve klavye akışı", keywords: "gorunum tema kisayol shortcut", run: () => setSettingsTab("appearance") },
+    { id: "view:health", title: "Hafıza Sağlığı", subtitle: state.warnings.length ? `${state.warnings.length} format uyarısı` : "Format uyarısı yok", keywords: "hafiza saglik validation uyarı duplicate status", run: () => setSettingsTab("connection") },
     { id: "new:summary", title: "Yeni Oturum Özeti", subtitle: "Yeni kapanan AI oturumunu kaydet", shortcut: "n s", keywords: "yeni ozet session", run: () => setView("new-summary") },
     { id: "new:work", title: "Yeni İş Hattı", subtitle: "Bağımsız iş hattı oluştur", shortcut: "n w", keywords: "yeni is hatti work", run: () => setView("new-work") },
     { id: "new:decision", title: "Yeni Karar", subtitle: "Kaynaklı karar kaydı oluştur", shortcut: "n d", keywords: "yeni karar decision", run: () => setView("new-decision") },
@@ -2055,8 +2065,34 @@ function renderNewSummary() {
 }
 
 function renderSettings() {
+  const content = state.settingsTab === "appearance"
+    ? renderAppearanceSettings()
+    : renderConnectionSettings();
   return `
-    ${renderHeader("Hafıza Bağlantısı", "Private GitHub hafıza reposu bilgilerini gir.")}
+    ${renderHeader("Ayarlar", "Hafıza bağlantısı, görünüm ve doğrulama durumu.")}
+    <div class="settings-tabs" role="tablist" aria-label="Ayar sekmeleri">
+      ${renderSettingsTab("connection", "Bağlantı")}
+      ${renderSettingsTab("appearance", "Görünüm")}
+    </div>
+    ${content}
+  `;
+}
+
+function renderSettingsTab(tab, label) {
+  const active = state.settingsTab === tab;
+  return `
+    <button
+      class="${active ? "active" : ""}"
+      type="button"
+      role="tab"
+      aria-selected="${active ? "true" : "false"}"
+      data-settings-tab="${tab}"
+    >${label}</button>
+  `;
+}
+
+function renderConnectionSettings() {
+  return `
     <section class="panel">
       <form class="connection-form" id="settings-form">
         <label>
@@ -2084,6 +2120,68 @@ function renderSettings() {
     </section>
     ${renderDiagnostics()}
     ${renderMemoryHealthPanel()}
+  `;
+}
+
+function renderAppearanceSettings() {
+  const themeLabel = state.theme === "dark" ? "Koyu" : "Açık";
+  return `
+    <section class="panel settings-panel">
+      <div class="panel-heading">
+        <div>
+          <span class="eyebrow">Görünüm</span>
+          <h3>Tema ve klavye</h3>
+          <p>Aktif tema: ${themeLabel}</p>
+        </div>
+        <button data-action="toggle-theme">Temayı Değiştir</button>
+      </div>
+      <div class="setting-list">
+        <div class="setting-row">
+          <div>
+            <strong>Tema Durumu</strong>
+            <span>${themeLabel} tema</span>
+          </div>
+          <button data-action="toggle-theme">${state.theme === "dark" ? "Açık Temaya Geç" : "Koyu Temaya Geç"}</button>
+        </div>
+        <div class="setting-row">
+          <div>
+            <strong>Komut Paleti</strong>
+            <span><kbd>Ctrl K</kbd></span>
+          </div>
+          <button data-action="open-command-palette">Paleti Aç</button>
+        </div>
+        <div class="setting-row">
+          <div>
+            <strong>Kısayol Haritası</strong>
+            <span><kbd>?</kbd></span>
+          </div>
+          <button data-action="open-shortcuts">Kısayolları Aç</button>
+        </div>
+        <div class="setting-row">
+          <div>
+            <strong>Hareket</strong>
+            <span>Sistem düşük hareket tercihi</span>
+          </div>
+          <span class="badge active">Destekleniyor</span>
+        </div>
+      </div>
+    </section>
+    <section class="panel settings-panel">
+      <div class="panel-heading">
+        <div>
+          <h3>Klavye Akışı</h3>
+          <p>Yoğun masaüstü kullanımında ana geçişler.</p>
+        </div>
+      </div>
+      <div class="shortcut-grid compact">
+        ${shortcutRows().map((row) => `
+          <div class="shortcut-row">
+            <kbd>${escapeHtml(row.keys)}</kbd>
+            <span>${escapeHtml(row.label)}</span>
+          </div>
+        `).join("")}
+      </div>
+    </section>
   `;
 }
 
@@ -2570,6 +2668,9 @@ function runFirstCommand() {
 function bindEvents() {
   document.querySelectorAll("[data-view]").forEach((button) => {
     button.addEventListener("click", () => setView(button.dataset.view));
+  });
+  document.querySelectorAll("[data-settings-tab]").forEach((button) => {
+    button.addEventListener("click", () => setSettingsTab(button.dataset.settingsTab));
   });
   document.querySelectorAll("[data-select]").forEach((button) => {
     button.addEventListener("click", () => {

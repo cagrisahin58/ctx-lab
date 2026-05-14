@@ -3,6 +3,7 @@ import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { createRequire } from "node:module";
+import { inflateSync } from "node:zlib";
 import { _electron as electron } from "playwright-core";
 import { parseMemoryFile } from "../src/domain.js";
 import { CONFIG_STORAGE_KEY, RECORD_CACHE_STORAGE_KEY } from "../src/storage.js";
@@ -29,6 +30,111 @@ function escapeAnnotation(value) {
 
 function reportFailure(error) {
   console.error(`::error title=Electron flow smoke failed::${escapeAnnotation(phase)}: ${escapeAnnotation(error?.message || error)}`);
+}
+
+function assertRenderedScreenshot(png) {
+  const { width, height, pixels } = decodePng(png);
+  assert.ok(width >= 1000, `Electron ekran görüntüsü beklenenden dar: ${width}px`);
+  assert.ok(height >= 700, `Electron ekran görüntüsü beklenenden kısa: ${height}px`);
+
+  const seen = new Set();
+  let minLuma = 255;
+  let maxLuma = 0;
+  const sampleStep = Math.max(1, Math.floor((width * height) / 10_000));
+  for (let offset = 0, sample = 0; offset < pixels.length; offset += 4, sample += 1) {
+    if (sample % sampleStep !== 0) continue;
+    const alpha = pixels[offset + 3];
+    if (alpha === 0) continue;
+    const r = pixels[offset];
+    const g = pixels[offset + 1];
+    const b = pixels[offset + 2];
+    const luma = Math.round((0.2126 * r) + (0.7152 * g) + (0.0722 * b));
+    minLuma = Math.min(minLuma, luma);
+    maxLuma = Math.max(maxLuma, luma);
+    seen.add(`${r >> 4},${g >> 4},${b >> 4}`);
+  }
+
+  assert.ok(seen.size >= 18, `Electron ekran görüntüsü tekdüze görünüyor: ${seen.size} renk kovası`);
+  assert.ok(maxLuma - minLuma >= 35, `Electron ekran görüntüsü kontrastı düşük görünüyor: ${maxLuma - minLuma}`);
+}
+
+function decodePng(buffer) {
+  assert.equal(buffer.toString("hex", 0, 8), "89504e470d0a1a0a", "Ekran görüntüsü PNG değil");
+  let offset = 8;
+  let width = 0;
+  let height = 0;
+  let bitDepth = 0;
+  let colorType = 0;
+  const idat = [];
+
+  while (offset < buffer.length) {
+    const length = buffer.readUInt32BE(offset);
+    const type = buffer.toString("ascii", offset + 4, offset + 8);
+    const dataStart = offset + 8;
+    const dataEnd = dataStart + length;
+    const data = buffer.subarray(dataStart, dataEnd);
+    if (type === "IHDR") {
+      width = data.readUInt32BE(0);
+      height = data.readUInt32BE(4);
+      bitDepth = data.readUInt8(8);
+      colorType = data.readUInt8(9);
+    } else if (type === "IDAT") {
+      idat.push(data);
+    } else if (type === "IEND") {
+      break;
+    }
+    offset = dataEnd + 4;
+  }
+
+  assert.equal(bitDepth, 8, "PNG ekran görüntüsü 8-bit olmalı");
+  assert.ok(colorType === 2 || colorType === 6, `Desteklenmeyen PNG renk tipi: ${colorType}`);
+  const sourceBpp = colorType === 6 ? 4 : 3;
+  const raw = inflateSync(Buffer.concat(idat));
+  const stride = width * sourceBpp;
+  const rgba = Buffer.alloc(width * height * 4);
+  let rawOffset = 0;
+  let previous = Buffer.alloc(stride);
+
+  for (let y = 0; y < height; y += 1) {
+    const filter = raw[rawOffset];
+    rawOffset += 1;
+    const current = Buffer.from(raw.subarray(rawOffset, rawOffset + stride));
+    rawOffset += stride;
+    unfilterScanline(current, previous, sourceBpp, filter);
+    for (let x = 0; x < width; x += 1) {
+      const source = x * sourceBpp;
+      const target = (y * width + x) * 4;
+      rgba[target] = current[source];
+      rgba[target + 1] = current[source + 1];
+      rgba[target + 2] = current[source + 2];
+      rgba[target + 3] = sourceBpp === 4 ? current[source + 3] : 255;
+    }
+    previous = current;
+  }
+
+  return { width, height, pixels: rgba };
+}
+
+function unfilterScanline(current, previous, bpp, filter) {
+  for (let index = 0; index < current.length; index += 1) {
+    const left = index >= bpp ? current[index - bpp] : 0;
+    const up = previous[index] || 0;
+    const upperLeft = index >= bpp ? previous[index - bpp] || 0 : 0;
+    if (filter === 1) current[index] = (current[index] + left) & 255;
+    else if (filter === 2) current[index] = (current[index] + up) & 255;
+    else if (filter === 3) current[index] = (current[index] + Math.floor((left + up) / 2)) & 255;
+    else if (filter === 4) current[index] = (current[index] + paeth(left, up, upperLeft)) & 255;
+    else assert.equal(filter, 0, `Desteklenmeyen PNG filtre tipi: ${filter}`);
+  }
+}
+
+function paeth(left, up, upperLeft) {
+  const estimate = left + up - upperLeft;
+  const leftDistance = Math.abs(estimate - left);
+  const upDistance = Math.abs(estimate - up);
+  const upperLeftDistance = Math.abs(estimate - upperLeft);
+  if (leftDistance <= upDistance && leftDistance <= upperLeftDistance) return left;
+  return upDistance <= upperLeftDistance ? up : upperLeft;
 }
 
 async function expectVisibleText(page, text) {
@@ -459,7 +565,7 @@ try {
   assert.match(title || "", /^ctx-lab/);
 
   const screenshot = await page.screenshot({ fullPage: true });
-  assert.ok(screenshot.length > 10_000, "Electron ekran görüntüsü boş görünüyor");
+  assertRenderedScreenshot(screenshot);
 
   console.log("electron flow smoke ok");
 } catch (error) {

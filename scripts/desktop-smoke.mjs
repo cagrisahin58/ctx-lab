@@ -40,6 +40,9 @@ assert.ok(main.includes("sandbox: true"), "Renderer sandbox acik olmali");
 assert.ok(main.includes("icon: appIconPath"), "Electron pencere ikonu tanimli olmali");
 assert.ok(main.includes("Menu.setApplicationMenu"), "Electron uygulama menusu tanimli olmali");
 assert.ok(main.includes("new Tray"), "Electron tray opsiyonu tanimli olmali");
+assert.ok(main.includes("shell.openExternal"), "Electron harici linkleri sistem tarayicisina yonlendirmeli");
+assert.ok(main.includes("setWindowOpenHandler"), "Electron yeni pencere acilislarini yakalamali");
+assert.ok(main.includes("claude.ai"), "Claude harici link hostu izin listesinde olmali");
 assert.ok(!main.includes("icon-placeholder"), "Electron gercek ikon yerine placeholder fallback kullanmamali");
 for (const label of ["ctx-lab Hakkında", "Görünüm", "Geliştirici Araçları", "Yaklaşımı Sıfırla", "ctx-lab'i Aç", "Çıkış"]) {
   assert.ok(main.includes(label), `Electron menu/tray etiketi eksik: ${label}`);

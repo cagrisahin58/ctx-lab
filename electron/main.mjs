@@ -1,4 +1,4 @@
-import { app, BrowserWindow, Menu, dialog, ipcMain, nativeImage, Tray } from "electron";
+import { app, BrowserWindow, Menu, dialog, ipcMain, nativeImage, shell, Tray } from "electron";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { buildRunnerPaths } from "../scripts/ctxlab-runner.mjs";
@@ -74,6 +74,18 @@ async function createMainWindow() {
     }
   });
 
+  mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+    if (openAllowedExternalUrl(url)) shell.openExternal(url);
+    return { action: "deny" };
+  });
+
+  mainWindow.webContents.on("will-navigate", (event, url) => {
+    if (!isAppUrl(url)) {
+      event.preventDefault();
+      if (openAllowedExternalUrl(url)) shell.openExternal(url);
+    }
+  });
+
   if (!isSmoke) {
     mainWindow.once("ready-to-show", () => {
       mainWindow.show();
@@ -91,6 +103,21 @@ async function createMainWindow() {
     await mainWindow.loadURL(process.env.VITE_DEV_SERVER_URL);
   } else {
     await mainWindow.loadFile(join(__dirname, "..", "dist", "index.html"));
+  }
+}
+
+function isAppUrl(url) {
+  if (isDev && process.env.VITE_DEV_SERVER_URL && url.startsWith(process.env.VITE_DEV_SERVER_URL)) return true;
+  return url.startsWith("file://");
+}
+
+function openAllowedExternalUrl(url) {
+  try {
+    const parsed = new URL(url);
+    const allowedHosts = new Set(["github.com", "claude.ai"]);
+    return parsed.protocol === "https:" && allowedHosts.has(parsed.hostname);
+  } catch {
+    return false;
   }
 }
 

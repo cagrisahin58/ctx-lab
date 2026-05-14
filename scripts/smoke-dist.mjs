@@ -95,6 +95,7 @@ for (const expected of [
   "Devam Brifini Kopyala",
   "Devam Brifini Markdown Indir",
   "Markdown Indir",
+  "Claude'da Ac",
   "Yerel Codex Calistirici",
   "Yerel Hafiza Aynasi",
   "Aynayi Yenile",

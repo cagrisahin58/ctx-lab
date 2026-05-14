@@ -1143,10 +1143,20 @@ function markdownDownloadHref(content) {
   return `data:text/markdown;charset=utf-8,${encodeURIComponent(content)}`;
 }
 
+function claudeNewChatHref(content) {
+  return `https://claude.ai/new?prompt=${encodeURIComponent(content)}`;
+}
+
 function renderHandoffDownloadLink(record, target, label = "Markdown İndir") {
   if (!record) return "";
   const prompt = buildContextPack(state.records, record, target);
   return `<a class="button-link" href="${escapeHtml(markdownDownloadHref(prompt))}" download="${escapeHtml(handoffDownloadFilename(record, target))}">${escapeHtml(label)}</a>`;
+}
+
+function renderClaudeOpenLink(record, target) {
+  if (target !== "claude" || !record) return "";
+  const prompt = buildContextPack(state.records, record, "claude");
+  return `<a class="button-link" href="${escapeHtml(claudeNewChatHref(prompt))}" target="_blank" rel="noreferrer">Claude'da Aç</a>`;
 }
 
 function downloadContextPack(target = "codex") {
@@ -2493,6 +2503,7 @@ function renderHandoff() {
           <button class="primary" data-action="save-handoff-current">Devam Brifini Kaydet</button>
           <button data-action="copy-handoff">Kopyala</button>
           ${renderHandoffDownloadLink(selected, state.handoffTarget)}
+          ${renderClaudeOpenLink(selected, state.handoffTarget)}
         </div>
         <div class="handoff-preview" aria-label="Devam brifi önizlemesi">
           <div class="preview-target">Önizleme hedefi: ${escapeHtml(target.label)}</div>

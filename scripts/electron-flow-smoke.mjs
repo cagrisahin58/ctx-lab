@@ -627,6 +627,10 @@ try {
   const downloadedMarkdown = decodeURIComponent(downloadHref.split(",").slice(1).join(","));
   assert.match(downloadedMarkdown, /Claude Code için ctx-lab devam brifi/);
   assert.match(downloadedMarkdown, /Çalışma kuralı:/);
+  const claudeLink = page.getByRole("link", { name: "Claude'da Aç" });
+  const claudeHref = await claudeLink.getAttribute("href");
+  assert.ok(claudeHref?.startsWith("https://claude.ai/new?prompt="), "Claude linki yeni sohbet prompt URL'si olmalı");
+  assert.match(decodeURIComponent(claudeHref.split("prompt=").slice(1).join("prompt=")), /Claude Code için ctx-lab devam brifi/);
   await page.keyboard.press("Control+K");
   await page.locator("[data-command-search]").fill("hafıza sağlığı");
   await page.locator('[data-command-id="view:health"]').click();

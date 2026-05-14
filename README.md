@@ -140,7 +140,7 @@ Arşivlenen kayıtlar archive klasörüne `archived` statüsüyle taşınır, b�
 
 ## Devam brifi akışı
 
-`İş Akışı` ekranında seçili iş hattı için bağlı oturumlar, karar kayıtları, güncel durum, sıradaki adım ve çalışma kuralları tek bir devam brifinde birleştirilir. `Devam Brifi`, kaynak iş hattını veya oturum kaydını ve hedef aracı (`Codex` ya da `Claude Code`) açıkça seçtirir. Bu metin doğrudan kopyalanabilir, Markdown olarak indirilebilir veya `handoffs/` altına kaydedilebilir. Amaç, temiz bir Codex/Claude oturumunda sohbet geçmişi kaybolsa bile insan çalışma bağlamını hızlı geri yüklemektir.
+`İş Akışı` ekranında seçili iş hattı için bağlı oturumlar, karar kayıtları, güncel durum, sıradaki adım ve çalışma kuralları tek bir devam brifinde birleştirilir. `Devam Brifi`, kaynak iş hattını veya oturum kaydını ve hedef aracı (`Codex` ya da `Claude Code`) açıkça seçtirir. Bu metin doğrudan kopyalanabilir, Markdown olarak indirilebilir, Claude hedefindeyken Claude'da yeni sohbet olarak açılabilir veya `handoffs/` altına kaydedilebilir. Amaç, temiz bir Codex/Claude oturumunda sohbet geçmişi kaybolsa bile insan çalışma bağlamını hızlı geri yüklemektir.
 `Günlük Devam Brifi` ekranı tüm açık iş hatlarını, engelli/bekleyen işleri ve işleme bekleyen kayıtları tek metinde toplar; bu brif kopyalanabilir veya devam brifi olarak kaydedilebilir.
 
 İş hatları `Aktif`, `Beklemede`, `Engelli` ve `Tamamlandı` durumları arasında doğrudan panodan taşınabilir. Panodaki `Yeni İş Hattı` akışı, oturum akışını beklemeden bağımsız bir çalışma hattı açar. Arama alanı Oturum Akışı, İş Akışı ve Karar Defteri içinde proje, başlık, repo, durum, kaynak ve etiket bilgilerine göre hızlı süzme yapar.

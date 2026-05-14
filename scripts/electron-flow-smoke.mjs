@@ -9,6 +9,24 @@ const require = createRequire(import.meta.url);
 const electronPath = require("electron");
 const root = process.cwd();
 const userData = await mkdtemp(join(tmpdir(), "ctxlab-electron-flow-"));
+let phase = "Electron baslatma";
+
+function markPhase(value) {
+  phase = value;
+  console.log(`[electron-flow] ${value}`);
+}
+
+function escapeAnnotation(value) {
+  return String(value || "")
+    .replaceAll("%", "%25")
+    .replaceAll("\r", "%0D")
+    .replaceAll("\n", "%0A")
+    .slice(0, 900);
+}
+
+function reportFailure(error) {
+  console.error(`::error title=Electron flow smoke failed::${escapeAnnotation(phase)}: ${escapeAnnotation(error?.message || error)}`);
+}
 
 async function expectVisibleText(page, text) {
   await page.getByText(text, { exact: false }).first().waitFor({
@@ -56,6 +74,7 @@ const launchArgs = process.platform === "linux" && process.env.CI
 
 let electronApp;
 try {
+  markPhase("Electron uygulamasini acma");
   electronApp = await electron.launch({
     executablePath: electronPath,
     args: launchArgs,
@@ -64,6 +83,7 @@ try {
   });
 
   const page = await electronApp.firstWindow();
+  markPhase("Ilk kurulum ekranini bekleme");
   await page.waitForLoadState("domcontentloaded");
 
   await expectVisibleText(page, "Kısa Kurulum");
@@ -76,6 +96,7 @@ try {
     return !text.includes("Kontrol bekliyor") && !text.includes("Codex kontrol bekliyor");
   }, null, { timeout: 20_000 });
 
+  markPhase("Proje kokunu kaydetme");
   const projectForm = page.locator("#onboarding-project-form");
   await projectForm.locator('input[name="name"]').fill("ctx-lab");
   await projectForm.locator('input[name="repo"]').fill("cagrisahin58/ctx-lab");
@@ -88,6 +109,7 @@ try {
   await page.getByRole("button", { name: "Örnek Devam Brifi Üret" }).click();
   await expectVisibleText(page, "Codex için ctx-lab devam brifi");
 
+  markPhase("Calisma merkezini ve komut paletini dogrulama");
   await page.getByRole("button", { name: "Önce Gez" }).click();
   await page.locator('button[data-view="workspace"]').click();
   await expectVisibleText(page, "Güncel Bağlam");
@@ -110,6 +132,7 @@ try {
   await page.locator("[data-command-dialog]").getByRole("button", { name: /Proje Çalışma Merkezi/ }).click();
   await expectVisibleText(page, "Codex'e Devret");
 
+  markPhase("Codex dry-run kaydi olusturma");
   const runForm = page.locator("#codex-run-form");
   await runForm.locator('textarea[name="prompt"]').fill("ctx-lab Electron smoke icin dry-run devam brifi hazirla.");
   await runForm.getByRole("button", { name: "Run kaydı oluştur" }).click();
@@ -122,12 +145,14 @@ try {
   await expectVisibleText(page, "Çalıştırılmadı");
   await expectVisibleText(page, "Commit + push için ayrı onay verdim");
 
+  markPhase("Is akisi surukle birak durumunu dogrulama");
   await page.keyboard.press("Control+K");
   await page.locator("[data-command-search]").fill("iş akışı");
   await page.locator("[data-command-dialog]").getByRole("button", { name: /İş Akışı/ }).click();
   await expectVisibleText(page, "Kalıcı gerçeklik burada tutulur");
   await moveWorkCardToColumn(page, "work_ctx_lab_redesign", "waiting");
 
+  markPhase("Devam brifi ve hafiza sagligi gorunumlerini dogrulama");
   await page.keyboard.press("Control+K");
   await page.locator("[data-command-search]").fill("devam brifi");
   await page.locator('[data-command-id="view:handoff"]').click();
@@ -150,6 +175,9 @@ try {
   assert.ok(screenshot.length > 10_000, "Electron ekran görüntüsü boş görünüyor");
 
   console.log("electron flow smoke ok");
+} catch (error) {
+  reportFailure(error);
+  throw error;
 } finally {
   if (electronApp) {
     await electronApp.close();

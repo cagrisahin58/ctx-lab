@@ -16,6 +16,7 @@ const root = process.cwd();
 const userData = await mkdtemp(join(tmpdir(), "ctxlab-electron-flow-"));
 const memoryFixtureFile = join(userData, "memory-fixture.json");
 const screenshotOutput = process.env.CTX_LAB_ELECTRON_FLOW_SCREENSHOT || "";
+const screenshotMetricsOutput = process.env.CTX_LAB_ELECTRON_FLOW_SCREENSHOT_METRICS || "";
 let runtimeUserData = userData;
 let phase = "Electron baslatma";
 
@@ -60,6 +61,15 @@ function assertRenderedScreenshot(png) {
 
   assert.ok(seen.size >= 18, `Electron ekran görüntüsü tekdüze görünüyor: ${seen.size} renk kovası`);
   assert.ok(maxLuma - minLuma >= 35, `Electron ekran görüntüsü kontrastı düşük görünüyor: ${maxLuma - minLuma}`);
+  return {
+    width,
+    height,
+    sampledPixels: Math.ceil((width * height) / sampleStep),
+    colorBuckets: seen.size,
+    minLuma,
+    maxLuma,
+    lumaRange: maxLuma - minLuma
+  };
 }
 
 function decodePng(buffer) {
@@ -155,11 +165,17 @@ async function expectNoVisibleText(page, text) {
   });
 }
 
-async function saveScreenshotArtifact(png) {
-  if (!screenshotOutput) return;
-  await mkdir(dirname(screenshotOutput), { recursive: true });
-  await writeFile(screenshotOutput, png);
-  console.log(`[electron-flow] Screenshot artefakti yazildi: ${screenshotOutput}`);
+async function saveScreenshotArtifacts(png, metrics) {
+  if (screenshotOutput) {
+    await mkdir(dirname(screenshotOutput), { recursive: true });
+    await writeFile(screenshotOutput, png);
+    console.log(`[electron-flow] Screenshot artefakti yazildi: ${screenshotOutput}`);
+  }
+  if (screenshotMetricsOutput) {
+    await mkdir(dirname(screenshotMetricsOutput), { recursive: true });
+    await writeFile(screenshotMetricsOutput, `${JSON.stringify(metrics, null, 2)}\n`, "utf8");
+    console.log(`[electron-flow] Screenshot metrik artefakti yazildi: ${screenshotMetricsOutput}`);
+  }
 }
 
 async function selectedRecordCardId(page) {
@@ -1022,8 +1038,8 @@ try {
 
   await assertWorkspaceDesktopLayout(page);
   const screenshot = await page.screenshot({ fullPage: true });
-  assertRenderedScreenshot(screenshot);
-  await saveScreenshotArtifact(screenshot);
+  const screenshotMetrics = assertRenderedScreenshot(screenshot);
+  await saveScreenshotArtifacts(screenshot, screenshotMetrics);
 
   console.log("electron flow smoke ok");
 } catch (error) {

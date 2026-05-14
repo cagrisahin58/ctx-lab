@@ -51,12 +51,12 @@ Not: `desktop:pack:smoke`, Windows exe politikasi nedeniyle `app.asar` fallback 
 | App icon, menu/tray opsiyonu | `electron/assets/icon.ico`, `electron/main.mjs` menu ve tray | `desktop:pack:smoke`, Electron boot smoke | Kapali |
 | Guvenli IPC sinirlari | `preload.cjs`, `runtime.mjs`, `DESKTOP_IPC_CHANNELS` | `desktop-runtime.test.js` izinli kanal testi | Kapali |
 | Production build ve Windows paketleme hazirligi | `electron-builder.yml`, `desktop:pack`, `desktop:dist` | `desktop:pack:smoke`, CI `desktop-verify` | Kapali |
-| Gorsel regression/screenshot kontrolleri | `electron-flow-smoke.mjs` PNG decode, renk/kontrast, workspace bolge geometrisi ve viewport kontrolleri; CI screenshot artefakti | `desktop:flow`, `desktop-verify` artefakt yukleme | Kapali, fakat pixel baseline/regression arsivi yok |
+| Gorsel regression/screenshot kontrolleri | `electron-flow-smoke.mjs` PNG decode, renk/kontrast, workspace bolge geometrisi, viewport kontrolleri ve screenshot metrik JSON'u; CI screenshot + metrik artefakti | `desktop:flow`, `desktop-verify` artefakt yukleme | Kapali, fakat pixel baseline/regression arsivi yok |
 
 ## Bilinen zayif kanitlar
 
 1. Canli GitHub private repo yazma testi CI icinde mock'lanir veya token yoksa opsiyonel script tarafindan atlanir. `npm run github:diagnose` token verildiginde gercek Contents API yazma/silme testi yapar, fakat CI'da token kullanilmadigi icin canli private repo uzerinde zorunlu dogrulama yoktur.
-2. Gorsel kalite icin screenshot smoke nonblank/kontrast ve ana akislari dogrular; CI screenshot artefakti manuel inceleme icin saklanir. Tasarimin "profesyonel masaustu araci gibi gorunmesi" halen kismen manuel degerlendirme ister.
+2. Gorsel kalite icin screenshot smoke nonblank/kontrast, layout geometrisi ve metrik JSON'u uretir; CI screenshot artefakti manuel inceleme icin saklanir. Tasarimin "profesyonel masaustu araci gibi gorunmesi" halen kismen manuel degerlendirme ister.
 3. `claude-review.md` untracked oldugu icin kanit olarak commitlenmez. Bu belge P0/P1 maddelerinin urune yansiyan kisimlarini izler, fakat kaynak review dosyasi bilerek repo disinda kalir.
 4. Tum UI Turkce hedefi smoke ile eski terim, onboarding, hafiza senkron, validation ve kritik aksiyon metinleri duzeyinde korunur; tum bundle icin dogal Turkce denetimi tam otomatik degildir.
 

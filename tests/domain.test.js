@@ -652,3 +652,51 @@ test("arşiv içeriği status ve archived_at alanlarını günceller", () => {
   assert.equal(parsed.frontmatter.archived_at, "2026-05-13T12:00:00.000Z");
   assert.match(parsed.body, /Session Summary/);
 });
+
+test("bozuk frontmatter ve eksik zorunlu alanları uyarır", () => {
+  const missingStatus = parseMemoryFile(
+    "inbox/missing-status.md",
+    sample.replace("status: needs_triage\n", ""),
+    "sha-missing-status"
+  );
+  const missingId = parseMemoryFile(
+    "work_items/missing-id.md",
+    buildManualWorkItem({
+      title: "Eksik id testi",
+      project: "ctx-lab",
+      repo: "cagrisahin58/ctx-lab",
+      branch: "main",
+      objective: "Eksik id uyarısını doğrula.",
+      current: "Test kaydı.",
+      next: "Validation panelinde göster."
+    }).content.replace(/^id: .+\n/m, ""),
+    "sha-missing-id"
+  );
+  const malformed = parseMemoryFile(
+    "inbox/malformed.md",
+    `---
+id: sess_malformed
+status needs_triage
+---
+
+# Oturum Özeti
+`,
+    "sha-malformed"
+  );
+  const unclosed = parseMemoryFile(
+    "inbox/unclosed.md",
+    `---
+id: sess_unclosed
+status: needs_triage
+
+# Oturum Özeti
+`,
+    "sha-unclosed"
+  );
+  const warnings = validateMemoryRecords([missingStatus, missingId, malformed, unclosed]);
+
+  assert.ok(warnings.some((warning) => warning.includes("missing-status.md") && warning.includes("status alan")));
+  assert.ok(warnings.some((warning) => warning.includes("missing-id.md") && warning.includes("id alan")));
+  assert.ok(warnings.some((warning) => warning.includes("malformed.md") && warning.includes("bozuk frontmatter")));
+  assert.ok(warnings.some((warning) => warning.includes("unclosed.md") && warning.includes("kapanış")));
+});

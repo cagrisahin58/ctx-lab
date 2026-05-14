@@ -47,23 +47,24 @@ export function slugify(value) {
 
 export function parseFrontmatter(content) {
   if (!content.startsWith("---")) {
-    return { frontmatter: {}, body: content };
+    return { frontmatter: {}, body: content, errors: ["frontmatter bloğu yok"] };
   }
   const end = content.indexOf("\n---", 3);
   if (end === -1) {
-    return { frontmatter: {}, body: content };
+    return { frontmatter: {}, body: content, errors: ["frontmatter kapanış çizgisi eksik"] };
   }
   const raw = content.slice(3, end).trim();
   const body = content.slice(end + 4).trimStart();
-  return { frontmatter: parseYamlLite(raw), body };
+  const errors = [];
+  return { frontmatter: parseYamlLite(raw, errors), body, errors };
 }
 
-export function parseYamlLite(raw) {
+export function parseYamlLite(raw, errors = []) {
   const result = {};
   const lines = raw.split(/\r?\n/);
   let currentKey = null;
 
-  for (const line of lines) {
+  for (const [index, line] of lines.entries()) {
     if (!line.trim() || line.trim().startsWith("#")) continue;
     const listMatch = line.match(/^\s+-\s+(.+)$/);
     if (listMatch && currentKey) {
@@ -73,7 +74,10 @@ export function parseYamlLite(raw) {
     }
 
     const keyMatch = line.match(/^([A-Za-z0-9_-]+):\s*(.*)$/);
-    if (!keyMatch) continue;
+    if (!keyMatch) {
+      errors.push(`${index + 1}. satır okunamadı: ${line.trim()}`);
+      continue;
+    }
     currentKey = keyMatch[1];
     const value = keyMatch[2];
     if (value === "") {
@@ -149,7 +153,7 @@ export function getSection(sections, key) {
 }
 
 export function parseMemoryFile(path, content, sha = "") {
-  const { frontmatter, body } = parseFrontmatter(content);
+  const { frontmatter, body, errors = [] } = parseFrontmatter(content);
   const sections = parseSections(body);
   const h1 = body.match(/^#\s+(.+)$/m);
   const type = path.split("/")[0] || "unknown";
@@ -161,6 +165,7 @@ export function parseMemoryFile(path, content, sha = "") {
     type,
     raw: content,
     frontmatter,
+    frontmatterErrors: errors,
     sections,
     id: frontmatter.id || slugify(path),
     title,
@@ -183,10 +188,13 @@ export function validateMemoryRecords(records, now = new Date()) {
   const nowTime = coerceTime(now);
 
   for (const record of records) {
+    for (const error of record.frontmatterErrors || []) {
+      warnings.push(`${record.path}: bozuk frontmatter (${error})`);
+    }
     if (!VALID_TYPES.includes(record.type)) {
       warnings.push(`${record.path}: bilinmeyen klasör tipi (${record.type})`);
     }
-    if (!record.id) {
+    if (!hasFrontmatterKey(record, "id")) {
       warnings.push(`${record.path}: id alanı eksik`);
     }
     if (seen.has(record.id)) {
@@ -194,7 +202,9 @@ export function validateMemoryRecords(records, now = new Date()) {
     } else {
       seen.set(record.id, record.path);
     }
-    if (!VALID_STATUSES.includes(record.status)) {
+    if (!hasFrontmatterKey(record, "status")) {
+      warnings.push(`${record.path}: status alanı eksik`);
+    } else if (!VALID_STATUSES.includes(record.status)) {
       warnings.push(`${record.path}: bilinmeyen durum (${record.status})`);
     }
     if (record.type === "inbox" && !record.source) {
@@ -209,6 +219,10 @@ export function validateMemoryRecords(records, now = new Date()) {
   }
 
   return warnings;
+}
+
+function hasFrontmatterKey(record, key) {
+  return Object.prototype.hasOwnProperty.call(record.frontmatter || {}, key);
 }
 
 function workItemLifecycleWarnings(record, nowTime) {

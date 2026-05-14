@@ -42,6 +42,27 @@ export async function startRunnerCodexRun(run, options = {}) {
   }, options);
 }
 
+export async function fetchMemoryMirrorStatus(config, options = {}) {
+  const desktop = desktopApi(options);
+  if (desktop) return desktop.memoryStatus(config);
+  return runnerRequest(`/memory/status?${memoryParams(config)}`, {}, options);
+}
+
+export async function fetchMemoryMirrorIndex(config, options = {}) {
+  const desktop = desktopApi(options);
+  if (desktop) return desktop.memoryIndex(config);
+  return runnerRequest(`/memory/index?${memoryParams(config)}`, {}, options);
+}
+
+export async function syncMemoryMirror(config, options = {}) {
+  const desktop = desktopApi(options);
+  if (desktop) return desktop.syncMemory(config);
+  return runnerRequest("/memory/sync", {
+    method: "POST",
+    body: JSON.stringify(config)
+  }, options);
+}
+
 async function runnerRequest(path, requestOptions = {}, options = {}) {
   const fetchImpl = options.fetch || fetch;
   const baseUrl = options.baseUrl || DEFAULT_RUNNER_URL;
@@ -57,6 +78,14 @@ async function runnerRequest(path, requestOptions = {}, options = {}) {
     throw new Error(payload.error || `Yerel runner HTTP ${response.status}`);
   }
   return payload;
+}
+
+function memoryParams(config = {}) {
+  const params = new URLSearchParams();
+  for (const key of ["owner", "repo", "branch", "repoInput", "repoUrl", "remoteUrl"]) {
+    if (config[key]) params.set(key, config[key]);
+  }
+  return params.toString();
 }
 
 function desktopApi(options = {}) {

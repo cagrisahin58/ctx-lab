@@ -37,6 +37,8 @@ for (const expected of [
   "Devam brifi hedefi",
   "Devam Brifini Kopyala",
   "Yerel Codex Runner",
+  "Yerel Memory Mirror",
+  "Mirror Yenile",
   "Calisma Gunlugu",
   "Codex'e Devret",
   "Proje Koku",

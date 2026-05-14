@@ -1,9 +1,12 @@
 import {
   buildHealthPayload,
   buildRunnerPaths,
+  getMemoryMirrorStatus,
   listCodexRuns,
   readProjectRegistry,
   registerProject,
+  readMemoryIndex,
+  syncMemoryMirror,
   startCodexRun
 } from "../scripts/ctxlab-runner.mjs";
 
@@ -13,7 +16,10 @@ export const DESKTOP_IPC_CHANNELS = Object.freeze({
   registerProject: "ctxlab:projects:register",
   selectProjectDirectory: "ctxlab:projects:select-directory",
   listRuns: "ctxlab:runs:list",
-  startCodexRun: "ctxlab:runs:start-codex"
+  startCodexRun: "ctxlab:runs:start-codex",
+  memoryStatus: "ctxlab:memory:status",
+  memoryIndex: "ctxlab:memory:index",
+  syncMemory: "ctxlab:memory:sync"
 });
 
 export function createDesktopRuntime(options = {}) {
@@ -50,6 +56,15 @@ export function createDesktopRuntime(options = {}) {
     },
     async startCodexRun(input) {
       return startCodexRun(paths, input, options);
+    },
+    async memoryStatus(input) {
+      return getMemoryMirrorStatus(paths, input);
+    },
+    async memoryIndex(input) {
+      return readMemoryIndex(paths, input);
+    },
+    async syncMemory(input) {
+      return syncMemoryMirror(paths, input, options);
     }
   };
 }
@@ -61,7 +76,10 @@ export function registerDesktopIpcHandlers(ipcMain, runtime) {
     [DESKTOP_IPC_CHANNELS.registerProject]: (_event, input) => runtime.registerProject(input),
     [DESKTOP_IPC_CHANNELS.selectProjectDirectory]: () => runtime.selectProjectDirectory(),
     [DESKTOP_IPC_CHANNELS.listRuns]: (_event, input) => runtime.listRuns(input),
-    [DESKTOP_IPC_CHANNELS.startCodexRun]: (_event, input) => runtime.startCodexRun(input)
+    [DESKTOP_IPC_CHANNELS.startCodexRun]: (_event, input) => runtime.startCodexRun(input),
+    [DESKTOP_IPC_CHANNELS.memoryStatus]: (_event, input) => runtime.memoryStatus(input),
+    [DESKTOP_IPC_CHANNELS.memoryIndex]: (_event, input) => runtime.memoryIndex(input),
+    [DESKTOP_IPC_CHANNELS.syncMemory]: (_event, input) => runtime.syncMemory(input)
   };
 
   for (const [channel, handler] of Object.entries(handlers)) {

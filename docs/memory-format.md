@@ -27,6 +27,8 @@ Geçerli durumlar: `needs_triage`, `linked`, `active`, `waiting`, `blocked`, `do
 
 v2 arayüzü mevcut markdown/frontmatter formatını bozmadan kayıtlardan türetilmiş bir timeline katmanı oluşturur. Bu katman kalıcı şemayı değiştirmez; `inbox` oturumları, `work_items` iş hattı güncellemeleri, `decisions` kararlar, `handoffs` devam brifleri, `archive` kayıtları, yerel proje kökleri ve Codex run logları tek sıralı olay listesine dönüştürülür. Eski kayıtlar timeline içinde görünmeye devam eder.
 
+Yerel masaüstü mirror bu kayıtları `%APPDATA%/ctx-lab/memory/git` altında Git clone olarak, özet index'i de `%APPDATA%/ctx-lab/memory/index/<owner>__<repo>__<branch>.json` altında tutar. Index türetilmiş veridir; GitHub memory repo kaynak gerçeklik olmaya devam eder.
+
 ## Oturum özeti
 
 Dosya yolu örneği:

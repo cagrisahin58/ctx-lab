@@ -2,13 +2,15 @@ import { createServer } from "node:http";
 import { access, mkdir, readFile, readdir, stat, writeFile } from "node:fs/promises";
 import { constants } from "node:fs";
 import { homedir } from "node:os";
-import { basename, join, posix, resolve, win32 } from "node:path";
+import { basename, dirname, join, posix, relative, resolve, sep, win32 } from "node:path";
 import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { createHash } from "node:crypto";
+import { parseMemoryFile, validateMemoryRecords } from "../src/domain.js";
 
 export const DEFAULT_RUNNER_PORT = 5174;
 export const RUNNER_VERSION = "0.1.0";
+export const MEMORY_DIRS = Object.freeze(["inbox", "work_items", "decisions", "handoffs", "archive"]);
 export const AUTOMATION_LEVELS = Object.freeze([
   "brief",
   "suggest",
@@ -170,6 +172,140 @@ export async function buildHealthPayload(paths = buildRunnerPaths(), options = {
   };
 }
 
+export function normalizeMemoryMirrorConfig(input = {}) {
+  const repoInput = String(input.repoInput || input.repoUrl || "").trim();
+  let owner = String(input.owner || "").trim();
+  let repo = String(input.repo || "").trim();
+
+  if ((!owner || !repo) && repoInput) {
+    const cleaned = repoInput
+      .replace(/^https:\/\/github\.com\//, "")
+      .replace(/^git@github\.com:/, "")
+      .replace(/\.git$/, "")
+      .replace(/^\/+|\/+$/g, "");
+    const [parsedOwner, parsedRepo] = cleaned.split("/");
+    owner ||= parsedOwner || "";
+    repo ||= parsedRepo || "";
+  }
+
+  if (!owner || !repo) throw new Error("Memory mirror icin owner/repo zorunlu.");
+
+  const branch = String(input.branch || "main").trim() || "main";
+  const remoteUrl = input.remoteUrl
+    ? sanitizeGitHubRemoteUrl(input.remoteUrl)
+    : `https://github.com/${owner}/${repo}.git`;
+
+  return { owner, repo, branch, remoteUrl };
+}
+
+export function buildMemoryMirrorPaths(paths = buildRunnerPaths(), input = {}) {
+  const config = normalizeMemoryMirrorConfig(input);
+  const scope = `${slugForId(config.owner)}__${slugForId(config.repo)}__${slugForId(config.branch)}`;
+  return {
+    config,
+    scope,
+    cloneDir: join(paths.memoryGitDir, scope),
+    indexFile: join(paths.memoryIndexDir, `${scope}.json`)
+  };
+}
+
+export async function getMemoryMirrorStatus(paths = buildRunnerPaths(), input = {}) {
+  await ensureRunnerHome(paths);
+  const mirror = buildMemoryMirrorPaths(paths, input);
+  const cloneExists = await pathExists(join(mirror.cloneDir, ".git"));
+  const index = await readMemoryIndex(paths, input).catch(() => null);
+
+  return {
+    configured: true,
+    owner: mirror.config.owner,
+    repo: mirror.config.repo,
+    branch: mirror.config.branch,
+    remoteUrl: mirror.config.remoteUrl,
+    cloneDir: mirror.cloneDir,
+    indexFile: mirror.indexFile,
+    cloneExists,
+    indexed: Boolean(index),
+    recordCount: index?.recordCount || 0,
+    warningCount: index?.warningCount || 0,
+    lastIndexedAt: index?.indexedAt || "",
+    lastCommit: index?.lastCommit || ""
+  };
+}
+
+export async function syncMemoryMirror(paths = buildRunnerPaths(), input = {}, options = {}) {
+  await ensureRunnerHome(paths);
+  const mirror = buildMemoryMirrorPaths(paths, input);
+  const run = options.runCommand || runCommand;
+  const cloneExists = await pathExists(join(mirror.cloneDir, ".git"));
+
+  if (!cloneExists) {
+    await mkdir(dirname(mirror.cloneDir), { recursive: true });
+    const cloned = await run("git", [
+      "clone",
+      "--branch",
+      mirror.config.branch,
+      "--single-branch",
+      mirror.config.remoteUrl,
+      mirror.cloneDir
+    ]);
+    if (!cloned.ok) throw new Error(`Memory mirror clone basarisiz: ${cloned.stderr || cloned.stdout || "git hata verdi"}`);
+  } else {
+    for (const args of [
+      ["-C", mirror.cloneDir, "fetch", "--prune", "origin", mirror.config.branch],
+      ["-C", mirror.cloneDir, "checkout", mirror.config.branch],
+      ["-C", mirror.cloneDir, "pull", "--ff-only", "origin", mirror.config.branch]
+    ]) {
+      const result = await run("git", args);
+      if (!result.ok) throw new Error(`Memory mirror git islemi basarisiz: ${result.stderr || result.stdout || args.join(" ")}`);
+    }
+  }
+
+  return indexMemoryMirror(paths, input, options);
+}
+
+export async function readMemoryIndex(paths = buildRunnerPaths(), input = {}) {
+  const mirror = buildMemoryMirrorPaths(paths, input);
+  const raw = await readFile(mirror.indexFile, "utf8");
+  return JSON.parse(raw);
+}
+
+export async function indexMemoryMirror(paths = buildRunnerPaths(), input = {}, options = {}) {
+  await ensureRunnerHome(paths);
+  const mirror = buildMemoryMirrorPaths(paths, input);
+  const root = await findMemoryRoot(mirror.cloneDir);
+  const files = await collectMemoryMarkdownFiles(root);
+  const records = [];
+
+  for (const filePath of files) {
+    const content = await readFile(filePath, "utf8");
+    const relativePath = relative(root, filePath).split(sep).join("/");
+    const sha = createHash("sha1").update(content).digest("hex");
+    records.push(parseMemoryFile(relativePath, content, sha));
+  }
+
+  const commit = await readGitCommit(mirror.cloneDir, options);
+  const warnings = validateMemoryRecords(records);
+  const index = {
+    schemaVersion: 1,
+    owner: mirror.config.owner,
+    repo: mirror.config.repo,
+    branch: mirror.config.branch,
+    cloneDir: mirror.cloneDir,
+    memoryRoot: root,
+    indexedAt: (options.now || new Date()).toISOString(),
+    lastCommit: commit,
+    recordCount: records.length,
+    warningCount: warnings.length,
+    counts: countRecords(records),
+    warnings,
+    records: records.map(summarizeRecordForIndex)
+  };
+
+  await mkdir(dirname(mirror.indexFile), { recursive: true });
+  await writeFile(mirror.indexFile, `${JSON.stringify(index, null, 2)}\n`, "utf8");
+  return index;
+}
+
 export async function listCodexRuns(paths = buildRunnerPaths(), limit = 20) {
   await ensureRunnerHome(paths);
   const names = await readdir(paths.runsDir).catch(() => []);
@@ -297,7 +433,7 @@ export function createRunnerServer(options = {}) {
       if (request.method === "GET" && url.pathname === "/") {
         return sendJson(response, 200, {
           ...(await buildHealthPayload(paths, options)),
-          endpoints: ["/health", "/projects", "/runs", "/runs/codex"]
+          endpoints: ["/health", "/projects", "/runs", "/runs/codex", "/memory/status", "/memory/sync"]
         });
       }
       if (request.method === "GET" && url.pathname === "/health") {
@@ -318,6 +454,16 @@ export function createRunnerServer(options = {}) {
       if (request.method === "POST" && url.pathname === "/runs/codex") {
         const body = await readJsonBody(request);
         return sendJson(response, 201, await startCodexRun(paths, body, options));
+      }
+      if (request.method === "GET" && url.pathname === "/memory/status") {
+        return sendJson(response, 200, await getMemoryMirrorStatus(paths, Object.fromEntries(url.searchParams)));
+      }
+      if (request.method === "GET" && url.pathname === "/memory/index") {
+        return sendJson(response, 200, await readMemoryIndex(paths, Object.fromEntries(url.searchParams)));
+      }
+      if (request.method === "POST" && url.pathname === "/memory/sync") {
+        const body = await readJsonBody(request);
+        return sendJson(response, 201, await syncMemoryMirror(paths, body, options));
       }
       return sendJson(response, 404, { ok: false, error: "Endpoint bulunamadı" });
     } catch (error) {
@@ -341,6 +487,92 @@ function resolveAllowedProject(registry, input) {
     throw new Error("Codex yalnizca kayitli proje koklerinde calistirilabilir.");
   }
   return project;
+}
+
+function sanitizeGitHubRemoteUrl(value) {
+  const text = String(value || "").trim();
+  if (/^https:\/\/github\.com\/[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+(?:\.git)?$/.test(text)) {
+    return text.endsWith(".git") ? text : `${text}.git`;
+  }
+  if (/^git@github\.com:[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+(?:\.git)?$/.test(text)) {
+    return text.endsWith(".git") ? text : `${text}.git`;
+  }
+  throw new Error("Memory mirror remote URL yalnizca github.com repo adresi olabilir.");
+}
+
+async function findMemoryRoot(cloneDir) {
+  const candidates = [cloneDir, join(cloneDir, "work-memory")];
+  for (const candidate of candidates) {
+    const checks = await Promise.all(MEMORY_DIRS.map((dir) => pathExists(join(candidate, dir))));
+    if (checks.some(Boolean)) return candidate;
+  }
+  throw new Error("Memory mirror icinde beklenen memory klasorleri bulunamadi.");
+}
+
+async function collectMemoryMarkdownFiles(root) {
+  const files = [];
+  for (const dir of MEMORY_DIRS) {
+    const dirPath = join(root, dir);
+    if (!(await pathExists(dirPath))) continue;
+    for (const file of await walkMarkdownFiles(dirPath)) {
+      files.push(file);
+    }
+  }
+  return files.sort();
+}
+
+async function walkMarkdownFiles(dirPath) {
+  const entries = await readdir(dirPath, { withFileTypes: true }).catch(() => []);
+  const files = [];
+  for (const entry of entries) {
+    const fullPath = join(dirPath, entry.name);
+    if (entry.isDirectory()) {
+      files.push(...await walkMarkdownFiles(fullPath));
+    } else if (entry.isFile() && entry.name.endsWith(".md")) {
+      files.push(fullPath);
+    }
+  }
+  return files;
+}
+
+async function readGitCommit(cloneDir, options = {}) {
+  const run = options.runCommand || runCommand;
+  const result = await run("git", ["-C", cloneDir, "rev-parse", "HEAD"]);
+  return result.ok ? result.stdout.trim() : "";
+}
+
+function countRecords(records) {
+  return records.reduce((counts, record) => {
+    counts[record.type] = (counts[record.type] || 0) + 1;
+    return counts;
+  }, {});
+}
+
+function summarizeRecordForIndex(record) {
+  return {
+    id: record.id,
+    type: record.type,
+    path: record.path,
+    status: record.status,
+    project: record.project,
+    repo: record.repo,
+    branch: record.branch,
+    title: record.title,
+    summary: record.summary,
+    nextAction: record.nextAction,
+    createdAt: record.createdAt,
+    updatedAt: record.frontmatter?.updated_at || "",
+    sha: record.sha
+  };
+}
+
+async function pathExists(path) {
+  try {
+    await access(path, constants.F_OK);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 function normalizeAutomationLevel(value) {

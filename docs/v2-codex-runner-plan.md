@@ -62,7 +62,7 @@ ctx-lab v2, GitHub-backed hafiza katmanini koruyarak proje timeline merkezli, Tu
 
 1. Runner temeli: health, app-data dizinleri, Codex CLI tespiti, proje registry.
 2. Electron kabugu: guvenli preload/IPC, app-data path, klasor secimi, desktop smoke.
-3. Memory mirror: work-memory clone/pull/index.
+3. Memory mirror: work-memory clone/pull/index. Ilk kesitte token runner'a tasinmadan Git/GCM uzerinden clone/fetch/pull ve JSON index uretimi yapilir.
 4. Proje Timeline veri modeli: legacy kayitlardan timeline event uretimi.
 5. UI yenileme: Turkce terminoloji, timeline, command rail, durum cubugu.
 6. Codex run: hazir promptlar, dry-run, JSONL stdout/stderr log, commit/push oncesi gorunur ozet.

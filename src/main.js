@@ -32,8 +32,10 @@ import {
   fetchRunnerHealth,
   fetchRunnerProjects,
   fetchRunnerRuns,
+  fetchMemoryMirrorStatus,
   registerRunnerProject,
   selectRunnerProjectDirectory,
+  syncMemoryMirror,
   startRunnerCodexRun
 } from "./runner-client.js";
 import { loadAppConfig, loadRecordCache, saveAppConfig, saveRecordCache } from "./storage.js";
@@ -64,6 +66,7 @@ const state = {
     health: null,
     projects: [],
     runs: [],
+    memory: null,
     error: ""
   },
   cacheMeta: {
@@ -311,6 +314,15 @@ function selectedProjectWorkItem() {
     || null;
 }
 
+function memoryMirrorConfig() {
+  if (!state.config.owner || !state.config.repo) return null;
+  return {
+    owner: state.config.owner,
+    repo: state.config.repo,
+    branch: state.config.branch || "main"
+  };
+}
+
 async function createWorkFromSelected(targetWorkId = "") {
   const record = selectedRecord();
   if (!record || record.type !== "inbox") return;
@@ -455,16 +467,22 @@ async function refreshRunnerStatus(options = {}) {
   state.runner.loading = true;
   if (!options.silent) render();
   try {
+    const memoryConfig = memoryMirrorConfig();
     const [health, registry, runsPayload] = await Promise.all([
       fetchRunnerHealth(),
       fetchRunnerProjects(),
       fetchRunnerRuns().catch(() => ({ runs: [] }))
     ]);
+    const memory = memoryConfig ? await fetchMemoryMirrorStatus(memoryConfig).catch((error) => ({
+      configured: false,
+      error: error.message
+    })) : null;
     state.runner = {
       loading: false,
       health,
       projects: Array.isArray(registry.projects) ? registry.projects : [],
       runs: Array.isArray(runsPayload.runs) ? runsPayload.runs : [],
+      memory,
       error: ""
     };
     if (!options.silent) setToast("Yerel runner durumu güncellendi.");
@@ -517,6 +535,31 @@ async function startCodexRunFromForm(form) {
   form.reset();
   const dryRun = form.querySelector("input[name='dryRun']");
   if (dryRun) dryRun.checked = true;
+}
+
+async function syncMemoryMirrorFromConfig() {
+  const config = memoryMirrorConfig();
+  if (!config) {
+    setToast("Önce Hafıza Bağlantısı ekranında GitHub memory repo bilgisini kaydet.");
+    return;
+  }
+  const index = await syncMemoryMirror(config);
+  state.runner.memory = {
+    configured: true,
+    owner: index.owner,
+    repo: index.repo,
+    branch: index.branch,
+    cloneDir: index.cloneDir,
+    indexFile: "",
+    cloneExists: true,
+    indexed: true,
+    recordCount: index.recordCount,
+    warningCount: index.warningCount,
+    lastIndexedAt: index.indexedAt,
+    lastCommit: index.lastCommit
+  };
+  addActivity(`Yerel memory mirror yenilendi: ${index.recordCount} kayıt`, index.warningCount ? "warning" : "success");
+  setToast("Yerel memory mirror ve index güncellendi.", index.warningCount ? "warning" : "success");
 }
 
 async function createInboxSummaryFromForm(form) {
@@ -750,10 +793,13 @@ function renderStatusBar() {
   const memoryStatus = state.demo ? "Örnek veri" : (state.cacheMeta.syncedAt ? "Yerel cache hazır" : "Yerel cache yok");
   const githubStatus = state.config.owner && state.config.repo ? "GitHub bağlı" : "GitHub bekliyor";
   const codexStatus = codex?.available ? `Codex ${codex.version}` : (state.runner.error || "Codex kontrol bekliyor");
+  const mirror = state.runner.memory;
+  const mirrorStatus = mirror?.indexed ? `Mirror index: ${mirror.recordCount} kayıt` : (mirror?.error || "Mirror bekliyor");
   return `
     <div class="status-bar">
       <span class="status-dot ok"></span><span>${escapeHtml(githubStatus)}</span>
       <span class="status-dot ${state.cacheMeta.syncedAt || state.demo ? "ok" : "warn"}"></span><span>${escapeHtml(memoryStatus)}</span>
+      <span class="status-dot ${mirror?.indexed ? "ok" : "warn"}"></span><span>${escapeHtml(mirrorStatus)}</span>
       <span class="status-dot ${codex?.available ? "ok" : "warn"}"></span><span>${escapeHtml(codexStatus)}</span>
       <button class="ghost compact" data-action="refresh-runner">Runner</button>
     </div>
@@ -1448,10 +1494,56 @@ function renderRunner() {
         </form>
       </section>
     </div>
+    ${renderMemoryMirrorPanel()}
     <section class="panel">
       <h3>Kayıtlı Proje Kökleri</h3>
       <div class="record-list">
         ${projects.length ? projects.map(renderRunnerProject).join("") : `<div class="empty">Kayıtlı proje kökü yok. Codex otomasyonu başlamadan önce çalışılacak repo klasörü buraya eklenir.</div>`}
+      </div>
+    </section>
+  `;
+}
+
+function renderMemoryMirrorPanel() {
+  const memory = state.runner.memory;
+  const config = memoryMirrorConfig();
+  const hasConfig = Boolean(config);
+  const statusText = !hasConfig
+    ? "Hafıza repo bilgisi kaydedilmedi."
+    : memory?.indexed
+      ? `${memory.recordCount} kayıt indekslendi · ${formatDate(memory.lastIndexedAt)}`
+      : memory?.cloneExists
+        ? "Mirror var, index bekliyor."
+        : memory?.error || "Yerel mirror henüz oluşturulmadı.";
+  return `
+    <section class="panel">
+      <div class="panel-heading">
+        <div>
+          <h3>Yerel Memory Mirror</h3>
+          <p>GitHub kaynak gerçekliktir; bu mirror hızlı açılış, fark görünürlüğü ve masaüstü index için kullanılır.</p>
+        </div>
+        <button class="primary" data-action="sync-memory-mirror" ${hasConfig ? "" : "disabled"}>Mirror Yenile</button>
+      </div>
+      <div class="diagnostic-list">
+        <div class="diagnostic-item ${memory?.indexed ? "ok" : "fail"}">
+          <span class="badge ${memory?.indexed ? "active" : "waiting"}">${memory?.indexed ? "Hazır" : "Bekliyor"}</span>
+          <strong>Index</strong>
+          <span>${escapeHtml(statusText)}</span>
+        </div>
+        ${memory?.cloneDir ? `
+          <div class="diagnostic-item ok">
+            <span class="badge active">Klasör</span>
+            <strong>Mirror</strong>
+            <span>${escapeHtml(memory.cloneDir)}</span>
+          </div>
+        ` : ""}
+        ${memory?.lastCommit ? `
+          <div class="diagnostic-item ok">
+            <span class="badge active">Commit</span>
+            <strong>Son commit</strong>
+            <span>${escapeHtml(memory.lastCommit)}</span>
+          </div>
+        ` : ""}
       </div>
     </section>
   `;
@@ -1674,6 +1766,7 @@ function handleAction(action, payload) {
   if (action === "register-runner-project") guarded(() => registerProjectFromForm(payload));
   if (action === "select-project-root") guarded(selectProjectRootForForm);
   if (action === "start-codex-run") guarded(() => startCodexRunFromForm(payload));
+  if (action === "sync-memory-mirror") guarded(syncMemoryMirrorFromConfig);
   if (action === "select-project") {
     state.selectedProject = payload?.project || "";
     state.view = "workspace";

@@ -6,7 +6,10 @@ const channels = Object.freeze({
   registerProject: "ctxlab:projects:register",
   selectProjectDirectory: "ctxlab:projects:select-directory",
   listRuns: "ctxlab:runs:list",
-  startCodexRun: "ctxlab:runs:start-codex"
+  startCodexRun: "ctxlab:runs:start-codex",
+  memoryStatus: "ctxlab:memory:status",
+  memoryIndex: "ctxlab:memory:index",
+  syncMemory: "ctxlab:memory:sync"
 });
 
 contextBridge.exposeInMainWorld("ctxLabDesktop", {
@@ -16,5 +19,8 @@ contextBridge.exposeInMainWorld("ctxLabDesktop", {
   registerProject: (project) => ipcRenderer.invoke(channels.registerProject, project),
   selectProjectDirectory: () => ipcRenderer.invoke(channels.selectProjectDirectory),
   runnerRuns: (options) => ipcRenderer.invoke(channels.listRuns, options || {}),
-  startCodexRun: (run) => ipcRenderer.invoke(channels.startCodexRun, run)
+  startCodexRun: (run) => ipcRenderer.invoke(channels.startCodexRun, run),
+  memoryStatus: (config) => ipcRenderer.invoke(channels.memoryStatus, config || {}),
+  memoryIndex: (config) => ipcRenderer.invoke(channels.memoryIndex, config || {}),
+  syncMemory: (config) => ipcRenderer.invoke(channels.syncMemory, config || {})
 });

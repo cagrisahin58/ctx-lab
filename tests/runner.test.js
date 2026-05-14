@@ -1,20 +1,25 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import {
   buildHealthPayload,
+  buildMemoryMirrorPaths,
   buildRunnerPaths,
   codexCandidates,
   createRunnerServer,
   detectCodex,
   ensureRunnerHome,
+  getMemoryMirrorStatus,
+  indexMemoryMirror,
   listCodexRuns,
   normalizeProjectDraft,
+  normalizeMemoryMirrorConfig,
   readProjectRegistry,
   registerProject,
   resolveAppDataDir,
+  syncMemoryMirror,
   startCodexRun
 } from "../scripts/ctxlab-runner.mjs";
 
@@ -124,6 +129,105 @@ test("runner proje kaydini allowlist registry dosyasina ekler ve gunceller", asy
   } finally {
     await rm(dir, { recursive: true, force: true });
     await rm(projectDir, { recursive: true, force: true });
+  }
+});
+
+test("memory mirror config ve path bilgisi owner repo branch ile normalize edilir", () => {
+  const config = normalizeMemoryMirrorConfig({
+    repoInput: "https://github.com/cagrisahin58/work-memory.git",
+    branch: "main"
+  });
+  const paths = buildMemoryMirrorPaths(buildRunnerPaths("C:\\ctxlab"), config);
+
+  assert.deepEqual(config, {
+    owner: "cagrisahin58",
+    repo: "work-memory",
+    branch: "main",
+    remoteUrl: "https://github.com/cagrisahin58/work-memory.git"
+  });
+  assert.match(paths.cloneDir, /cagrisahin58__work-memory__main$/);
+  assert.match(paths.indexFile, /cagrisahin58__work-memory__main\.json$/);
+});
+
+test("memory mirror yerel markdown kayitlarini indeksler", async () => {
+  const dir = await mkdtemp(join(tmpdir(), "ctxlab-runner-"));
+  const paths = buildRunnerPaths(dir);
+  const mirror = buildMemoryMirrorPaths(paths, { owner: "cagrisahin58", repo: "work-memory", branch: "main" });
+
+  try {
+    await mkdir(join(mirror.cloneDir, ".git"), { recursive: true });
+    await mkdir(join(mirror.cloneDir, "work-memory", "inbox"), { recursive: true });
+    await writeFile(join(mirror.cloneDir, "work-memory", "inbox", "test.md"), `---
+id: sess_test
+project: ctx-lab
+repo: cagrisahin58/ctx-lab
+status: needs_triage
+created_at: 2026-05-14T12:00:00.000Z
+---
+
+# Session Summary
+
+## Amaç
+Mirror index denemesi.
+`, "utf8");
+    const index = await indexMemoryMirror(paths, {
+      owner: "cagrisahin58",
+      repo: "work-memory",
+      branch: "main"
+    }, {
+      now: new Date("2026-05-14T12:10:00.000Z"),
+      runCommand: async () => ({ ok: true, stdout: "abc123\n", stderr: "", code: 0 })
+    });
+    const status = await getMemoryMirrorStatus(paths, { owner: "cagrisahin58", repo: "work-memory", branch: "main" });
+
+    assert.equal(index.recordCount, 1);
+    assert.equal(index.records[0].id, "sess_test");
+    assert.equal(index.records[0].path, "inbox/test.md");
+    assert.equal(index.lastCommit, "abc123");
+    assert.equal(status.indexed, true);
+    assert.equal(status.recordCount, 1);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test("memory mirror clone yoksa git clone sonrasi index uretir", async () => {
+  const dir = await mkdtemp(join(tmpdir(), "ctxlab-runner-"));
+  const paths = buildRunnerPaths(dir);
+  const mirror = buildMemoryMirrorPaths(paths, { owner: "cagrisahin58", repo: "work-memory", branch: "main" });
+  const calls = [];
+
+  try {
+    const index = await syncMemoryMirror(paths, {
+      owner: "cagrisahin58",
+      repo: "work-memory",
+      branch: "main"
+    }, {
+      now: new Date("2026-05-14T12:15:00.000Z"),
+      runCommand: async (command, args) => {
+        calls.push({ command, args });
+        if (args.includes("clone")) {
+          await mkdir(join(mirror.cloneDir, ".git"), { recursive: true });
+          await mkdir(join(mirror.cloneDir, "inbox"), { recursive: true });
+          await writeFile(join(mirror.cloneDir, "inbox", "test.md"), `---
+id: sess_clone
+project: ctx-lab
+status: needs_triage
+---
+
+# Session Summary
+`, "utf8");
+        }
+        if (args.includes("rev-parse")) return { ok: true, stdout: "def456\n", stderr: "", code: 0 };
+        return { ok: true, stdout: "", stderr: "", code: 0 };
+      }
+    });
+
+    assert.ok(calls.some((call) => call.args.includes("clone")));
+    assert.equal(index.recordCount, 1);
+    assert.equal(index.records[0].id, "sess_clone");
+  } finally {
+    await rm(dir, { recursive: true, force: true });
   }
 });
 
@@ -276,7 +380,7 @@ test("runner server kok endpointinde saglik ve endpoint listesini sunar", async 
 
     assert.equal(response.status, 200);
     assert.equal(body.service, "ctx-lab-runner");
-    assert.deepEqual(body.endpoints, ["/health", "/projects", "/runs", "/runs/codex"]);
+    assert.deepEqual(body.endpoints, ["/health", "/projects", "/runs", "/runs/codex", "/memory/status", "/memory/sync"]);
   } finally {
     await new Promise((resolve) => server.close(resolve));
     await rm(dir, { recursive: true, force: true });

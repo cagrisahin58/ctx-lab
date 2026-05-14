@@ -9,6 +9,7 @@ for (const file of [
   "electron/main.mjs",
   "electron/preload.cjs",
   "electron/runtime.mjs",
+  "scripts/electron-smoke-launch.mjs",
   "electron/assets/icon.ico",
   "electron/assets/icon-placeholder.svg",
   "electron-builder.yml",
@@ -33,6 +34,9 @@ assert.ok(builder.includes("icon: electron/assets/icon.ico"), "Windows paket iko
 
 const desktopDev = readFileSync(join(root, "scripts/desktop-dev.mjs"), "utf8");
 assert.ok(desktopDev.includes("CTX_LAB_VITE_PORT"), "desktop dev port override desteklenmeli");
+
+const smokeLaunch = readFileSync(join(root, "scripts/electron-smoke-launch.mjs"), "utf8");
+assert.ok(smokeLaunch.includes("--no-sandbox"), "CI Linux Electron smoke sandbox bayragi desteklenmeli");
 
 const windowsLauncher = readFileSync(join(root, "scripts/start-windows.ps1"), "utf8");
 assert.ok(windowsLauncher.includes("run desktop:dev"), "Windows launcher varsayilan olarak Electron masaustu kabugunu acmali");

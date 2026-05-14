@@ -11,7 +11,7 @@
     "desktop:dev": "node scripts/desktop-dev.mjs",
     "desktop": "electron .",
     "desktop:build": "npm run build && electron .",
-    "desktop:smoke": "npm run build && node scripts/desktop-smoke.mjs && electron . --smoke",
+    "desktop:smoke": "npm run build && node scripts/desktop-smoke.mjs && node scripts/electron-smoke-launch.mjs",
     "desktop:flow": "npm run build && node scripts/electron-flow-smoke.mjs",
     "desktop:pack": "npm run build && electron-builder --dir",
     "desktop:dist": "npm run build && electron-builder --win portable",

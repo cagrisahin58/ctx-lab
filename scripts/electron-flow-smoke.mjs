@@ -24,11 +24,15 @@ const env = {
 };
 delete env.VITE_DEV_SERVER_URL;
 
+const launchArgs = process.platform === "linux" && process.env.CI
+  ? ["--no-sandbox", "--disable-gpu", root]
+  : [root];
+
 let electronApp;
 try {
   electronApp = await electron.launch({
     executablePath: electronPath,
-    args: [root],
+    args: launchArgs,
     cwd: root,
     env
   });

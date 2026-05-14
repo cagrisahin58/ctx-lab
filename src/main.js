@@ -1498,6 +1498,7 @@ function renderOnboarding() {
                 <button type="button" data-action="toggle-token-visibility">${state.tokenVisible ? "Tokeni gizle" : "Tokeni göster"}</button>
               </span>
             </label>
+            ${renderTokenGuide()}
             <div class="toolbar-actions full">
               <button class="primary" type="submit">Bağlantıyı Kaydet</button>
               <button type="button" data-action="init-repo">Repo Yapısını Hazırla</button>
@@ -2117,6 +2118,7 @@ function renderConnectionSettings() {
             <button type="button" data-action="toggle-token-visibility">${state.tokenVisible ? "Tokeni gizle" : "Tokeni göster"}</button>
           </span>
         </label>
+        ${renderTokenGuide()}
         <div class="toolbar-actions full">
           <button class="primary" type="submit">Bağlantıyı Kaydet</button>
           <button type="button" data-action="diagnose-repo" ${state.diagnosticsLoading ? "disabled" : ""}>${state.diagnosticsLoading ? "Tanılanıyor" : "Bağlantıyı Tanıla"}</button>
@@ -2127,6 +2129,19 @@ function renderConnectionSettings() {
     </section>
     ${renderDiagnostics()}
     ${renderMemoryHealthPanel()}
+  `;
+}
+
+function renderTokenGuide() {
+  return `
+    <details class="token-guide full">
+      <summary>Token nasıl üretilir? (40 saniye)</summary>
+      <div>
+        <p>Fine-grained personal access token oluştur; Repository access alanında yalnızca hafıza reposunu seç.</p>
+        <p>Repository permissions bölümünde Contents için Read and write izni yeterlidir.</p>
+        <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noreferrer">GitHub token ekranını aç</a>
+      </div>
+    </details>
   `;
 }
 

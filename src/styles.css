@@ -662,6 +662,41 @@ kbd {
   grid-column: 1 / -1;
 }
 
+.token-guide {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px 12px;
+  background: var(--surface);
+  color: var(--muted);
+}
+
+.token-guide summary {
+  cursor: pointer;
+  color: var(--text);
+  font-weight: 800;
+}
+
+.token-guide div {
+  display: grid;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.token-guide p {
+  margin: 0;
+  line-height: 1.45;
+}
+
+.token-guide a {
+  color: var(--accent);
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.token-guide a:hover {
+  text-decoration: underline;
+}
+
 .settings-tabs {
   display: inline-flex;
   gap: 6px;

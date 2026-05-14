@@ -11,12 +11,22 @@ for (const file of [
   "electron/runtime.mjs",
   "scripts/electron-smoke-launch.mjs",
   "electron/assets/icon.ico",
-  "electron/assets/icon-placeholder.svg",
   "electron-builder.yml",
   "dist/index.html"
 ]) {
   assert.ok(existsSync(join(root, file)), `${file} bulunamadi`);
 }
+
+const icon = readFileSync(join(root, "electron/assets/icon.ico"));
+assert.equal(icon.readUInt16LE(0), 0, "Windows ikon header reserve alani sifir olmali");
+assert.equal(icon.readUInt16LE(2), 1, "Windows ikon tipi ICO olmali");
+assert.ok(icon.readUInt16LE(4) >= 1, "Windows ikon dosyasinda en az bir gorsel olmali");
+assert.ok(icon.length > 1000, "Windows ikon dosyasi placeholder kadar kucuk gorunuyor");
+assert.deepEqual(
+  [...icon.subarray(22, 30)],
+  [137, 80, 78, 71, 13, 10, 26, 10],
+  "ICO icinde PNG ikon verisi bulunmali"
+);
 
 const preload = readFileSync(join(root, "electron/preload.cjs"), "utf8");
 for (const channel of Object.values(DESKTOP_IPC_CHANNELS)) {
@@ -30,6 +40,7 @@ assert.ok(main.includes("sandbox: true"), "Renderer sandbox acik olmali");
 assert.ok(main.includes("icon: appIconPath"), "Electron pencere ikonu tanimli olmali");
 assert.ok(main.includes("Menu.setApplicationMenu"), "Electron uygulama menusu tanimli olmali");
 assert.ok(main.includes("new Tray"), "Electron tray opsiyonu tanimli olmali");
+assert.ok(!main.includes("icon-placeholder"), "Electron gercek ikon yerine placeholder fallback kullanmamali");
 for (const label of ["ctx-lab Hakkında", "Görünüm", "Geliştirici Araçları", "Yaklaşımı Sıfırla", "ctx-lab'i Aç", "Çıkış"]) {
   assert.ok(main.includes(label), `Electron menu/tray etiketi eksik: ${label}`);
 }

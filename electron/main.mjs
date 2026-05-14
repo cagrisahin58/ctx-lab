@@ -8,7 +8,6 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const isDev = Boolean(process.env.VITE_DEV_SERVER_URL);
 const isSmoke = process.argv.includes("--smoke");
 const appIconPath = join(__dirname, "assets", "icon.ico");
-const trayIconPath = join(__dirname, "assets", "icon-placeholder.svg");
 
 let mainWindow;
 let tray;
@@ -45,11 +44,10 @@ function createMenu() {
   Menu.setApplicationMenu(Menu.buildFromTemplate(template));
 }
 
-function createTrayPlaceholder() {
+function createTray() {
   const image = nativeImage.createFromPath(appIconPath);
-  const fallback = image.isEmpty() ? nativeImage.createFromPath(trayIconPath) : image;
-  if (fallback.isEmpty()) return;
-  tray = new Tray(fallback.resize({ width: 16, height: 16 }));
+  if (image.isEmpty()) return;
+  tray = new Tray(image.resize({ width: 16, height: 16 }));
   tray.setToolTip("ctx-lab");
   tray.setContextMenu(Menu.buildFromTemplate([
     { label: "ctx-lab'i Aç", click: () => mainWindow?.show() },
@@ -105,7 +103,7 @@ app.whenReady().then(async () => {
   });
   registerDesktopIpcHandlers(ipcMain, runtime);
   createMenu();
-  createTrayPlaceholder();
+  createTray();
   await createMainWindow();
 
   app.on("activate", async () => {

@@ -213,7 +213,7 @@ test("diagnoseMemoryRepo yazma izni yoksa yazma testini başarısız gösterir",
     const result = await diagnoseMemoryRepo(config);
     assert.equal(result.ok, false);
     assert.equal(result.writeAccess.ok, false);
-    assert.match(result.writeAccess.message, /GitHub 404: Repo, branch veya dosya bulunamadı/);
+    assert.match(result.writeAccess.message, /GitHub 404: Repo, dal veya dosya bulunamadı/);
   } finally {
     mock.restore();
   }
@@ -251,8 +251,8 @@ test("diagnoseMemoryRepo 404 hatasını owner repo branch kontrolüyle açıklar
     const result = await diagnoseMemoryRepo(config);
     assert.equal(result.ok, false);
     assert.equal(result.repo.ok, false);
-    assert.match(result.repo.message, /GitHub 404: Repo, branch veya dosya bulunamadı/);
-    assert.match(result.repo.message, /owner\/repo ve branch/);
+    assert.match(result.repo.message, /GitHub 404: Repo, dal veya dosya bulunamadı/);
+    assert.match(result.repo.message, /owner\/repo ve dal/);
   } finally {
     mock.restore();
   }

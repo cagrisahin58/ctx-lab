@@ -638,7 +638,7 @@ function buildCodexRunPrompt(project, input, automationLevel, template) {
     "ctx-lab masaustu otomasyon kosusu.",
     `Proje: ${project.name}`,
     `Repo: ${project.repo || "belirtilmedi"}`,
-    `Branch: ${project.branch || "main"}`,
+    `Dal: ${project.branch || "main"}`,
     `Proje koku: ${project.path}`,
     `Prompt sablonu: ${templateText}`,
     `Otomasyon seviyesi: ${levelText}`,

@@ -121,6 +121,7 @@ assert.ok(bundleText.includes("activityPulse"), "Run/activity hareket sinyali bu
 assert.ok(bundleText.includes("prefers-reduced-motion"), "Dusuk hareket tercihi CSS icinde desteklenmeli.");
 assert.ok(bundleText.includes("aria-live=\"polite\""), "Toast ve activity log ekran okuyucu icin aria-live desteklemeli.");
 assert.ok(sourceText.includes("trapCommandPaletteFocus"), "Komut paleti klavye odagini modal icinde tutmali.");
+assert.ok(!/[`'"]Branch:/.test(bundleText), "Gorunur brif ve tanilama dili Branch yerine Dal kullanmali.");
 
 console.log("dist smoke ok");
 

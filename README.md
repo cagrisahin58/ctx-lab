@@ -111,7 +111,7 @@ work-memory/
   config.yaml
 ```
 
-Token ve son başarılı hafıza anlık görüntüsü yalnızca tarayıcı localStorage alanında saklanır. Sunucu tarafı yoktur. Yerel önbellek owner/repo/branch kapsamıyla ayrılır; uygulama açıldığında son kayıtları hızlı gösterir, GitHub ise kaynak gerçeklik olarak kalır. Son görülen branch HEAD değeri de önbellekte tutulur; yazmadan önce GitHub branch'i dışarıdan güncellendiyse ctx-lab yazımı durdurur ve `GitHub'dan Yenile` çağrısı gösterir.
+Token ve son başarılı hafıza anlık görüntüsü yalnızca tarayıcı localStorage alanında saklanır. Sunucu tarafı yoktur. Yerel önbellek owner/repo/dal kapsamıyla ayrılır; uygulama açıldığında son kayıtları hızlı gösterir, GitHub ise kaynak gerçeklik olarak kalır. Son görülen dal HEAD değeri de önbellekte tutulur; yazmadan önce GitHub dalı dışarıdan güncellendiyse ctx-lab yazımı durdurur ve `GitHub'dan Yenile` çağrısı gösterir.
 
 ## Yerel Codex Çalıştırıcı
 

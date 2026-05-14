@@ -768,7 +768,7 @@ export function buildContextPack(records, anchorRecord, target = "codex") {
     `İş hattı: ${base.title}`,
     `Proje: ${base.project || "belirsiz"}`,
     `Repo: ${base.repo || latestSession?.repo || "belirsiz"}`,
-    `Branch: ${base.branch || latestSession?.branch || "belirsiz"}`,
+    `Dal: ${base.branch || latestSession?.branch || "belirsiz"}`,
     "",
     "Amaç:",
     objective,

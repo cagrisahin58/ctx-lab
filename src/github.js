@@ -21,13 +21,13 @@ function formatGitHubHttpError(status, body = "") {
     return `GitHub 403: Erişim reddedildi. Fine-grained token için repo erişimi ve Contents read/write iznini kontrol et; oran limiti de bu hatayı verebilir.${detail}`;
   }
   if (status === 404) {
-    return `GitHub 404: Repo, branch veya dosya bulunamadı. Repo private ise token bu repoya erişemiyor olabilir; owner/repo ve branch değerlerini kontrol et.${detail}`;
+    return `GitHub 404: Repo, dal veya dosya bulunamadı. Repo özel ise token bu repoya erişemiyor olabilir; owner/repo ve dal değerlerini kontrol et.${detail}`;
   }
   if (status === 409) {
     return `GitHub 409: Repo içeriği bu işlem sırasında değişti. ctx-lab son sha ile tekrar deneyecek; hata sürerse GitHub'dan yenile.${detail}`;
   }
   if (status === 422) {
-    return `GitHub 422: GitHub isteği kabul etmedi. Dosya zaten var, sha eksik veya branch koruması devrede olabilir.${detail}`;
+    return `GitHub 422: GitHub isteği kabul etmedi. Dosya zaten var, sha eksik veya dal koruması devrede olabilir.${detail}`;
   }
   return `GitHub ${status}: GitHub API isteği başarısız oldu.${detail || ` Ayrıntı: ${String(body).slice(0, 240)}`}`;
 }
@@ -147,7 +147,7 @@ export async function diagnoseMemoryRepo(config) {
     };
   });
   const branchName = config.branch || "main";
-  const branch = await check(`Branch: ${branchName}`, async () => {
+  const branch = await check(`Dal: ${branchName}`, async () => {
     const payload = await githubRequest(
       config,
       `/repos/${config.owner}/${config.repo}/branches/${encodeURIComponent(branchName)}`

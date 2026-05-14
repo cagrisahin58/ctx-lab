@@ -189,6 +189,48 @@ async function waitForSelectedRecordCardChange(page, previousId) {
   return selectedRecordCardId(page);
 }
 
+async function assertWorkspaceDesktopLayout(page) {
+  const layout = await page.evaluate(() => {
+    const rect = (selector) => {
+      const element = document.querySelector(selector);
+      if (!element) return null;
+      const box = element.getBoundingClientRect();
+      return {
+        left: box.left,
+        right: box.right,
+        top: box.top,
+        bottom: box.bottom,
+        width: box.width,
+        height: box.height
+      };
+    };
+    return {
+      viewport: { width: window.innerWidth, height: window.innerHeight },
+      sidebar: rect(".sidebar"),
+      content: rect(".content"),
+      projectRail: rect(".project-rail"),
+      quickFilters: rect(".quick-filters"),
+      workspaceGrid: rect(".workspace-grid"),
+      workspaceMain: rect(".workspace-main"),
+      contextPane: rect(".context-pane"),
+      timelinePanel: rect(".timeline-panel"),
+      activityLog: rect(".activity-log")
+    };
+  });
+
+  assert.ok(layout.viewport.width >= 1180, `Masaustu genisligi beklenenden dar: ${layout.viewport.width}px`);
+  assert.ok(layout.sidebar?.width >= 260 && layout.sidebar.width <= 340, `Sol proje rayi genisligi bozuk: ${layout.sidebar?.width}`);
+  assert.ok(layout.content?.left >= layout.sidebar.right - 1, "Ana icerik sol rayin uzerine binmemeli.");
+  assert.ok(layout.projectRail?.left >= layout.sidebar.left && layout.projectRail.right <= layout.sidebar.right + 1, "Proje listesi sol ray icinde kalmali.");
+  assert.ok(layout.quickFilters?.left >= layout.sidebar.left && layout.quickFilters.right <= layout.sidebar.right + 1, "Hizli filtreler sol ray icinde kalmali.");
+  assert.ok(layout.workspaceGrid?.width >= 920, `Calisma merkezi grid'i beklenenden dar: ${layout.workspaceGrid?.width}`);
+  assert.ok(layout.workspaceMain?.width >= 520, `Timeline ana alani beklenenden dar: ${layout.workspaceMain?.width}`);
+  assert.ok(layout.contextPane?.width >= 340 && layout.contextPane.width <= 470, `Sag baglam paneli genisligi bozuk: ${layout.contextPane?.width}`);
+  assert.ok(layout.workspaceMain.right <= layout.contextPane.left + 1, "Timeline ve sag baglam paneli ust uste binmemeli.");
+  assert.ok(layout.timelinePanel?.height >= 220, `Timeline paneli beklenenden kisa: ${layout.timelinePanel?.height}`);
+  assert.ok(layout.activityLog?.width >= 320, `Calisma gunlugu paneli beklenenden dar: ${layout.activityLog?.width}`);
+}
+
 async function waitForEnabled(page, selector, message) {
   try {
     await page.waitForFunction((targetSelector) => {
@@ -969,6 +1011,7 @@ try {
   });
   assert.match(title || "", /^ctx-lab/);
 
+  await assertWorkspaceDesktopLayout(page);
   const screenshot = await page.screenshot({ fullPage: true });
   assertRenderedScreenshot(screenshot);
   await saveScreenshotArtifact(screenshot);

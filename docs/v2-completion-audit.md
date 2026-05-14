@@ -49,7 +49,7 @@ Not: `desktop:pack:smoke`, Windows exe politikasi nedeniyle `app.asar` fallback 
 | App icon, menu/tray opsiyonu | `electron/assets/icon.ico`, `electron/main.mjs` menu ve tray | `desktop:pack:smoke`, Electron boot smoke | Kapali |
 | Guvenli IPC sinirlari | `preload.cjs`, `runtime.mjs`, `DESKTOP_IPC_CHANNELS` | `desktop-runtime.test.js` izinli kanal testi | Kapali |
 | Production build ve Windows paketleme hazirligi | `electron-builder.yml`, `desktop:pack`, `desktop:dist` | `desktop:pack:smoke`, CI `desktop-verify` | Kapali |
-| Gorsel regression/screenshot kontrolleri | `electron-flow-smoke.mjs` PNG decode, renk/kontrast ve viewport kontrolleri; CI screenshot artefakti | `desktop:flow`, `desktop-verify` artefakt yukleme | Kapali, fakat pixel baseline/regression arsivi yok |
+| Gorsel regression/screenshot kontrolleri | `electron-flow-smoke.mjs` PNG decode, renk/kontrast, workspace bolge geometrisi ve viewport kontrolleri; CI screenshot artefakti | `desktop:flow`, `desktop-verify` artefakt yukleme | Kapali, fakat pixel baseline/regression arsivi yok |
 
 ## Bilinen zayif kanitlar
 
@@ -61,5 +61,5 @@ Not: `desktop:pack:smoke`, Windows exe politikasi nedeniyle `app.asar` fallback 
 ## Sonraki somut adaylar
 
 1. Canli GitHub tani akisini token gerektirmeden belgeleyen manuel test checklist'i veya token varliginda opsiyonel entegrasyon testi.
-2. Screenshot artefaktina ek olarak ana bolge yerlesimi icin daha deterministik alan/konum denetimi.
-3. Turkce dogal dil denetimi icin smoke listesini ileride hata banner'lari ve nadir kenar durum metinleriyle genisletmek.
+2. Turkce dogal dil denetimi icin smoke listesini ileride hata banner'lari ve nadir kenar durum metinleriyle genisletmek.
+3. Pixel baseline gerektiren tam gorsel regression arsivi icin ileride ek artefakt karsilastirma kapisi.

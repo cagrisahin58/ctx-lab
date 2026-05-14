@@ -1505,6 +1505,7 @@ export function buildDecisionFromSession(session) {
     id: decisionId,
     title: `${session.project || session.title} karar kaydı`,
     project: session.project || "",
+    status: "active",
     source_session: session.id,
     created_at: new Date().toISOString()
   })}
@@ -1556,6 +1557,7 @@ export function buildManualDecision(draft, now = new Date()) {
     id: decisionId,
     title,
     project: draft.project || "",
+    status: "active",
     source: "manual",
     source_work_item: draft.workItemId || "",
     created_at: now.toISOString(),

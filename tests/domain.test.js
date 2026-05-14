@@ -122,8 +122,11 @@ test("manuel iş hattı içeriği üretir", () => {
 test("decision içeriği üretir", () => {
   const record = parseMemoryFile("inbox/test.md", sample, "sha");
   const decision = buildDecisionFromSession(record);
+  const parsed = parseMemoryFile(decision.path, decision.content, "sha-decision");
   assert.ok(decision);
   assert.match(decision.content, /GitHub kaynak gerçeklik olacak/);
+  assert.equal(parsed.frontmatter.status, "active");
+  assert.deepEqual(validateMemoryRecords([parsed]), []);
 });
 
 test("varsayılan boş karar metninden karar kaydı üretmez", () => {
@@ -162,7 +165,9 @@ test("manuel karar kaydı üretir ve iş hattı kaynağını taşır", () => {
   assert.equal(decision.id, "dec_2026-05-13T12-00-00-000Z_hafiza-reposu-kaynak-olacak");
   assert.equal(parsed.frontmatter.source, "manual");
   assert.equal(parsed.frontmatter.source_work_item, "work_ctx-lab");
+  assert.equal(parsed.frontmatter.status, "active");
   assert.deepEqual(parsed.frontmatter.tags, ["github", "karar"]);
+  assert.deepEqual(validateMemoryRecords([parsed]), []);
   assert.equal(getSection(parsed.sections, "decisions"), "GitHub hafıza reposu kalıcı kaynak olarak kullanılacak.");
   assert.equal(getSection(parsed.sections, "rationale"), "Claude ve Codex arasında taşınabilirlik gerekiyor.");
 });

@@ -135,12 +135,14 @@ Tamamlanan (`status: done`) iş hatları da aynı güvenli iki adımlı onayla `
 ## Decision record
 
 Manuel karar kayıtları `Karar Defteri > Yeni Karar` akışıyla oluşturulur. Bir iş hattı seçilirse `source_work_item` alanı doldurulur ve karar id'si ilgili iş hattının `decisions` listesine eklenir.
+ctx-lab tarafından üretilen karar kayıtları validation panelinde temiz kalmak için `status: active` alanını taşır; eski status'süz karar kayıtları okunmaya devam eder ancak sağlık panelinde eksik alan uyarısı verebilir.
 
 ```markdown
 ---
 id: dec_2026-05-13T12-00-00-000Z_memory-repo-kaynak-olacak
 title: Hafıza reposu kaynak olacak
 project: ctx-lab
+status: active
 source: manual
 source_work_item: work_ctx-lab
 created_at: 2026-05-13T12:00:00.000Z

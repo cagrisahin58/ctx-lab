@@ -7,6 +7,7 @@ import { createDesktopRuntime, registerDesktopIpcHandlers } from "./runtime.mjs"
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const isDev = Boolean(process.env.VITE_DEV_SERVER_URL);
 const isSmoke = process.argv.includes("--smoke");
+const isOffscreenFlow = process.env.CTX_LAB_ELECTRON_OFFSCREEN_WINDOW === "1";
 const appIconPath = join(__dirname, "assets", "icon.ico");
 
 let mainWindow;
@@ -62,6 +63,7 @@ async function createMainWindow() {
     height: 940,
     minWidth: 1180,
     minHeight: 760,
+    ...(isOffscreenFlow ? { x: -32000, y: -32000 } : {}),
     title: "ctx-lab",
     backgroundColor: "#0b1020",
     icon: appIconPath,

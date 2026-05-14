@@ -3,8 +3,8 @@
 Bu belge, masaustu odakli ctx-lab v2 hedefini gercek repo artefaktlari ve calisan test kanitlariyla takip eder. Amac "bitti" demek degil; hangi gereksinimin hangi dosya, test veya CI sonucu ile kapandigini ve hangi noktalarda kanitin zayif kaldigini gorunur tutmaktir.
 
 Son denetim tarihi: 2026-05-14
-Son denetlenen uygulama commit'i: `6ed9b24` (`Add optional GitHub live diagnostics`)
-GitHub Actions: `Verify` run `25863917996`, `verify` ve `desktop-verify` basarili; `desktop-verify` screenshot artefakti uretti.
+Son denetlenen uygulama commit'i: `2528962` (`Upload desktop screenshot metrics`)
+GitHub Actions: `Verify` run `25867704834`, `verify` ve `desktop-verify` basarili; `desktop-verify` screenshot + metrik artefakti uretti.
 Not: Bu belge yalnizca audit kanitini guncelleyen sonraki dokumantasyon commit'lerinden etkilenmemek icin "uygulama commit'i" terimini kullanir.
 
 ## Kalite kapisi kanitlari

@@ -97,8 +97,8 @@ Bu komut unit testleri, production build'i ve `dist/` smoke kontrolünü çalı�
 - Repository access: sadece hafıza reposu
 - Permissions: Contents read/write
 
-Uygulamada `Hafıza Bağlantısı` ekranından owner/repo, branch ve token girilir. `Repo Yapısını Hazırla` düğmesi şu yapıyı otomatik oluşturur:
-`Bağlantıyı Tanıla` düğmesi repo erişimi, branch, `config.yaml`, hafıza klasörleri ve gerçek Contents yazma iznini kontrol eder. Yazma testi geçici `archive/.ctxlab-write-test` dosyası oluşturup siler. 403/404 gibi GitHub hataları owner/repo, branch, özel repo erişimi ve Contents read/write izni açısından Türkçe açıklanır.
+Uygulamada `Hafıza Bağlantısı` ekranından owner/repo, dal ve token girilir. `Hafıza Yapısını Hazırla` düğmesi şu yapıyı otomatik oluşturur:
+`Bağlantıyı Tanıla` düğmesi repo erişimi, dal, `config.yaml`, hafıza klasörleri ve gerçek Contents yazma iznini kontrol eder. Yazma testi geçici `archive/.ctxlab-write-test` dosyası oluşturup siler. 403/404 gibi GitHub hataları owner/repo, dal, özel repo erişimi ve Contents read/write izni açısından Türkçe açıklanır.
 Token alanı varsayılan olarak maskelenir; kullanıcı gerektiğinde aynı alandan geçici olarak görünür hale getirebilir. Onboarding ve Hafıza Bağlantısı ekranlarında fine-grained token üretimi için kısa rehber ve GitHub token ekranı bağlantısı bulunur.
 
 ```text

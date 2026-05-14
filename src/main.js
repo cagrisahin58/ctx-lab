@@ -1608,7 +1608,7 @@ function renderOnboarding() {
               <input name="repoInput" placeholder="cagrisahin58/work-memory veya GitHub URL" value="${escapeHtml(state.config.owner && state.config.repo ? `${state.config.owner}/${state.config.repo}` : "")}" />
             </label>
             <label>
-              Branch
+              Dal
               <input name="branch" placeholder="main" value="${escapeHtml(state.config.branch || "main")}" />
             </label>
             <label class="full">
@@ -1621,7 +1621,7 @@ function renderOnboarding() {
             ${renderTokenGuide()}
             <div class="toolbar-actions full">
               <button class="primary" type="submit">Bağlantıyı Kaydet</button>
-              <button type="button" data-action="init-repo">Repo Yapısını Hazırla</button>
+              <button type="button" data-action="init-repo">Hafıza Yapısını Hazırla</button>
               <button type="button" data-action="diagnose-repo" ${state.diagnosticsLoading ? "disabled" : ""}>${state.diagnosticsLoading ? "Tanılanıyor" : "Bağlantıyı Tanıla"}</button>
               <button type="button" data-action="sync">GitHub'dan Yenile</button>
             </div>
@@ -1648,7 +1648,7 @@ function renderOnboarding() {
               <input name="repo" placeholder="cagrisahin58/ctx-lab" />
             </label>
             <label>
-              Branch
+              Dal
               <input name="branch" placeholder="main" value="main" />
             </label>
             <label>
@@ -1897,7 +1897,7 @@ function renderNewWork() {
           <input name="repo" placeholder="cagrisahin58/ctx-lab" />
         </label>
         <label>
-          Branch
+          Dal
           <input name="branch" placeholder="main" value="main" />
         </label>
         <label>
@@ -2215,7 +2215,7 @@ function renderNewSummary() {
           <input name="repo" placeholder="cagrisahin58/ctx-lab" />
         </label>
         <label>
-          Branch
+          Dal
           <input name="branch" placeholder="main" value="main" />
         </label>
         <label class="full">
@@ -2296,7 +2296,7 @@ function renderConnectionSettings() {
           <input name="repoInput" placeholder="cagrisahin58/work-memory veya GitHub URL" value="${escapeHtml(state.config.owner && state.config.repo ? `${state.config.owner}/${state.config.repo}` : "")}" />
         </label>
         <label>
-          Branch
+          Dal
           <input name="branch" placeholder="main" value="${escapeHtml(state.config.branch || "main")}" />
         </label>
         <label class="full">
@@ -2310,7 +2310,7 @@ function renderConnectionSettings() {
         <div class="toolbar-actions full">
           <button class="primary" type="submit">Bağlantıyı Kaydet</button>
           <button type="button" data-action="diagnose-repo" ${state.diagnosticsLoading ? "disabled" : ""}>${state.diagnosticsLoading ? "Tanılanıyor" : "Bağlantıyı Tanıla"}</button>
-          <button type="button" data-action="init-repo">Repo Yapısını Hazırla</button>
+          <button type="button" data-action="init-repo">Hafıza Yapısını Hazırla</button>
           <button type="button" data-action="sync">Kaydetmeden Yenile</button>
         </div>
       </form>
@@ -2533,7 +2533,7 @@ function renderRunner() {
             <input name="name" required placeholder="ctx-lab" />
           </label>
           <label>
-            Branch
+            Dal
             <input name="branch" placeholder="main" value="main" />
           </label>
           <label>

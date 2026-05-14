@@ -3,6 +3,7 @@ import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { createRequire } from "node:module";
+import { execFile } from "node:child_process";
 import { inflateSync } from "node:zlib";
 import { _electron as electron } from "playwright-core";
 import { parseMemoryFile, validateMemoryRecords } from "../src/domain.js";
@@ -382,8 +383,29 @@ async function seedMemoryIndex(config, records) {
       sha: record.sha
     }))
   };
+  await prepareMirrorClone(mirror, config);
   await mkdir(dirname(mirror.indexFile), { recursive: true });
   await writeFile(mirror.indexFile, `${JSON.stringify(index, null, 2)}\n`, "utf8");
+}
+
+async function prepareMirrorClone(mirror, config) {
+  await mkdir(mirror.cloneDir, { recursive: true });
+  await runGit(["init"], mirror.cloneDir);
+  await runGit(["checkout", "-B", config.branch || "main"], mirror.cloneDir);
+  await runGit(["remote", "remove", "origin"], mirror.cloneDir).catch(() => {});
+  await runGit(["remote", "add", "origin", `https://github.com/${config.owner}/${config.repo}.git`], mirror.cloneDir);
+}
+
+function runGit(args, cwd) {
+  return new Promise((resolve, reject) => {
+    execFile("git", args, { cwd }, (error, stdout, stderr) => {
+      if (error) {
+        reject(new Error(stderr || stdout || error.message));
+        return;
+      }
+      resolve({ stdout, stderr });
+    });
+  });
 }
 
 async function moveWorkCardToColumn(page, workId, status) {

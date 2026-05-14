@@ -340,6 +340,43 @@ status: needs_triage
   }
 });
 
+test("memory mirror status clone yoksa stale indexi hazir saymaz", async () => {
+  const dir = await mkdtemp(join(tmpdir(), "ctxlab-runner-"));
+  const paths = buildRunnerPaths(dir);
+  const mirror = buildMemoryMirrorPaths(paths, { owner: "cagrisahin58", repo: "work-memory", branch: "main" });
+
+  try {
+    await mkdir(join(paths.memoryIndexDir), { recursive: true });
+    await writeFile(mirror.indexFile, `${JSON.stringify({
+      schemaVersion: 1,
+      owner: "cagrisahin58",
+      repo: "work-memory",
+      branch: "main",
+      cloneDir: mirror.cloneDir,
+      indexedAt: "2026-05-14T12:14:00.000Z",
+      lastCommit: "stale-index",
+      recordCount: 1,
+      warningCount: 0,
+      counts: { inbox: 1 },
+      warnings: [],
+      records: [{ id: "sess_stale_index", type: "inbox", path: "inbox/stale.md" }]
+    }, null, 2)}\n`, "utf8");
+
+    const status = await getMemoryMirrorStatus(paths, {
+      owner: "cagrisahin58",
+      repo: "work-memory",
+      branch: "main"
+    });
+
+    assert.equal(status.cloneExists, false);
+    assert.equal(status.indexed, false);
+    assert.equal(status.recordCount, 1);
+    assert.equal(status.remoteCheck.status, "missing");
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
 test("memory mirror clone yoksa git clone sonrasi index uretir", async () => {
   const dir = await mkdtemp(join(tmpdir(), "ctxlab-runner-"));
   const paths = buildRunnerPaths(dir);

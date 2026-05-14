@@ -269,7 +269,7 @@ export async function getMemoryMirrorStatus(paths = buildRunnerPaths(), input = 
     cloneExists,
     remoteCheck,
     error: remoteOk ? "" : remoteCheck.error,
-    indexed: Boolean(index) && remoteOk,
+    indexed: cloneExists && Boolean(index) && remoteOk,
     recordCount: index?.recordCount || 0,
     warningCount: index?.warningCount || 0,
     lastIndexedAt: index?.indexedAt || "",

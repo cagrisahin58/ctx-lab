@@ -189,6 +189,14 @@ async function waitForSelectedRecordCardChange(page, previousId) {
   return selectedRecordCardId(page);
 }
 
+async function ensureDesktopViewport(electronApp, page) {
+  await electronApp.evaluate(({ BrowserWindow }) => {
+    const window = BrowserWindow.getAllWindows()[0];
+    window?.setContentSize(1480, 940);
+  });
+  await page.waitForFunction(() => window.innerWidth >= 1180, null, { timeout: 15_000 });
+}
+
 async function assertWorkspaceDesktopLayout(page) {
   const layout = await page.evaluate(() => {
     const rect = (selector) => {
@@ -218,7 +226,7 @@ async function assertWorkspaceDesktopLayout(page) {
     };
   });
 
-  assert.ok(layout.viewport.width >= 1100, `Masaustu icerik genisligi beklenenden dar: ${layout.viewport.width}px`);
+  assert.ok(layout.viewport.width >= 1180, `Masaustu icerik genisligi beklenenden dar: ${layout.viewport.width}px`);
   assert.ok(layout.sidebar?.width >= 260 && layout.sidebar.width <= 340, `Sol proje rayi genisligi bozuk: ${layout.sidebar?.width}`);
   assert.ok(layout.content?.left >= layout.sidebar.right - 1, "Ana icerik sol rayin uzerine binmemeli.");
   assert.ok(layout.projectRail?.left >= layout.sidebar.left && layout.projectRail.right <= layout.sidebar.right + 1, "Proje listesi sol ray icinde kalmali.");
@@ -576,6 +584,7 @@ try {
   runtimeUserData = await electronApp.evaluate(({ app }) => app.getPath("userData"));
 
   const page = await electronApp.firstWindow();
+  await ensureDesktopViewport(electronApp, page);
   markPhase("Ilk kurulum ekranini bekleme");
   await page.waitForLoadState("domcontentloaded");
 

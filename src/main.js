@@ -1590,28 +1590,88 @@ function renderHandoff() {
   const records = handoffRecords();
   const selected = handoffAnchorRecord();
   const prompt = selected ? buildContextPack(state.records, selected, state.handoffTarget) : "";
+  const metrics = selected ? handoffMetrics(selected, prompt) : null;
   return `
     ${renderHeader("Devam Brifi", "Seçili iş hattı veya oturum kaydından Codex/Claude devam brifi üret.")}
-    <section class="panel detail">
+    <section class="panel detail handoff-studio">
       ${selected ? `
-        <div class="filter-row">
-          <select data-handoff-record aria-label="Devam brifi kaynak kaydı">
-            ${records.map((record) => `<option value="${escapeHtml(record.id)}" ${selected.id === record.id ? "selected" : ""}>${escapeHtml(record.title)} · ${escapeHtml(record.type)}</option>`).join("")}
-          </select>
-          <select class="status-select" data-handoff-target aria-label="Devam brifi hedefi">
-            <option value="codex" ${state.handoffTarget === "codex" ? "selected" : ""}>Codex</option>
-            <option value="claude" ${state.handoffTarget === "claude" ? "selected" : ""}>Claude Code</option>
-          </select>
+        <div class="handoff-hero">
+          <div>
+            <span class="eyebrow">Devam Brifi</span>
+            <h3>${escapeHtml(selected.title)}</h3>
+            <p>${escapeHtml(selected.repo || selected.project || selected.path)}</p>
+          </div>
+          <div class="target-switch" role="group" aria-label="Devam brifi hedefi">
+            <button class="${state.handoffTarget === "codex" ? "active" : ""}" data-action="set-handoff-target" data-target="codex">Codex</button>
+            <button class="${state.handoffTarget === "claude" ? "active claude" : "claude"}" data-action="set-handoff-target" data-target="claude">Claude Code</button>
+          </div>
         </div>
-        <h3>${escapeHtml(selected.title)}</h3>
+        <div class="handoff-source-row">
+          <label>
+            Kaynak kayıt
+            <select data-handoff-record aria-label="Devam brifi kaynak kaydı">
+              ${records.map((record) => `<option value="${escapeHtml(record.id)}" ${selected.id === record.id ? "selected" : ""}>${escapeHtml(record.title)} · ${escapeHtml(record.type)}</option>`).join("")}
+            </select>
+          </label>
+        </div>
+        <section class="handoff-package">
+          <h4>Paket İçeriği</h4>
+          <div class="handoff-metrics" aria-label="Paket içeriği">
+            ${metricCard("Oturum", metrics.sessions)}
+            ${metricCard("Karar", metrics.decisions)}
+            ${metricCard("Codex run", metrics.codexRuns)}
+            ${metricCard("Tahmini token", metrics.tokens)}
+          </div>
+        </section>
         <div class="toolbar-actions">
           <button class="primary" data-action="save-handoff-current">Devam Brifini Kaydet</button>
           <button data-action="copy-handoff">Kopyala</button>
         </div>
-        <pre class="handoff-output">${escapeHtml(prompt)}</pre>
+        <div class="handoff-preview" aria-label="Devam brifi önizlemesi">
+          ${renderMarkdownPreview(prompt)}
+        </div>
       ` : `<div class="empty">Devam brifi üretmek için önce bir oturum kaydı veya iş hattı oluşturun.</div>`}
     </section>
   `;
+}
+
+function handoffMetrics(record, prompt) {
+  const relatedWork = record.type === "work_items"
+    ? record
+    : state.records.find((item) => item.type === "work_items" && (
+      item.id === record.linkedWorkItem ||
+      arrayValue(item.frontmatter.sessions).includes(record.id)
+    ));
+  const sessions = record.type === "inbox"
+    ? new Set([record.id, ...arrayValue(relatedWork?.frontmatter?.sessions)])
+    : new Set(arrayValue(relatedWork?.frontmatter?.sessions || record.frontmatter.sessions));
+  const decisions = new Set(arrayValue(relatedWork?.frontmatter?.decisions || record.frontmatter.decisions));
+  if (record.type === "decisions") decisions.add(record.id);
+  return {
+    sessions: sessions.size,
+    decisions: decisions.size,
+    codexRuns: arrayValue(relatedWork?.frontmatter?.codex_runs || record.frontmatter.codex_runs).length,
+    tokens: Math.max(1, Math.ceil(String(prompt || "").length / 4))
+  };
+}
+
+function arrayValue(value) {
+  if (Array.isArray(value)) return value.filter(Boolean);
+  if (!value) return [];
+  return [String(value)].filter(Boolean);
+}
+
+function renderMarkdownPreview(markdown) {
+  return String(markdown || "").split("\n").map((line) => {
+    const trimmed = line.trim();
+    let kind = "text";
+    if (!trimmed) kind = "blank";
+    else if (trimmed.startsWith("#")) kind = "heading";
+    else if (/^[-*]\s+/.test(trimmed)) kind = "list";
+    else if (/^\d+\.\s+/.test(trimmed)) kind = "list";
+    else if (trimmed.startsWith(">")) kind = "quote";
+    return `<div class="md-line ${kind}">${escapeHtml(line || " ")}</div>`;
+  }).join("");
 }
 
 function renderDailyBrief() {
@@ -2268,6 +2328,10 @@ function handleAction(action, payload) {
   if (action === "sync-memory-mirror") guarded(syncMemoryMirrorFromConfig);
   if (action === "generate-onboarding-brief") {
     generateOnboardingBrief();
+    render();
+  }
+  if (action === "set-handoff-target") {
+    state.handoffTarget = payload?.target || "codex";
     render();
   }
   if (action === "finish-onboarding") finishOnboarding();

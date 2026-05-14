@@ -40,6 +40,8 @@ for (const expected of [
   "Is Akisi",
   "Karar Defteri",
   "Devam Brifi",
+  "Paket icerigi",
+  "Tahmini token",
   "Baglantiyi Tanila",
   "Gunluk Devam Brifi",
   "Yerel onbellek",

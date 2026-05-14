@@ -93,6 +93,14 @@ try {
     timeout: 15_000
   });
 
+  await page.keyboard.press("Control+K");
+  await page.locator("[data-command-search]").fill("devam brifi");
+  await page.locator('[data-command-id="view:handoff"]').click();
+  await expectVisibleText(page, "Tahmini token");
+  await expectVisibleText(page, "Paket İçeriği");
+  await page.getByRole("button", { name: "Claude Code" }).click();
+  await page.locator(".target-switch .claude.active").waitFor({ state: "visible", timeout: 15_000 });
+
   const title = await electronApp.evaluate(({ BrowserWindow }) => {
     return BrowserWindow.getAllWindows()[0]?.getTitle();
   });

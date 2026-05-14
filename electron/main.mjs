@@ -128,7 +128,8 @@ app.whenReady().then(async () => {
     dialog,
     mockProjectDirectory: process.env.CTX_LAB_ELECTRON_PROJECT_DIR || "",
     mockCodexVersion: process.env.CTX_LAB_ELECTRON_MOCK_CODEX_VERSION || "",
-    mockCodexCommand: process.env.CTX_LAB_ELECTRON_MOCK_CODEX_COMMAND || ""
+    mockCodexCommand: process.env.CTX_LAB_ELECTRON_MOCK_CODEX_COMMAND || "",
+    mockMemoryFixtureFile: process.env.CTX_LAB_ELECTRON_MEMORY_FIXTURE || ""
   });
   registerDesktopIpcHandlers(ipcMain, runtime);
   createMenu();

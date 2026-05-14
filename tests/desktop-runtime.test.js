@@ -97,3 +97,35 @@ test("desktop runtime codex run olaylarini IPC yuzeyinden okur", async () => {
     await rm(dir, { recursive: true, force: true });
   }
 });
+
+test("desktop runtime smoke memory fixture dosyasini status ve indeks olarak sunar", async () => {
+  const dir = await mkdtemp(join(tmpdir(), "ctxlab-desktop-"));
+  const fixtureFile = join(dir, "memory-fixture.json");
+  const runtime = createDesktopRuntime({
+    paths: buildRunnerPaths(dir),
+    mockMemoryFixtureFile: fixtureFile
+  });
+
+  try {
+    await writeFile(fixtureFile, `${JSON.stringify({
+      owner: "cagrisahin58",
+      repo: "ctx-lab",
+      branch: "main",
+      indexedAt: "2026-05-14T13:10:00.000Z",
+      lastCommit: "fixture-head",
+      recordCount: 1,
+      warningCount: 0,
+      records: [{ id: "sess_fixture", path: "inbox/fixture.md", type: "inbox" }]
+    }, null, 2)}\n`, "utf8");
+
+    const status = await runtime.memoryStatus({ owner: "cagrisahin58", repo: "ctx-lab", branch: "main" });
+    const index = await runtime.memoryIndex({ owner: "cagrisahin58", repo: "ctx-lab", branch: "main" });
+
+    assert.equal(status.indexed, true);
+    assert.equal(status.recordCount, 1);
+    assert.equal(status.remoteCheck.status, "ok");
+    assert.equal(index.records[0].id, "sess_fixture");
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});

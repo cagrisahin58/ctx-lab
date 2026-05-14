@@ -11,6 +11,7 @@ import {
   applyCodexRunCommit,
   startCodexRun
 } from "../scripts/ctxlab-runner.mjs";
+import { readFile } from "node:fs/promises";
 
 export const DESKTOP_IPC_CHANNELS = Object.freeze({
   health: "ctxlab:runner:health",
@@ -72,14 +73,57 @@ export function createDesktopRuntime(options = {}) {
       return applyCodexRunCommit(paths, input, options);
     },
     async memoryStatus(input) {
+      if (options.mockMemoryFixtureFile) {
+        const index = await readMockMemoryFixture(options.mockMemoryFixtureFile, input);
+        return {
+          configured: true,
+          owner: index.owner,
+          repo: index.repo,
+          branch: index.branch,
+          remoteUrl: `https://github.com/${index.owner}/${index.repo}.git`,
+          cloneDir: index.cloneDir || "",
+          indexFile: options.mockMemoryFixtureFile,
+          cloneExists: true,
+          remoteCheck: {
+            status: "ok",
+            expectedRepo: `${index.owner}/${index.repo}`,
+            expectedRemoteUrl: `https://github.com/${index.owner}/${index.repo}.git`,
+            actualRepo: `${index.owner}/${index.repo}`,
+            actualRemoteUrl: `https://github.com/${index.owner}/${index.repo}.git`,
+            error: ""
+          },
+          error: "",
+          indexed: true,
+          recordCount: index.recordCount || index.records?.length || 0,
+          warningCount: index.warningCount || 0,
+          lastIndexedAt: index.indexedAt || "",
+          lastCommit: index.lastCommit || ""
+        };
+      }
       return getMemoryMirrorStatus(paths, input);
     },
     async memoryIndex(input) {
+      if (options.mockMemoryFixtureFile) {
+        return readMockMemoryFixture(options.mockMemoryFixtureFile, input);
+      }
       return readMemoryIndex(paths, input);
     },
     async syncMemory(input) {
+      if (options.mockMemoryFixtureFile) {
+        return readMockMemoryFixture(options.mockMemoryFixtureFile, input);
+      }
       return syncMemoryMirror(paths, input, options);
     }
+  };
+}
+
+async function readMockMemoryFixture(file, input = {}) {
+  const index = JSON.parse(await readFile(file, "utf8"));
+  return {
+    ...index,
+    owner: index.owner || input.owner || "",
+    repo: index.repo || input.repo || "",
+    branch: index.branch || input.branch || "main"
   };
 }
 

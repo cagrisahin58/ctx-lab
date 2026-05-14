@@ -14,6 +14,7 @@ const require = createRequire(import.meta.url);
 const electronPath = require("electron");
 const root = process.cwd();
 const userData = await mkdtemp(join(tmpdir(), "ctxlab-electron-flow-"));
+const memoryFixtureFile = join(userData, "memory-fixture.json");
 let runtimeUserData = userData;
 let phase = "Electron baslatma";
 
@@ -403,6 +404,7 @@ async function seedMemoryIndex(config, records) {
   await prepareMirrorClone(mirror, config);
   await mkdir(dirname(mirror.indexFile), { recursive: true });
   await writeFile(mirror.indexFile, `${JSON.stringify(index, null, 2)}\n`, "utf8");
+  await writeFile(memoryFixtureFile, `${JSON.stringify(index, null, 2)}\n`, "utf8");
 }
 
 async function prepareMirrorClone(mirror, config) {
@@ -475,6 +477,7 @@ const env = {
   CTX_LAB_ELECTRON_PROJECT_DIR: root,
   CTX_LAB_ELECTRON_MOCK_CODEX_VERSION: "codex-cli smoke",
   CTX_LAB_ELECTRON_MOCK_CODEX_COMMAND: "codex-smoke",
+  CTX_LAB_ELECTRON_MEMORY_FIXTURE: memoryFixtureFile,
   ELECTRON_DISABLE_SECURITY_WARNINGS: "true"
 };
 delete env.VITE_DEV_SERVER_URL;

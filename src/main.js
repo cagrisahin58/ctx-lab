@@ -1501,6 +1501,7 @@ function renderOnboarding() {
       <div class="onboarding-actions">
         <section class="panel">
           <h3>GitHub Hafıza Reposu</h3>
+          ${renderConnectionSteps()}
           <form class="connection-form" id="onboarding-config-form">
             <label>
               Repo
@@ -2121,6 +2122,7 @@ function renderSettingsTab(tab, label) {
 function renderConnectionSettings() {
   return `
     <section class="panel">
+      ${renderConnectionSteps()}
       <form class="connection-form" id="settings-form">
         <label>
           Repo
@@ -2148,6 +2150,45 @@ function renderConnectionSettings() {
     </section>
     ${renderDiagnostics()}
     ${renderMemoryHealthPanel()}
+  `;
+}
+
+function renderConnectionSteps() {
+  const hasConfig = Boolean(state.config.owner && state.config.repo && state.config.branch);
+  const structureReady = Boolean(state.diagnostics?.configFile?.ok && state.diagnostics?.directories?.every((item) => item.ok));
+  const verified = Boolean(state.diagnostics?.ok);
+  const steps = [
+    {
+      number: "1",
+      title: "Repo bağla",
+      text: "Owner/repo, branch ve fine-grained token bilgisini kaydet.",
+      done: hasConfig
+    },
+    {
+      number: "2",
+      title: "Yapıyı hazırla",
+      text: "config.yaml ve work-memory klasörlerini oluştur veya doğrula.",
+      done: structureReady
+    },
+    {
+      number: "3",
+      title: "Doğrula",
+      text: "Contents okuma/yazma iznini gerçek yazma testiyle kontrol et.",
+      done: verified
+    }
+  ];
+  return `
+    <div class="connection-steps" aria-label="Hafıza bağlantısı adımları">
+      ${steps.map((step) => `
+        <div class="connection-step ${step.done ? "done" : ""}">
+          <span>${step.done ? "✓" : step.number}</span>
+          <div>
+            <strong>${step.title}</strong>
+            <p>${step.text}</p>
+          </div>
+        </div>
+      `).join("")}
+    </div>
   `;
 }
 

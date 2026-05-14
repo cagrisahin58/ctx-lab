@@ -667,6 +667,57 @@ kbd {
   grid-column: 1 / -1;
 }
 
+.connection-steps {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.connection-step {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  gap: 10px;
+  min-height: 88px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+}
+
+.connection-step > span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  background: var(--panel-soft);
+  color: var(--muted);
+  font-weight: 900;
+}
+
+.connection-step.done {
+  border-color: rgba(52, 211, 153, 0.38);
+}
+
+.connection-step.done > span {
+  background: rgba(52, 211, 153, 0.16);
+  color: var(--success);
+}
+
+.connection-step strong {
+  display: block;
+  margin-bottom: 4px;
+}
+
+.connection-step p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
 .token-guide {
   border: 1px solid var(--line);
   border-radius: 8px;
@@ -1450,6 +1501,7 @@ kbd {
   .repo-conflict-banner,
   .diagnostic-item,
   .connection-form,
+  .connection-steps,
   .setting-row,
   .shortcut-grid.compact {
     grid-template-columns: 1fr;

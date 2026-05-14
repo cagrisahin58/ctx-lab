@@ -27,7 +27,7 @@ Geçerli durumlar: `needs_triage`, `linked`, `active`, `waiting`, `blocked`, `do
 
 v2 arayüzü mevcut markdown/frontmatter formatını bozmadan kayıtlardan türetilmiş bir zaman akışı katmanı oluşturur. Bu katman kalıcı şemayı değiştirmez; `inbox` oturumları, `work_items` iş hattı güncellemeleri, iş hattı `status_history` durum değişimleri, `decisions` kararlar, `handoffs` devam brifleri, `archive` kayıtları, yerel proje kökleri, GitHub/yerel ayna senkron olayları ve Codex çalıştırma/commit uygulama günlükleri tek sıralı olay listesine dönüştürülür. Eski kayıtlar zaman akışı içinde görünmeye devam eder.
 
-Yerel masaüstü aynası bu kayıtları `%APPDATA%/ctx-lab/memory/git` altında Git clone olarak, özet indeksi de `%APPDATA%/ctx-lab/memory/index/<owner>__<repo>__<branch>.json` teknik yolu altında tutar. İndeks türetilmiş veridir; GitHub hafıza reposu kaynak gerçeklik olmaya devam eder.
+Yerel masaüstü aynası bu kayıtları `%APPDATA%/ctx-lab/memory/git` altında Git clone olarak, özet indeksi de `%APPDATA%/ctx-lab/memory/index/<owner>__<repo>__<branch-scope>.json` teknik yolu altında tutar. Basit branch adlarında `branch-scope` branch adıyla aynıdır; slash, nokta veya slug çakışması yaratabilecek güvenli branch adlarında çakışmayı engellemek için kısa hash eki kullanılır. İndeks türetilmiş veridir; GitHub hafıza reposu kaynak gerçeklik olmaya devam eder.
 
 ## Oturum özeti
 

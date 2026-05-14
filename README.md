@@ -127,6 +127,7 @@ Codex çalıştırma kayıtları `%APPDATA%/ctx-lab/runs` altında JSON günlük
 
 Yerel hafıza aynası `%APPDATA%/ctx-lab/memory/git` altında, türetilmiş indeks ise `%APPDATA%/ctx-lab/memory/index` altında tutulur. Ayna akışı GitHub token'ını çalıştırıcıya taşımaz; `git clone/fetch/pull` yerel Git/Git Credential Manager yetkileriyle çalışır. İndeks, mevcut markdown/frontmatter kayıtlarını okuyup masaüstü zaman akışı ve sağlık görünürlüğü için özet JSON üretir.
 Mevcut bir ayna clone'u yeniden kullanılmadan önce `origin` GitHub reposu beklenen `owner/repo` ile karşılaştırılır; farklı bir repoya bağlı clone tespit edilirse fetch/pull yapılmadan Türkçe hata gösterilir.
+Hafıza aynası branch adı git ref kurallarına göre doğrulanır; slash, nokta veya slug çakışması yaratabilecek güvenli branch adları ayrı bir scope/hash ile tutulur, güvenli olmayan ref kalıpları çalıştırıcıda reddedilir.
 
 ## Manuel oturum özeti akışı
 

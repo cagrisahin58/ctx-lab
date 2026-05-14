@@ -119,6 +119,18 @@ test("runner proje taslagini deterministik id ile normalize eder", () => {
   assert.match(draft.id, /^project_[a-f0-9]{12}$/);
 });
 
+test("runner proje taslagi guvensiz branch adini reddeder", () => {
+  assert.throws(
+    () => normalizeProjectDraft({
+      name: "ctx-lab",
+      path: process.cwd(),
+      repo: "cagrisahin58/ctx-lab",
+      branch: "feature sync"
+    }),
+    /Proje dal adi gecersiz/
+  );
+});
+
 test("runner proje kaydini allowlist registry dosyasina ekler ve gunceller", async () => {
   const dir = await mkdtemp(join(tmpdir(), "ctxlab-runner-"));
   const projectDir = await mkdtemp(join(tmpdir(), "ctxlab-project-"));
@@ -184,6 +196,37 @@ test("memory mirror config ve path bilgisi owner repo branch ile normalize edili
   });
   assert.match(paths.cloneDir, /cagrisahin58__work-memory__main$/);
   assert.match(paths.indexFile, /cagrisahin58__work-memory__main\.json$/);
+});
+
+test("memory mirror slash iceren branch icin ayri scope uretir", () => {
+  const slashBranch = buildMemoryMirrorPaths(buildRunnerPaths("C:\\ctxlab"), {
+    owner: "cagrisahin58",
+    repo: "work-memory",
+    branch: "feature/sync"
+  });
+  const hyphenBranch = buildMemoryMirrorPaths(buildRunnerPaths("C:\\ctxlab"), {
+    owner: "cagrisahin58",
+    repo: "work-memory",
+    branch: "feature-sync"
+  });
+
+  assert.match(slashBranch.scope, /^cagrisahin58__work-memory__feature-sync--[a-f0-9]{8}$/);
+  assert.match(hyphenBranch.scope, /^cagrisahin58__work-memory__feature-sync$/);
+  assert.notEqual(slashBranch.cloneDir, hyphenBranch.cloneDir);
+  assert.notEqual(slashBranch.indexFile, hyphenBranch.indexFile);
+});
+
+test("memory mirror guvensiz branch adlarini reddeder", () => {
+  for (const branch of ["-main", "feature..sync", "feature sync", "feature@{1", "release.lock", "feature\\sync", "main;rm", "main\"quote"]) {
+    assert.throws(
+      () => normalizeMemoryMirrorConfig({
+        owner: "cagrisahin58",
+        repo: "work-memory",
+        branch
+      }),
+      /dal adi gecersiz/
+    );
+  }
 });
 
 test("memory mirror yerel markdown kayitlarini indeksler", async () => {

@@ -103,7 +103,7 @@ export function normalizeProjectDraft(input = {}) {
   const resolvedPath = resolve(projectPath);
   const name = String(input.name || "").trim() || basename(resolvedPath) || "proje";
   const repo = String(input.repo || "").trim();
-  const branch = String(input.branch || "main").trim() || "main";
+  const branch = normalizeGitBranchName(input.branch, "Proje dal");
 
   return {
     id: `project_${createHash("sha1").update(resolvedPath.toLowerCase()).digest("hex").slice(0, 12)}`,
@@ -220,7 +220,7 @@ export function normalizeMemoryMirrorConfig(input = {}) {
 
   if (!owner || !repo) throw new Error("Memory mirror icin owner/repo zorunlu.");
 
-  const branch = String(input.branch || "main").trim() || "main";
+  const branch = normalizeGitBranchName(input.branch, "Hafiza aynasi dal");
   const remoteUrl = input.remoteUrl
     ? sanitizeGitHubRemoteUrl(input.remoteUrl)
     : `https://github.com/${owner}/${repo}.git`;
@@ -230,7 +230,7 @@ export function normalizeMemoryMirrorConfig(input = {}) {
 
 export function buildMemoryMirrorPaths(paths = buildRunnerPaths(), input = {}) {
   const config = normalizeMemoryMirrorConfig(input);
-  const scope = `${slugForId(config.owner)}__${slugForId(config.repo)}__${slugForId(config.branch)}`;
+  const scope = `${slugForId(config.owner)}__${slugForId(config.repo)}__${branchScopeForId(config.branch)}`;
   return {
     config,
     scope,
@@ -687,6 +687,37 @@ function sanitizeGitHubRemoteUrl(value) {
     return text.endsWith(".git") ? text : `${text}.git`;
   }
   throw new Error("Memory mirror remote URL yalnizca github.com repo adresi olabilir.");
+}
+
+function normalizeGitBranchName(value, label = "Dal") {
+  const branch = String(value || "main").trim() || "main";
+  assertSafeGitBranchName(branch, label);
+  return branch;
+}
+
+function assertSafeGitBranchName(branch, label) {
+  const invalid = branch.length > 240
+    || branch === "@"
+    || branch.startsWith("-")
+    || branch.startsWith("/")
+    || branch.endsWith("/")
+    || branch.endsWith(".")
+    || branch.includes("..")
+    || branch.includes("@{")
+    || branch.includes("\\")
+    || !/^[A-Za-z0-9._/+-]+$/.test(branch)
+    || /[\s~^:?*[\]\x00-\x1f\x7f]/.test(branch)
+    || branch.split("/").some((part) => !part || part.startsWith(".") || part.endsWith(".lock"));
+  if (invalid) {
+    throw new Error(`${label} adi gecersiz. Bosluk, kontrol karakteri, '..', '@{', ters slash, basinda tire veya guvensiz git ref kalibi kullanilamaz.`);
+  }
+}
+
+function branchScopeForId(branch) {
+  const slug = slugForId(branch);
+  if (/^[a-z0-9-]+$/.test(branch) && slug === branch) return slug;
+  const suffix = createHash("sha1").update(branch).digest("hex").slice(0, 8);
+  return `${slug}--${suffix}`;
 }
 
 async function assertMemoryMirrorRemote(mirror, run) {

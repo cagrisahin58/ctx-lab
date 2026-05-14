@@ -892,24 +892,46 @@ async function syncMemoryMirrorFromConfig() {
     setToast("Önce Hafıza Bağlantısı ekranında GitHub hafıza reposu bilgisini kaydet.");
     return;
   }
-  const index = await syncMemoryMirror(config);
-  state.runner.memory = {
-    configured: true,
-    owner: index.owner,
-    repo: index.repo,
-    branch: index.branch,
-    cloneDir: index.cloneDir,
-    indexFile: "",
-    cloneExists: true,
-    indexed: true,
-    recordCount: index.recordCount,
-    warningCount: index.warningCount,
-    lastIndexedAt: index.indexedAt,
-    lastCommit: index.lastCommit
-  };
-  state.runner.memoryIndex = index;
-  addActivity(`Yerel hafıza aynası yenilendi: ${index.recordCount} kayıt`, index.warningCount ? "warning" : "success");
-  setToast("Yerel hafıza aynası ve indeks güncellendi.", index.warningCount ? "warning" : "success");
+  try {
+    const index = await syncMemoryMirror(config);
+    state.runner.memory = {
+      configured: true,
+      owner: index.owner,
+      repo: index.repo,
+      branch: index.branch,
+      cloneDir: index.cloneDir,
+      indexFile: "",
+      cloneExists: true,
+      indexed: true,
+      recordCount: index.recordCount,
+      warningCount: index.warningCount,
+      lastIndexedAt: index.indexedAt,
+      lastCommit: index.lastCommit
+    };
+    state.runner.memoryIndex = index;
+    addActivity(`Yerel hafıza aynası yenilendi: ${index.recordCount} kayıt`, index.warningCount ? "warning" : "success");
+    setToast("Yerel hafıza aynası ve indeks güncellendi.", index.warningCount ? "warning" : "success");
+  } catch (error) {
+    const previous = state.runner.memory || {};
+    state.runner.memory = {
+      configured: true,
+      owner: config.owner,
+      repo: config.repo,
+      branch: config.branch || "main",
+      cloneDir: previous.cloneDir || "",
+      indexFile: previous.indexFile || "",
+      cloneExists: Boolean(previous.cloneExists),
+      indexed: false,
+      recordCount: 0,
+      warningCount: previous.warningCount || 0,
+      lastIndexedAt: previous.lastIndexedAt || "",
+      lastCommit: previous.lastCommit || "",
+      error: error.message
+    };
+    state.runner.memoryIndex = { error: error.message, records: [] };
+    addActivity("Yerel hafıza aynası yenilenemedi.", "error", error.message);
+    setToast(error.message, "error");
+  }
 }
 
 async function saveOnboardingConfigFromForm(form) {

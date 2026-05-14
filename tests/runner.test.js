@@ -268,6 +268,78 @@ status: needs_triage
   }
 });
 
+test("memory mirror mevcut clone icin ayni GitHub reposunu dogrular", async () => {
+  const dir = await mkdtemp(join(tmpdir(), "ctxlab-runner-"));
+  const paths = buildRunnerPaths(dir);
+  const mirror = buildMemoryMirrorPaths(paths, { owner: "cagrisahin58", repo: "work-memory", branch: "main" });
+  const calls = [];
+
+  try {
+    await mkdir(join(mirror.cloneDir, ".git"), { recursive: true });
+    await mkdir(join(mirror.cloneDir, "inbox"), { recursive: true });
+    await writeFile(join(mirror.cloneDir, "inbox", "ssh.md"), `---
+id: sess_ssh_remote
+project: ctx-lab
+status: needs_triage
+---
+
+# Session Summary
+`, "utf8");
+
+    const index = await syncMemoryMirror(paths, {
+      owner: "cagrisahin58",
+      repo: "work-memory",
+      branch: "main"
+    }, {
+      now: new Date("2026-05-14T12:20:00.000Z"),
+      runCommand: async (command, args) => {
+        calls.push({ command, args });
+        if (args.includes("remote")) return { ok: true, stdout: "git@github.com:cagrisahin58/work-memory.git\n", stderr: "", code: 0 };
+        if (args.includes("rev-parse")) return { ok: true, stdout: "abc999\n", stderr: "", code: 0 };
+        return { ok: true, stdout: "", stderr: "", code: 0 };
+      }
+    });
+
+    assert.ok(calls.some((call) => call.args.includes("remote")));
+    assert.ok(calls.some((call) => call.args.includes("fetch")));
+    assert.equal(index.recordCount, 1);
+    assert.equal(index.records[0].id, "sess_ssh_remote");
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test("memory mirror mevcut clone baska GitHub reposuna bagliysa sync yapmaz", async () => {
+  const dir = await mkdtemp(join(tmpdir(), "ctxlab-runner-"));
+  const paths = buildRunnerPaths(dir);
+  const mirror = buildMemoryMirrorPaths(paths, { owner: "cagrisahin58", repo: "work-memory", branch: "main" });
+  const calls = [];
+
+  try {
+    await mkdir(join(mirror.cloneDir, ".git"), { recursive: true });
+
+    await assert.rejects(
+      () => syncMemoryMirror(paths, {
+        owner: "cagrisahin58",
+        repo: "work-memory",
+        branch: "main"
+      }, {
+        runCommand: async (command, args) => {
+          calls.push({ command, args });
+          if (args.includes("remote")) return { ok: true, stdout: "https://github.com/baska/work-memory.git\n", stderr: "", code: 0 };
+          return { ok: true, stdout: "", stderr: "", code: 0 };
+        }
+      }),
+      /baska GitHub reposuna bagli/
+    );
+
+    assert.ok(calls.some((call) => call.args.includes("remote")));
+    assert.equal(calls.some((call) => call.args.includes("fetch") || call.args.includes("pull")), false);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
 test("codex deneme kaydi yalnizca kayitli proje kokunde calistirma gunlugu olusturur", async () => {
   const dir = await mkdtemp(join(tmpdir(), "ctxlab-runner-"));
   const projectDir = await mkdtemp(join(tmpdir(), "ctxlab-project-"));

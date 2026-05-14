@@ -280,6 +280,7 @@ export async function syncMemoryMirror(paths = buildRunnerPaths(), input = {}, o
     ]);
     if (!cloned.ok) throw new Error(`Memory mirror clone basarisiz: ${cloned.stderr || cloned.stdout || "git hata verdi"}`);
   } else {
+    await assertMemoryMirrorRemote(mirror, run);
     for (const args of [
       ["-C", mirror.cloneDir, "fetch", "--prune", "origin", mirror.config.branch],
       ["-C", mirror.cloneDir, "checkout", mirror.config.branch],
@@ -686,6 +687,37 @@ function sanitizeGitHubRemoteUrl(value) {
     return text.endsWith(".git") ? text : `${text}.git`;
   }
   throw new Error("Memory mirror remote URL yalnizca github.com repo adresi olabilir.");
+}
+
+async function assertMemoryMirrorRemote(mirror, run) {
+  const result = await run("git", ["-C", mirror.cloneDir, "remote", "get-url", "origin"]);
+  if (!result.ok) {
+    throw new Error(`Memory mirror remote dogrulanamadi: ${result.stderr || result.stdout || "origin okunamadi"}`);
+  }
+
+  const actual = parseGitHubRemoteIdentity(result.stdout);
+  const expected = parseGitHubRemoteIdentity(mirror.config.remoteUrl);
+  if (actual.key !== expected.key) {
+    throw new Error(`Yerel hafiza aynasi baska GitHub reposuna bagli: ${actual.label}. Beklenen: ${expected.label}. Dogru hafiza reposunu sec veya yerel aynayi temizle.`);
+  }
+}
+
+function parseGitHubRemoteIdentity(value) {
+  const text = String(value || "").trim();
+  const httpsMatch = text.match(/^https:\/\/github\.com\/([A-Za-z0-9_.-]+)\/([A-Za-z0-9_.-]+)(?:\.git)?$/i);
+  const sshMatch = text.match(/^git@github\.com:([A-Za-z0-9_.-]+)\/([A-Za-z0-9_.-]+)(?:\.git)?$/i);
+  const match = httpsMatch || sshMatch;
+  if (!match) {
+    throw new Error("Memory mirror remote URL yalnizca github.com repo adresi olabilir.");
+  }
+  const owner = match[1];
+  const repo = match[2];
+  return {
+    owner,
+    repo,
+    label: `${owner}/${repo}`,
+    key: `${owner.toLowerCase()}/${repo.toLowerCase()}`
+  };
 }
 
 async function findMemoryRoot(cloneDir) {

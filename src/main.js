@@ -25,6 +25,7 @@ import {
   isOnboardingComplete,
   parseMemoryFile,
   replaceFrontmatter,
+  resolveWorkContext,
   suggestWorkItemForSession,
   updateWorkItemNextActionContent,
   updateWorkItemStatusContent,
@@ -2004,7 +2005,8 @@ function renderHandoff() {
   const records = handoffRecords();
   const selected = handoffAnchorRecord();
   const prompt = selected ? buildContextPack(state.records, selected, state.handoffTarget) : "";
-  const metrics = selected ? handoffMetrics(selected, prompt) : null;
+  const bundle = selected ? handoffBundle(selected, prompt) : null;
+  const metrics = bundle?.metrics || null;
   return `
     ${renderHeader("Devam Brifi", "Seçili iş hattı veya oturum kaydından Codex/Claude devam brifi üret.")}
     <section class="panel detail handoff-studio">
@@ -2037,6 +2039,12 @@ function renderHandoff() {
             ${metricCard("Tahmini token", metrics.tokens)}
           </div>
         </section>
+        <section class="handoff-sources">
+          <h4>Paket Kaynakları</h4>
+          <div class="handoff-source-list" aria-label="Paket kaynakları">
+            ${renderHandoffSources(bundle)}
+          </div>
+        </section>
         <div class="toolbar-actions">
           <button class="primary" data-action="save-handoff-current">Devam Brifini Kaydet</button>
           <button data-action="copy-handoff">Kopyala</button>
@@ -2049,24 +2057,50 @@ function renderHandoff() {
   `;
 }
 
-function handoffMetrics(record, prompt) {
-  const relatedWork = record.type === "work_items"
-    ? record
-    : state.records.find((item) => item.type === "work_items" && (
-      item.id === record.linkedWorkItem ||
-      arrayValue(item.frontmatter.sessions).includes(record.id)
-    ));
-  const sessions = record.type === "inbox"
-    ? new Set([record.id, ...arrayValue(relatedWork?.frontmatter?.sessions)])
-    : new Set(arrayValue(relatedWork?.frontmatter?.sessions || record.frontmatter.sessions));
-  const decisions = new Set(arrayValue(relatedWork?.frontmatter?.decisions || record.frontmatter.decisions));
-  if (record.type === "decisions") decisions.add(record.id);
+function handoffBundle(record, prompt) {
+  const { workItem, sessions, decisions } = resolveWorkContext(state.records, record);
+  const anchorWork = workItem || (record.type === "work_items" ? record : null);
+  const codexRunIds = new Set(arrayValue(anchorWork?.frontmatter?.codex_runs || record.frontmatter.codex_runs));
+  const codexRuns = state.records.filter((item) =>
+    item.type === "handoffs" &&
+    item.frontmatter?.kind === "codex_run" &&
+    (
+      codexRunIds.has(item.id) ||
+      item.frontmatter?.source_work_item === anchorWork?.id ||
+      item.frontmatter?.source_record === record.id
+    )
+  );
   return {
-    sessions: sessions.size,
-    decisions: decisions.size,
-    codexRuns: arrayValue(relatedWork?.frontmatter?.codex_runs || record.frontmatter.codex_runs).length,
-    tokens: Math.max(1, Math.ceil(String(prompt || "").length / 4))
+    workItem: anchorWork,
+    sessions,
+    decisions,
+    codexRuns,
+    metrics: {
+      sessions: sessions.length,
+      decisions: decisions.length,
+      codexRuns: codexRuns.length,
+      tokens: Math.max(1, Math.ceil(String(prompt || "").length / 4))
+    }
   };
+}
+
+function renderHandoffSources(bundle) {
+  const rows = [];
+  if (bundle?.workItem) rows.push(renderHandoffSource("İş hattı kaynağı", bundle.workItem));
+  for (const session of bundle?.sessions || []) rows.push(renderHandoffSource("Oturum kaynağı", session));
+  for (const decision of bundle?.decisions || []) rows.push(renderHandoffSource("Karar kaynağı", decision));
+  for (const run of bundle?.codexRuns || []) rows.push(renderHandoffSource("Çalıştırma kaynağı", run));
+  return rows.length ? rows.join("") : `<div class="empty compact">Kaynak kayıt bulunamadı.</div>`;
+}
+
+function renderHandoffSource(label, record) {
+  return `
+    <div class="handoff-source-item">
+      <span class="badge waiting">${escapeHtml(label)}</span>
+      <strong>${escapeHtml(record.title || record.id || "Kayıt")}</strong>
+      <span>${escapeHtml(record.path || record.repo || record.project || "")}</span>
+    </div>
+  `;
 }
 
 function arrayValue(value) {

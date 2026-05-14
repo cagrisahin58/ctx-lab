@@ -385,6 +385,10 @@ try {
   await page.locator('[data-command-id="view:handoff"]').click();
   await expectVisibleText(page, "Tahmini token");
   await expectVisibleText(page, "Paket İçeriği");
+  await expectVisibleText(page, "Paket Kaynakları");
+  await expectVisibleText(page, "İş hattı kaynağı");
+  await expectVisibleText(page, "Oturum kaynağı");
+  await expectVisibleText(page, "Karar kaynağı");
   await page.getByRole("button", { name: "Claude Code" }).click();
   await page.locator(".target-switch .claude.active").waitFor({ state: "visible", timeout: 15_000 });
   await page.keyboard.press("Control+K");

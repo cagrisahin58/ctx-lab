@@ -941,6 +941,38 @@ kbd {
   gap: 10px;
 }
 
+.handoff-sources {
+  display: grid;
+  gap: 10px;
+}
+
+.handoff-sources h4 {
+  margin: 0;
+}
+
+.handoff-source-list {
+  display: grid;
+  gap: 8px;
+}
+
+.handoff-source-item {
+  display: grid;
+  grid-template-columns: minmax(150px, 0.35fr) minmax(180px, 0.65fr) minmax(160px, 1fr);
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--surface) 88%, var(--accent) 12%);
+}
+
+.handoff-source-item strong,
+.handoff-source-item span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .handoff-preview {
   max-height: 620px;
   overflow: auto;

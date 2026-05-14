@@ -368,20 +368,40 @@ export function buildTimelineEvents(records, runnerProjects = [], runs = [], syn
   }
 
   for (const run of runs || []) {
+    const project = run.project?.name || "genel";
+    const repo = run.project?.repo || "";
+    const path = run.logPath || "";
     events.push({
       id: `run:${run.id}`,
       recordId: run.id,
       kind: "codex_run",
       label: "Codex çalıştırma",
-      project: run.project?.name || "genel",
-      repo: run.project?.repo || "",
+      project,
+      repo,
       status: run.status || "",
       title: `${run.automationLevel || "brief"} · ${run.template || "continue_work"}`,
       summary: run.summary || run.error || run.stderr || "Codex çalıştırma kaydı.",
       nextAction: "",
-      path: run.logPath || "",
+      path,
       at: run.finishedAt || run.updatedAt || run.createdAt || ""
     });
+
+    if (run.commitApplication?.status) {
+      events.push({
+        id: `run-commit:${run.id}`,
+        recordId: run.id,
+        kind: "commit_application",
+        label: "Commit uygulaması",
+        project,
+        repo,
+        status: run.commitApplication.status,
+        title: commitApplicationStatusLabel(run.commitApplication.status),
+        summary: commitApplicationEventSummary(run.commitApplication),
+        nextAction: run.commitApplication.status === "push_failed" ? "Push hatasını incele." : "",
+        path,
+        at: run.commitApplication.appliedAt || run.updatedAt || run.finishedAt || run.createdAt || ""
+      });
+    }
   }
 
   for (const project of runnerProjects || []) {
@@ -1169,14 +1189,26 @@ function formatCommitDraft(draft) {
 
 function formatCommitApplication(application) {
   if (!application) return "";
-  const status = application.status === "pushed"
-    ? "Push tamamlandı"
-    : (application.status === "push_failed" ? "Push hata verdi" : "Commit tamamlandı");
   return [
-    `Durum: ${status}`,
+    `Durum: ${commitApplicationStatusLabel(application.status)}`,
     `Commit SHA: ${application.commitSha || "yok"}`,
     application.appliedAt ? `Uygulama zamanı: ${application.appliedAt}` : ""
   ].filter(Boolean).join("\n");
+}
+
+function commitApplicationStatusLabel(status) {
+  if (status === "pushed") return "Push tamamlandı";
+  if (status === "push_failed") return "Push hata verdi";
+  if (status === "committed") return "Commit tamamlandı";
+  return "Commit uygulaması kaydedildi";
+}
+
+function commitApplicationEventSummary(application) {
+  const detail = application.status === "push_failed"
+    ? (application.pushStderr || application.pushStdout || "Ayrıntı yerel günlükte.")
+    : (application.status === "pushed" ? "Değişiklikler uzak repoya gönderildi." : "Değişiklikler yerel commit olarak uygulandı.");
+  const commit = application.commitSha ? `Commit SHA: ${application.commitSha}` : "Commit SHA yok";
+  return `${commit} · ${detail}`.slice(0, 320);
 }
 
 export function generateHandoffPrompt(record, target = "codex") {

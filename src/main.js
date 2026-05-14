@@ -3095,7 +3095,10 @@ function statusLabel(status) {
     succeeded: "Tamamlandı",
     failed: "Hata",
     corrupt: "Bozuk günlük",
-    registered: "Kayıtlı"
+    registered: "Kayıtlı",
+    committed: "Commit tamamlandı",
+    pushed: "Push tamamlandı",
+    push_failed: "Push hata verdi"
   }[status] || status || "Durum yok";
 }
 

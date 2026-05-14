@@ -455,10 +455,24 @@ Timeline event katmanı eklenecek.
   const events = buildTimelineEvents([session, work, decision], [
     { id: "project_1", name: "ctx-lab", path: "C:\\repo", updatedAt: "2026-05-14T12:20:00.000Z" }
   ], [
-    { id: "run_1", status: "dry_run", automationLevel: "brief", template: "continue_work", project: { name: "ctx-lab" }, createdAt: "2026-05-14T12:30:00.000Z" }
+    {
+      id: "run_1",
+      status: "succeeded",
+      automationLevel: "commit_prepare",
+      template: "continue_work",
+      project: { name: "ctx-lab", repo: "cagrisahin58/ctx-lab" },
+      createdAt: "2026-05-14T12:30:00.000Z",
+      commitApplication: {
+        status: "committed",
+        commitSha: "abc123",
+        appliedAt: "2026-05-14T12:31:00.000Z"
+      }
+    }
   ]);
 
-  assert.deepEqual(events.slice(0, 2).map((event) => event.kind), ["codex_run", "project_registered"]);
+  assert.deepEqual(events.slice(0, 2).map((event) => event.kind), ["commit_application", "codex_run"]);
+  assert.ok(events.some((event) => event.kind === "project_registered"));
+  assert.ok(events.some((event) => event.kind === "commit_application" && event.summary.includes("Commit SHA: abc123")));
   assert.ok(events.some((event) => event.kind === "session" && event.recordId === "sess_test"));
   assert.ok(events.some((event) => event.kind === "decision" && event.summary.includes("Timeline event")));
 });
@@ -695,6 +709,7 @@ test("codex run sonucunu memory kaydina cevirir ve is hattina baglar", () => {
   const updatedWork = appendCodexRunToWorkItem(work, parsedRun, new Date("2026-05-14T12:02:00.000Z"));
   const parsedWork = parseFrontmatter(updatedWork);
   const events = buildTimelineEvents([parsedRun], [], []);
+  const runEvents = buildTimelineEvents([], [], [run]);
 
   assert.match(memory.path, /^handoffs\/2026-05-14T12-01-00-000Z-codex_run_run-2026-05-14t12-00-00-000z-ctx-lab\.md$/);
   assert.equal(parsedRun.frontmatter.kind, "codex_run");
@@ -713,6 +728,10 @@ test("codex run sonucunu memory kaydina cevirir ve is hattina baglar", () => {
   assert.match(parsedRun.raw, /Commit SHA: commitsha123/);
   assert.deepEqual(parsedWork.frontmatter.codex_runs, [parsedRun.id]);
   assert.equal(events[0].kind, "codex_run");
+  assert.equal(runEvents[0].kind, "commit_application");
+  assert.equal(runEvents[0].label, "Commit uygulaması");
+  assert.equal(runEvents[0].title, "Commit tamamlandı");
+  assert.match(runEvents[0].summary, /commitsha123/);
 });
 
 test("arşiv içeriği status ve archived_at alanlarını günceller", () => {

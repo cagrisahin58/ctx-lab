@@ -631,6 +631,11 @@ kbd {
   animation: activityPulse 900ms ease-out 1;
 }
 
+.timeline-event.commit_application .timeline-marker {
+  background: var(--success);
+  box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.14);
+}
+
 .timeline-event.work_item .timeline-marker {
   background: var(--success);
 }

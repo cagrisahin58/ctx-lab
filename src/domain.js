@@ -831,6 +831,10 @@ export function buildCodexRunMemoryRecord(run, sourceRecord = null, now = new Da
   const status = run.status || "unknown";
   const summary = run.summary || run.error || run.stderr || "Codex çalıştırma sonucu yerel günlük kaydına yazıldı.";
   const resultText = run.stdout || run.stderr || run.error || run.summary || "Çalıştırma çıktısı yerel günlük dosyasında.";
+  const changedFiles = Array.isArray(run.gitAfter?.changedFiles) ? run.gitAfter.changedFiles : [];
+  const changeSummary = changedFiles.length
+    ? changedFiles.map((file) => `- ${file}`).join("\n")
+    : "Git değişikliği tespit edilmedi veya snapshot yok.";
   const content = `${serializeFrontmatter({
     id: memoryId,
     kind: "codex_run",
@@ -857,6 +861,9 @@ ${formatSectionText(summary)}
 
 ## Sonuç
 ${formatSectionText(resultText)}
+
+## Değişiklik Özeti
+${changeSummary}
 
 ## Kaynak
 - Çalıştırma id: ${run.id}

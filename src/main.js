@@ -1506,6 +1506,7 @@ function renderRunEvidence(run) {
       </div>
       ${run.summary ? `<p class="run-summary">${escapeHtml(run.summary)}</p>` : ""}
       ${run.commitGate ? `<p class="run-gate">${escapeHtml(run.commitGate)}</p>` : ""}
+      ${renderChangedFiles(run)}
       ${renderRunEventPreview(run)}
       ${output ? `<pre>${escapeHtml(output)}</pre>` : ""}
     </div>
@@ -1514,6 +1515,21 @@ function renderRunEvidence(run) {
 
 function runFact(label, value) {
   return `<span><strong>${escapeHtml(label)}</strong>${escapeHtml(value)}</span>`;
+}
+
+function renderChangedFiles(run) {
+  const files = Array.isArray(run.gitAfter?.changedFiles) ? run.gitAfter.changedFiles : [];
+  if (!files.length) return "";
+  return `
+    <div class="run-change-list">
+      <div class="run-events-head">
+        <h5>Değişiklik Özeti</h5>
+        <span>${escapeHtml(`${run.gitAfter.changedCount || files.length} dosya`)}</span>
+      </div>
+      ${files.slice(0, 8).map((file) => `<code>${escapeHtml(file)}</code>`).join("")}
+      ${files.length > 8 ? `<span class="muted">+${files.length - 8} dosya daha</span>` : ""}
+    </div>
+  `;
 }
 
 function renderRunEventPreview(run) {

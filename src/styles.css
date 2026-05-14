@@ -1513,6 +1513,37 @@ kbd {
   color: var(--text);
 }
 
+.run-change-list {
+  display: grid;
+  gap: 6px;
+  padding: 10px;
+  border: 1px solid rgba(96, 165, 250, 0.28);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--panel-soft) 84%, var(--blue) 16%);
+}
+
+.run-change-list h5 {
+  margin: 0;
+}
+
+.run-change-list code {
+  display: block;
+  min-width: 0;
+  padding: 6px 8px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: var(--surface);
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.run-change-list .muted {
+  color: var(--muted);
+  font-size: 12px;
+}
+
 .run-events {
   display: grid;
   gap: 6px;

@@ -662,6 +662,11 @@ test("codex run sonucunu memory kaydina cevirir ve is hattina baglar", () => {
     updatedAt: "2026-05-14T12:00:00.000Z",
     logPath: "C:\\runs\\run.json",
     eventLogPath: "C:\\runs\\run.events.jsonl",
+    gitAfter: {
+      available: true,
+      changedCount: 2,
+      changedFiles: ["M src/main.js", "A tests/runner.test.js"]
+    },
     summary: "Deneme prompt kaydedildi."
   };
   const memory = buildCodexRunMemoryRecord(run, work, new Date("2026-05-14T12:01:00.000Z"));
@@ -675,6 +680,8 @@ test("codex run sonucunu memory kaydina cevirir ve is hattina baglar", () => {
   assert.equal(parsedRun.frontmatter.source_work_item, work.id);
   assert.equal(parsedRun.frontmatter.event_log_path, "C:\\runs\\run.events.jsonl");
   assert.match(parsedRun.raw, /Olay günlüğü: C:\\runs\\run\.events\.jsonl/);
+  assert.match(parsedRun.raw, /## Değişiklik Özeti/);
+  assert.match(parsedRun.raw, /- M src\/main\.js/);
   assert.deepEqual(parsedWork.frontmatter.codex_runs, [parsedRun.id]);
   assert.equal(events[0].kind, "codex_run");
 });

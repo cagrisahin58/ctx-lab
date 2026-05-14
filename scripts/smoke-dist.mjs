@@ -94,6 +94,7 @@ for (const expected of [
   "Deneme kaydi olarak kaydet",
   "Git baslangic",
   "Git sonuc",
+  "Degisiklik Ozeti",
   "Commit + push icin ayri onay verdim",
   "Calistirma sonucunu secili is hattina bagla",
   "Akilli eslesme",

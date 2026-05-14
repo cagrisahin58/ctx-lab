@@ -63,7 +63,7 @@ const state = {
   selectedProject: "",
   loading: false,
   toast: "",
-  activityOpen: true,
+  activityOpen: !needsInitialOnboarding,
   activityLog: [],
   demo: false,
   warnings: [],
@@ -318,6 +318,7 @@ function loadDemo() {
   state.records = demoRecords();
   refreshWarnings();
   state.selectedId = state.records[0]?.id || "";
+  state.activityOpen = true;
   state.demo = true;
   setToast("Örnek veriler yüklendi.");
 }
@@ -973,6 +974,7 @@ function render() {
         ${renderStatusBar()}
         ${renderRepoConflictBanner()}
         ${renderCurrentView(counts)}
+        ${state.activityOpen && state.view !== "workspace" ? renderActivityDrawer() : ""}
       </main>
       ${renderCommandPalette()}
       ${state.toast ? `<div class="toast">${escapeHtml(state.toast)}</div>` : ""}
@@ -1040,6 +1042,7 @@ function renderStatusBar() {
       <span class="status-dot ${mirror?.indexed ? "ok" : "warn"}"></span><span>${escapeHtml(mirrorStatus)}</span>
       <span class="status-dot ${state.warnings.length ? "warn" : "ok"}"></span><span>${escapeHtml(healthStatus)}</span>
       <span class="status-dot ${codex?.available ? "ok" : "warn"}"></span><span>${escapeHtml(codexStatus)}</span>
+      <button class="ghost compact ${state.activityOpen ? "active" : ""}" data-action="toggle-activity-log">Günlük ${state.activityLog.length}</button>
       <button class="ghost compact" data-action="refresh-runner">Runner</button>
     </div>
   `;
@@ -1261,7 +1264,7 @@ function renderWorkspace(counts) {
           </div>
         </div>
         ${renderCodexRunPanel()}
-        ${renderActivityLog()}
+        ${state.activityOpen ? renderActivityLog() : ""}
       </aside>
     </section>
   `;
@@ -1454,6 +1457,10 @@ function renderActivityLog() {
       </div>
     </div>
   `;
+}
+
+function renderActivityDrawer() {
+  return `<aside class="activity-drawer" aria-label="Çalışma Günlüğü">${renderActivityLog()}</aside>`;
 }
 
 function formatDate(value) {
@@ -2893,6 +2900,10 @@ function handleAction(action, payload) {
   if (action === "sync") guarded(syncFromGitHub);
   if (action === "toggle-theme") toggleTheme();
   if (action === "toggle-token-visibility") toggleTokenVisibility();
+  if (action === "toggle-activity-log") {
+    state.activityOpen = !state.activityOpen;
+    render();
+  }
   if (action === "open-command-palette") openCommandPalette();
   if (action === "open-shortcuts") openCommandPalette("shortcuts");
   if (action === "close-command-palette") closeCommandPalette();

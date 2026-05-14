@@ -99,6 +99,11 @@ button.ghost {
   background: transparent;
 }
 
+button.ghost.active {
+  border-color: rgba(45, 212, 191, 0.45);
+  background: rgba(45, 212, 191, 0.12);
+}
+
 button.compact {
   padding: 5px 9px;
 }
@@ -1276,6 +1281,20 @@ kbd {
   border-color: rgba(52, 211, 153, 0.38);
 }
 
+.activity-drawer {
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  z-index: 12;
+  width: min(420px, calc(100vw - 36px));
+  max-height: min(560px, calc(100vh - 128px));
+  overflow: auto;
+}
+
+.activity-drawer .activity-log {
+  box-shadow: var(--shadow);
+}
+
 .activity-item:first-child,
 .run-mini:first-child {
   animation: timelineIn 160ms ease both, activityPulse 900ms ease-out 1;
@@ -1434,6 +1453,13 @@ kbd {
   .setting-row,
   .shortcut-grid.compact {
     grid-template-columns: 1fr;
+  }
+
+  .activity-drawer {
+    position: static;
+    width: auto;
+    max-height: none;
+    margin-top: 14px;
   }
 
   .sidebar {

@@ -66,6 +66,7 @@ for (const expected of [
   "Yerel Memory Mirror",
   "Mirror Yenile",
   "Calisma Gunlugu",
+  "Gunluk",
   "Codex'e Devret",
   "Run Kaniti",
   "Test sonucu",

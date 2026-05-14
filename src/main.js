@@ -235,7 +235,7 @@ async function saveMemoryRecord(path, content, message) {
 
 async function syncFromGitHub() {
   if (!state.config.owner || !state.config.repo) {
-    setToast("Önce GitHub memory repo bağlantısını kaydet.");
+    setToast("Önce GitHub hafıza bağlantısını kaydet.");
     return;
   }
   state.loading = true;
@@ -246,7 +246,7 @@ async function syncFromGitHub() {
     refreshWarnings();
     persistRecordCache();
     state.selectedId = state.records[0]?.id || "";
-    setToast(state.warnings.length ? "Memory repo yüklendi; format uyarıları var." : "Memory repo senkronize edildi.");
+    setToast(state.warnings.length ? "Hafıza reposu yüklendi; format uyarıları var." : "Hafıza reposu senkronize edildi.");
   } catch (error) {
     setToast(`Senkronizasyon başarısız: ${error.message}`);
   } finally {
@@ -490,24 +490,24 @@ async function updateSelectedWorkNextAction(payload) {
 
 async function initializeMemoryRepo() {
   if (!state.config.owner || !state.config.repo) {
-    setToast("Önce repo bağlantısını kaydet.");
+    setToast("Önce hafıza bağlantısını kaydet.");
     return;
   }
   const created = await ensureMemoryRepo(state.config);
-  setToast(created.length ? `Memory repo hazırlandı: ${created.length} dosya oluşturuldu.` : "Memory repo yapısı zaten hazır.");
+  setToast(created.length ? `Hafıza reposu hazırlandı: ${created.length} dosya oluşturuldu.` : "Hafıza reposu yapısı zaten hazır.");
   await syncFromGitHub();
 }
 
 async function runDiagnostics() {
   if (!state.config.owner || !state.config.repo) {
-    setToast("Önce repo bağlantısını kaydet.");
+    setToast("Önce hafıza bağlantısını kaydet.");
     return;
   }
   state.diagnosticsLoading = true;
   render();
   try {
     state.diagnostics = await diagnoseMemoryRepo(state.config);
-    setToast(state.diagnostics.ok ? "Repo tanılaması temiz." : "Repo tanılamasında uyarılar var.");
+    setToast(state.diagnostics.ok ? "Hafıza tanılaması temiz." : "Hafıza tanılamasında uyarılar var.");
   } finally {
     state.diagnosticsLoading = false;
     render();
@@ -608,7 +608,7 @@ async function startCodexRunFromForm(form) {
 async function persistCodexRunMemoryLink(run, sourceRecord, sourceWorkItem) {
   if (!sourceRecord) return;
   if (!state.demo && (!state.config.owner || !state.config.repo)) {
-    addActivity("Codex run memory kaydına bağlanamadı.", "warning", "Hafıza repo bağlantısı yok.");
+    addActivity("Codex run hafıza kaydına bağlanamadı.", "warning", "Hafıza bağlantısı yok.");
     return;
   }
   const runMemory = buildCodexRunMemoryRecord(run, sourceRecord);
@@ -621,13 +621,13 @@ async function persistCodexRunMemoryLink(run, sourceRecord, sourceWorkItem) {
   } else {
     state.selectedId = savedRun.id;
   }
-  addActivity(`Codex run memory kaydına bağlandı: ${savedRun.id}`, "success");
+  addActivity(`Codex run hafıza kaydına bağlandı: ${savedRun.id}`, "success");
 }
 
 async function syncMemoryMirrorFromConfig() {
   const config = memoryMirrorConfig();
   if (!config) {
-    setToast("Önce Hafıza Bağlantısı ekranında GitHub memory repo bilgisini kaydet.");
+    setToast("Önce Hafıza Bağlantısı ekranında GitHub hafıza reposu bilgisini kaydet.");
     return;
   }
   const index = await syncMemoryMirror(config);
@@ -691,7 +691,7 @@ function finishOnboarding() {
 
 async function createInboxSummaryFromForm(form) {
   if (!state.demo && (!state.config.owner || !state.config.repo)) {
-    setToast("Önce GitHub memory repo bağlantısını kaydet.");
+    setToast("Önce GitHub hafıza bağlantısını kaydet.");
     return;
   }
   const data = new FormData(form);
@@ -721,7 +721,7 @@ async function createInboxSummaryFromForm(form) {
 
 async function createManualWorkFromForm(form) {
   if (!state.demo && (!state.config.owner || !state.config.repo)) {
-    setToast("Önce GitHub memory repo bağlantısını kaydet.");
+    setToast("Önce GitHub hafıza bağlantısını kaydet.");
     return;
   }
   const data = new FormData(form);
@@ -745,7 +745,7 @@ async function createManualWorkFromForm(form) {
 
 async function createManualDecisionFromForm(form) {
   if (!state.demo && (!state.config.owner || !state.config.repo)) {
-    setToast("Önce GitHub memory repo bağlantısını kaydet.");
+    setToast("Önce GitHub hafıza bağlantısını kaydet.");
     return;
   }
   const data = new FormData(form);
@@ -890,7 +890,7 @@ function navButton(view, label) {
 function repoLabel() {
   return state.config.owner && state.config.repo
     ? `${state.config.owner}/${state.config.repo} · ${state.config.branch || "main"}`
-    : "Memory repo bağlı değil";
+    : "Hafıza reposu bağlı değil";
 }
 
 function cacheLabel() {
@@ -1028,7 +1028,7 @@ function commandItems() {
     { id: "view:handoff", title: "Devam Brifi", subtitle: "Codex veya Claude için bağlam paketi", shortcut: "g h", keywords: "handoff baglam paketi devam brifi", run: () => setView("handoff") },
     { id: "view:daily", title: "Günlük Devam Brifi", subtitle: "Açık işlerden günlük çalışma metni", keywords: "gunluk brif", run: () => setView("daily") },
     { id: "view:runner", title: "Yerel Codex Runner", subtitle: "CLI, proje kökleri ve run kayıtları", keywords: "codex runner otomasyon", run: () => setView("runner") },
-    { id: "view:settings", title: "Hafıza Bağlantısı", subtitle: "GitHub work-memory repo ayarları", keywords: "repo baglanti github hafiza", run: () => setView("settings") },
+    { id: "view:settings", title: "Hafıza Bağlantısı", subtitle: "GitHub hafıza reposu ayarları", keywords: "repo baglanti github hafiza", run: () => setView("settings") },
     { id: "view:health", title: "Hafıza Sağlığı", subtitle: state.warnings.length ? `${state.warnings.length} format uyarısı` : "Format uyarısı yok", keywords: "hafiza saglik validation uyarı duplicate status", run: () => setView("settings") },
     { id: "new:summary", title: "Yeni Oturum Özeti", subtitle: "Yeni kapanan AI oturumunu kaydet", shortcut: "n s", keywords: "yeni ozet session", run: () => setView("new-summary") },
     { id: "new:work", title: "Yeni İş Hattı", subtitle: "Bağımsız iş hattı oluştur", shortcut: "n w", keywords: "yeni is hatti work", run: () => setView("new-work") },
@@ -1681,7 +1681,7 @@ function renderNewDecision() {
       <form class="connection-form" id="decision-form">
         <label>
           Başlık
-          <input name="title" required placeholder="Memory repo kaynak olacak" />
+          <input name="title" required placeholder="Hafıza reposu kaynak olacak" />
         </label>
         <label>
           İş Hattı
@@ -2089,7 +2089,7 @@ function renderMemoryMirrorPanel() {
   const config = memoryMirrorConfig();
   const hasConfig = Boolean(config);
   const statusText = !hasConfig
-    ? "Hafıza repo bilgisi kaydedilmedi."
+    ? "Hafıza reposu bilgisi kaydedilmedi."
     : memory?.indexed
       ? `${memory.recordCount} kayıt indekslendi · ${formatDate(memory.lastIndexedAt)}`
       : memory?.cloneExists
@@ -2541,7 +2541,7 @@ function bindEvents() {
           branch: data.get("branch") || "main",
           token: data.get("token") || ""
         });
-        setToast("Repo bağlantısı kaydedildi.");
+        setToast("Hafıza bağlantısı kaydedildi.");
         syncFromGitHub();
       } catch (error) {
         setToast(error.message);

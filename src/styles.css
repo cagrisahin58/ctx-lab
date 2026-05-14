@@ -1232,6 +1232,43 @@ kbd {
   border-radius: 8px;
 }
 
+.diagnostic-results {
+  display: grid;
+  gap: 12px;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+}
+
+.diagnostic-results h3 {
+  margin: 0;
+}
+
+.diagnostic-success {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid rgba(52, 211, 153, 0.32);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--success) 10%, var(--panel));
+}
+
+.diagnostic-success > div:first-child {
+  display: grid;
+  gap: 4px;
+}
+
+.diagnostic-success strong {
+  color: var(--text);
+}
+
+.diagnostic-success span {
+  color: var(--muted);
+  font-size: 13px;
+}
+
 .memory-health {
   display: grid;
   gap: 12px;

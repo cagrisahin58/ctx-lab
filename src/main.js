@@ -1572,6 +1572,7 @@ function renderOnboarding() {
               <button type="button" data-action="sync">GitHub'dan Yenile</button>
             </div>
           </form>
+          ${renderDiagnostics({ embedded: true })}
         </section>
         <section class="panel">
           <h3>Yerel Masaüstü Omurgası</h3>
@@ -2344,7 +2345,7 @@ function renderAppearanceSettings() {
   `;
 }
 
-function renderDiagnostics() {
+function renderDiagnostics({ embedded = false } = {}) {
   if (!state.diagnostics) return "";
   const items = [
     state.diagnostics.repo,
@@ -2353,13 +2354,30 @@ function renderDiagnostics() {
     ...state.diagnostics.directories,
     state.diagnostics.writeAccess
   ].filter(Boolean);
+  const wrapperClass = embedded ? "diagnostic-results" : "panel";
   return `
-    <section class="panel">
+    <section class="${wrapperClass}">
       <h3>Bağlantı Tanılaması</h3>
+      ${state.diagnostics.ok ? renderDiagnosticSuccessActions() : ""}
       <div class="diagnostic-list">
         ${items.map(renderDiagnosticItem).join("")}
       </div>
     </section>
+  `;
+}
+
+function renderDiagnosticSuccessActions() {
+  return `
+    <div class="diagnostic-success">
+      <div>
+        <strong>Hafıza bağlantısı hazır.</strong>
+        <span>Repo erişimi, branch, klasör yapısı ve yazma testi temiz görünüyor.</span>
+      </div>
+      <div class="toolbar-actions">
+        <button data-view="inbox">Oturum Akışına Git</button>
+        <button class="primary" data-view="workspace">Çalışma Merkezine Git</button>
+      </div>
+    </div>
   `;
 }
 

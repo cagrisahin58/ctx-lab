@@ -360,15 +360,25 @@ test("codex run gercek calisma icin codex exec json komutunu kullanir", async ()
       runCommand: async (command, args, options = {}) => {
         calls.push({ command, args, options });
         if (args.includes("--version")) return { ok: true, stdout: "codex-cli test\n", stderr: "", code: 0 };
+        await options.onStdout?.("{\"event\":\"progress\"}\n");
+        await options.onStderr?.("uyarı satırı\n");
         return { ok: true, stdout: "{\"event\":\"done\"}\n", stderr: "", code: 0 };
       }
     });
+    const events = (await readFile(run.eventLogPath, "utf8"))
+      .trim()
+      .split(/\r?\n/)
+      .map((line) => JSON.parse(line));
 
     assert.equal(run.status, "succeeded");
     assert.equal(run.sandbox, "read-only");
     assert.equal(run.testResult, "not_detected");
     assert.ok(calls.some((call) => call.args.includes("exec") && call.args.includes("--json")));
     assert.match(calls.at(-1).options.input, /Sadece oner/);
+    assert.equal(events[0].event, "start");
+    assert.ok(events.some((event) => event.event === "stdout" && event.text.includes("progress")));
+    assert.ok(events.some((event) => event.event === "stderr" && event.text.includes("uyarı")));
+    assert.equal(events.at(-1).event, "finish");
   } finally {
     await rm(dir, { recursive: true, force: true });
     await rm(projectDir, { recursive: true, force: true });

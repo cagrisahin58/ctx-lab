@@ -1481,6 +1481,7 @@ function renderRunEvidence(run) {
         ${runFact("Git başlangıç", gitSnapshotLabel(run.gitBefore))}
         ${runFact("Git sonuç", gitSnapshotLabel(run.gitAfter))}
         ${runFact("Günlük", run.logPath || "günlük yolu yok")}
+        ${runFact("Olay günlüğü", run.eventLogPath || "olay günlüğü yok")}
       </div>
       ${run.summary ? `<p class="run-summary">${escapeHtml(run.summary)}</p>` : ""}
       ${run.commitGate ? `<p class="run-gate">${escapeHtml(run.commitGate)}</p>` : ""}

@@ -1,5 +1,5 @@
 import { createServer } from "node:http";
-import { access, mkdir, readFile, readdir, stat, writeFile } from "node:fs/promises";
+import { access, appendFile, mkdir, readFile, readdir, stat, writeFile } from "node:fs/promises";
 import { constants } from "node:fs";
 import { homedir } from "node:os";
 import { basename, dirname, join, posix, relative, resolve, sep, win32 } from "node:path";
@@ -343,6 +343,7 @@ export async function startCodexRun(paths = buildRunnerPaths(), input = {}, opti
   const now = options.now || new Date();
   const id = input.id || `run_${timestampSlug(now)}_${slugForId(project.name)}`;
   const logPath = join(paths.runsDir, `${id}.json`);
+  const eventLogPath = join(paths.runsDir, `${id}.events.jsonl`);
   const dryRun = input.dryRun !== false || automationLevel === "brief";
   const baseRecord = {
     id,
@@ -363,7 +364,8 @@ export async function startCodexRun(paths = buildRunnerPaths(), input = {}, opti
     sourceRecordPath: String(input.sourceRecordPath || ""),
     sourceWorkItemId: String(input.sourceWorkItemId || ""),
     prompt,
-    logPath
+    logPath,
+    eventLogPath
   };
 
   if (dryRun) {
@@ -407,6 +409,13 @@ export async function startCodexRun(paths = buildRunnerPaths(), input = {}, opti
 
   await writeRunLog(logPath, { ...baseRecord, codex, gitBefore });
   const sandbox = sandboxForAutomationLevel(automationLevel);
+  await appendRunEvent(eventLogPath, {
+    event: "start",
+    at: new Date().toISOString(),
+    runId: id,
+    command: codex.command,
+    sandbox
+  });
   const run = options.runCommand || runCommand;
   const result = await run(codex.command, [
     "exec",
@@ -416,7 +425,22 @@ export async function startCodexRun(paths = buildRunnerPaths(), input = {}, opti
     "--sandbox",
     sandbox,
     "-"
-  ], { cwd: project.path, input: prompt });
+  ], {
+    cwd: project.path,
+    input: prompt,
+    onStdout: (chunk) => appendRunEvent(eventLogPath, {
+      event: "stdout",
+      at: new Date().toISOString(),
+      runId: id,
+      text: chunk
+    }),
+    onStderr: (chunk) => appendRunEvent(eventLogPath, {
+      event: "stderr",
+      at: new Date().toISOString(),
+      runId: id,
+      text: chunk
+    })
+  });
 
   const finishedAt = (options.finishedAt || new Date()).toISOString();
   const gitAfter = await readGitSnapshot(project.path, options.gitCommand);
@@ -436,6 +460,14 @@ export async function startCodexRun(paths = buildRunnerPaths(), input = {}, opti
     stderr: result.stderr || "",
     exitCode: result.code ?? (result.ok ? 0 : 1)
   };
+  await appendRunEvent(eventLogPath, {
+    event: "finish",
+    at: finishedAt,
+    runId: id,
+    status: record.status,
+    exitCode: record.exitCode,
+    testResult: record.testResult
+  });
   await writeRunLog(logPath, record);
   return record;
 }
@@ -727,6 +759,10 @@ async function writeRunLog(logPath, record) {
   await writeFile(logPath, `${JSON.stringify(record, null, 2)}\n`, "utf8");
 }
 
+async function appendRunEvent(eventLogPath, event) {
+  await appendFile(eventLogPath, `${JSON.stringify(event)}\n`, "utf8");
+}
+
 function timestampSlug(date) {
   return date.toISOString().replace(/[:.]/g, "-");
 }
@@ -782,10 +818,14 @@ function runCommand(command, args, options = {}) {
     let stdout = "";
     let stderr = "";
     child.stdout.on("data", (chunk) => {
-      stdout += chunk;
+      const text = chunk.toString();
+      stdout += text;
+      options.onStdout?.(text);
     });
     child.stderr.on("data", (chunk) => {
-      stderr += chunk;
+      const text = chunk.toString();
+      stderr += text;
+      options.onStderr?.(text);
     });
     child.on("error", (error) => {
       finish({ ok: false, stdout, stderr: error.message });

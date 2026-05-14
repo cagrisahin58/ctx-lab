@@ -152,6 +152,14 @@ async function expectNoVisibleText(page, text) {
   });
 }
 
+async function waitForEnabled(page, selector, message) {
+  await page.waitForFunction((targetSelector) => {
+    const element = document.querySelector(targetSelector);
+    return Boolean(element && !element.disabled);
+  }, selector, { timeout: 15_000 });
+  assert.equal(await page.locator(selector).first().isEnabled(), true, message);
+}
+
 function validationFixtureRecords() {
   const updatedAt = "2026-05-14T08:00:00.000Z";
   return [
@@ -561,7 +569,7 @@ try {
   await page.getByRole("button", { name: "Bağlantıyı Tanıla" }).click();
   await expectVisibleText(page, "Hafıza tanılaması temiz.");
   await expectVisibleText(page, "Yazma testi");
-  assert.equal(await page.locator('[data-action="finish-onboarding"]').first().isEnabled(), true);
+  await waitForEnabled(page, '[data-action="finish-onboarding"]', "Onboarding tamamla düğmesi tüm kurulum adımları bitince aktif olmalı.");
   await page.locator('[data-action="finish-onboarding"]').first().click();
   await expectVisibleText(page, "Kurulum tamamlandı. Proje Çalışma Merkezi açıldı.");
   await expectVisibleText(page, "Güncel Bağlam");

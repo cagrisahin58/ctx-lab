@@ -34,7 +34,9 @@ Windows için tek komut:
 .\scripts\start-windows.cmd
 ```
 
-Bu komut gerekiyorsa bağımlılıkları kurar, `127.0.0.1:5173` üzerinde dev server başlatır, `127.0.0.1:5174` üzerinde yerel Codex Runner'ı açar ve tarayıcıyı başlatır. Alternatif port için `.\scripts\start-windows.cmd -Port 5175 -RunnerPort 5176` kullanılabilir.
+Bu komut gerekiyorsa bağımlılıkları kurar, `127.0.0.1:5173` üzerinde Vite dev server başlatır ve Electron masaüstü kabuğunu açar. Alternatif port için `.\scripts\start-windows.cmd -Port 5175` kullanılabilir.
+
+Varsayılan Windows launcher artık Electron masaüstü kabuğunu açar; runner işlemleri Electron main process IPC yüzeyinden yürür. Hızlı kontrol için `.\scripts\start-windows.cmd -DryRun` runner health ve masaüstü smoke kapısını çalıştırır. Eski tarayıcı + localhost runner akışı gerektiğinde `.\scripts\start-windows.cmd -Web` kullanılabilir.
 
 Masaüstü geliştirme kabuğu:
 

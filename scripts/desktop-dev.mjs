@@ -6,9 +6,10 @@ const npmCmd = process.platform === "win32" ? "npm.cmd" : "npm";
 const electronCmd = process.platform === "win32"
   ? "node_modules\\.bin\\electron.cmd"
   : "node_modules/.bin/electron";
-const viteUrl = process.env.VITE_DEV_SERVER_URL || "http://127.0.0.1:5173";
+const vitePort = process.env.CTX_LAB_VITE_PORT || "5173";
+const viteUrl = process.env.VITE_DEV_SERVER_URL || `http://127.0.0.1:${vitePort}`;
 
-const vite = spawn(npmCmd, ["run", "dev", "--", "--host", "127.0.0.1", "--port", "5173", "--strictPort"], {
+const vite = spawn(npmCmd, ["run", "dev", "--", "--host", "127.0.0.1", "--port", vitePort, "--strictPort"], {
   stdio: "inherit",
   windowsHide: true
 });

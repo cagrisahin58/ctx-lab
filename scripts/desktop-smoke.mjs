@@ -31,4 +31,12 @@ assert.ok(main.includes("icon: appIconPath"), "Electron pencere ikonu tanimli ol
 const builder = readFileSync(join(root, "electron-builder.yml"), "utf8");
 assert.ok(builder.includes("icon: electron/assets/icon.ico"), "Windows paket ikonu tanimli olmali");
 
+const desktopDev = readFileSync(join(root, "scripts/desktop-dev.mjs"), "utf8");
+assert.ok(desktopDev.includes("CTX_LAB_VITE_PORT"), "desktop dev port override desteklenmeli");
+
+const windowsLauncher = readFileSync(join(root, "scripts/start-windows.ps1"), "utf8");
+assert.ok(windowsLauncher.includes("run desktop:dev"), "Windows launcher varsayilan olarak Electron masaustu kabugunu acmali");
+assert.ok(windowsLauncher.includes("run desktop:smoke"), "Windows launcher dry-run masaustu smoke calistirmali");
+assert.ok(windowsLauncher.includes("if ($Web)"), "Windows launcher web fallback anahtarini korumali");
+
 console.log("desktop smoke ok");

@@ -48,6 +48,11 @@ for (const label of ["ctx-lab Hakkında", "Görünüm", "Geliştirici Araçları
 const builder = readFileSync(join(root, "electron-builder.yml"), "utf8");
 assert.ok(builder.includes("icon: electron/assets/icon.ico"), "Windows paket ikonu tanimli olmali");
 
+const readme = readFileSync(join(root, "README.md"), "utf8");
+assert.ok(readme.includes("main process içindeki güvenli IPC"), "README Electron IPC calistirici omurgasini anlatmali");
+assert.ok(readme.includes("yalnızca `127.0.0.1` üzerinde HTTP servisi"), "README web fallback localhost sinirini anlatmali");
+assert.ok(!readme.includes("`start-windows` komutu ayrıca `scripts/ctxlab-runner.mjs` servislerini başlatır"), "README varsayilan launcher icin eski localhost runner anlatimini tasimamali");
+
 const desktopDev = readFileSync(join(root, "scripts/desktop-dev.mjs"), "utf8");
 assert.ok(desktopDev.includes("CTX_LAB_VITE_PORT"), "desktop dev port override desteklenmeli");
 

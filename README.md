@@ -70,7 +70,7 @@ Kullanıcı seviyesindeki masaüstü akışını doğrulamak için:
 npm run desktop:flow
 ```
 
-Bu kontrol Electron'u izole bir kullanıcı veri klasörüyle açar; ilk kurulum ekranını, yerel proje kökü kaydını, örnek devam brifi üretimini, demo veriden çalışma merkezine geçişi, Codex deneme kaydı oluşturmayı ve ekran görüntüsü alınabildiğini doğrular.
+Bu kontrol Electron'u izole bir kullanıcı veri klasörüyle açar; ilk kurulum ekranını, yerel proje kökü kaydını, örnek devam brifi üretimini, demo veriden çalışma merkezine geçişi, `Ctrl+K` komut paletiyle ana görünümleri, Codex deneme kaydı oluşturmayı, commit/push onay kapısını, hafıza sağlığı uyarılarını, yerel ayna fark görünürlüğünü ve ekran görüntüsü alınabildiğini doğrular.
 
 Masaüstü kapısını toplu çalıştırmak için:
 
@@ -115,7 +115,7 @@ Token ve son başarılı hafıza anlık görüntüsü yalnızca tarayıcı local
 
 ## Yerel Codex Çalıştırıcı
 
-v2 ile `start-windows` komutu ayrıca `scripts/ctxlab-runner.mjs` servislerini başlatır. Çalıştırıcı yalnızca `127.0.0.1` üzerinde çalışır; Codex CLI durumunu denetler, `%APPDATA%/ctx-lab` altında yerel hafıza klasörlerini hazırlar ve otomasyon kapsamına alınacak proje köklerini `projects.json` dosyasında tutar.
+Electron masaüstü kabuğunda yerel çalıştırıcı omurgası main process içindeki güvenli IPC kanallarından yürür; aynı çalışma zamanı fonksiyonları `scripts/ctxlab-runner.mjs` içinde tutulur. Web fallback için `.\scripts\start-windows.cmd -Web` kullanıldığında bu modül yalnızca `127.0.0.1` üzerinde HTTP servisi olarak açılır. Her iki yüzey de Codex CLI durumunu denetler, `%APPDATA%/ctx-lab` altında yerel hafıza klasörlerini hazırlar ve otomasyon kapsamına alınacak proje köklerini `projects.json` dosyasında tutar.
 
 `Yerel Codex Çalıştırıcı` ekranında çalıştırıcı sağlığı, Codex CLI sürümü ve kayıtlı proje kökleri görülür. Bir proje kökü kaydedilmeden Codex otomasyonu o klasörde dosya değiştirmeyecek şekilde tasarlanır.
 

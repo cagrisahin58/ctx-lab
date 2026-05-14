@@ -598,6 +598,14 @@ try {
   await expectVisibleText(page, "GitHub hafıza senkronizasyonu");
   await expectVisibleText(page, "Yerel hafıza aynası indekslendi");
 
+  markPhase("Calisma gunlugu kaliciligini dogrulama");
+  await page.locator('[data-action="toggle-theme"]').click();
+  await expectVisibleText(page, "Açık tema seçildi.");
+  await page.reload({ waitUntil: "domcontentloaded" });
+  await expectVisibleText(page, "Proje Çalışma Merkezi");
+  await expectVisibleText(page, "Çalışma Günlüğü");
+  await expectVisibleText(page, "Açık tema seçildi.");
+
   const title = await electronApp.evaluate(({ BrowserWindow }) => {
     return BrowserWindow.getAllWindows()[0]?.getTitle();
   });

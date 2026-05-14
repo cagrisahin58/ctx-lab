@@ -48,12 +48,13 @@ import {
   applyRunnerRunCommit,
   startRunnerCodexRun
 } from "./runner-client.js";
-import { loadAppConfig, loadRecordCache, loadTheme, saveAppConfig, saveRecordCache, saveTheme } from "./storage.js";
+import { loadActivityLog, loadAppConfig, loadRecordCache, loadTheme, saveActivityLog, saveAppConfig, saveRecordCache, saveTheme } from "./storage.js";
 
 const app = document.querySelector("#app");
 const initialConfig = loadAppConfig();
 const initialCache = loadRecordCache(initialConfig);
 const initialTheme = loadTheme();
+const initialActivityLog = loadActivityLog(initialConfig);
 const needsInitialOnboarding = !initialConfig.owner || !initialConfig.repo || !initialConfig.token;
 document.documentElement.dataset.theme = initialTheme;
 
@@ -67,7 +68,7 @@ const state = {
   loading: false,
   toast: "",
   activityOpen: !needsInitialOnboarding,
-  activityLog: [],
+  activityLog: initialActivityLog,
   demo: false,
   warnings: [],
   query: "",
@@ -121,6 +122,7 @@ function saveConfig(config) {
   state.demo = false;
   state.diagnostics = null;
   state.repoConflict = null;
+  state.activityLog = loadActivityLog(state.config);
   refreshWarnings();
 }
 
@@ -154,6 +156,11 @@ function addActivity(message, kind = "info", detail = "") {
     },
     ...state.activityLog
   ].slice(0, 24);
+  try {
+    state.activityLog = saveActivityLog(state.config, state.activityLog, localStorage);
+  } catch {
+    // Günlük yalnızca yerel kolaylık verisidir; kayıt hatası ana akışı durdurmamalı.
+  }
 }
 
 function setToast(message, kind = "info") {

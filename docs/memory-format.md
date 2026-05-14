@@ -17,7 +17,7 @@ Repo tanılaması bu klasörleri, `config.yaml` dosyasını, seçili dalı ve re
 
 ## Yerel önbellek
 
-ctx-lab, son başarılı GitHub senkronizasyonundan gelen kayıt anlık görüntüsünü tarayıcı localStorage alanında saklar. Önbellek owner/repo/dal kapsamıyla ayrılır; farklı hafıza reposu veya dal seçildiğinde eski kayıtlar yeni ekranda gösterilmez. Bu önbellek yalnızca hızlı açılış ve geçici çevrimdışı görünürlük içindir. Kalıcı kaynak gerçeklik GitHub hafıza reposudur. Son görülen dal HEAD değeri de önbellek metadata içinde tutulur; yazma öncesinde HEAD değişmişse kullanıcıya repo dışarıdan güncellendi uyarısı gösterilir ve yenileme istenir.
+ctx-lab, son başarılı GitHub senkronizasyonundan gelen kayıt anlık görüntüsünü ve son çalışma günlüğü olaylarını tarayıcı localStorage alanında saklar. Önbellek ve çalışma günlüğü owner/repo/dal kapsamıyla ayrılır; farklı hafıza reposu veya dal seçildiğinde eski kayıtlar ya da eski günlük olayları yeni ekranda gösterilmez. Bu önbellek yalnızca hızlı açılış ve geçici çevrimdışı görünürlük içindir. Kalıcı kaynak gerçeklik GitHub hafıza reposudur. Son görülen dal HEAD değeri de önbellek metadata içinde tutulur; yazma öncesinde HEAD değişmişse kullanıcıya repo dışarıdan güncellendi uyarısı gösterilir ve yenileme istenir.
 
 Geçerli kayıt tipleri: `inbox`, `work_items`, `decisions`, `handoffs`, `archive`.
 Geçerli durumlar: `needs_triage`, `linked`, `active`, `waiting`, `blocked`, `done`, `archived`.

@@ -1,6 +1,7 @@
 export const CONFIG_STORAGE_KEY = "ctxlab.config.v1";
 export const RECORD_CACHE_STORAGE_KEY = "ctxlab.records.cache.v1";
 export const THEME_STORAGE_KEY = "ctxlab.theme.v1";
+export const ACTIVITY_LOG_STORAGE_KEY = "ctxlab.activity.log.v1";
 
 export const DEFAULT_CONFIG = {
   owner: "",
@@ -73,6 +74,30 @@ export function saveRecordCache(config, records, storage = localStorage, now = n
   return payload;
 }
 
+export function activityLogScope(config) {
+  return memoryCacheScope(config) || "local";
+}
+
+export function loadActivityLog(config, storage = localStorage) {
+  const scope = activityLogScope(config);
+  try {
+    const payload = JSON.parse(storage.getItem(ACTIVITY_LOG_STORAGE_KEY) || "null");
+    if (!payload || payload.scope !== scope || !Array.isArray(payload.items)) return [];
+    return payload.items.map(normalizeActivityItem).filter(Boolean).slice(0, 24);
+  } catch {
+    return [];
+  }
+}
+
+export function saveActivityLog(config, items, storage = localStorage) {
+  const payload = {
+    scope: activityLogScope(config),
+    items: (Array.isArray(items) ? items : []).map(normalizeActivityItem).filter(Boolean).slice(0, 24)
+  };
+  storage.setItem(ACTIVITY_LOG_STORAGE_KEY, JSON.stringify(payload));
+  return payload.items;
+}
+
 function emptyCache(scope = "") {
   return {
     scope,
@@ -80,4 +105,23 @@ function emptyCache(scope = "") {
     remoteHead: "",
     records: []
   };
+}
+
+function normalizeActivityItem(item = {}) {
+  const id = truncateText(item.id || "");
+  const at = truncateText(item.at || "");
+  const message = truncateText(item.message || "");
+  if (!id || !at || !message) return null;
+  return {
+    id,
+    at,
+    kind: ["info", "success", "warning", "error"].includes(item.kind) ? item.kind : "info",
+    message,
+    detail: truncateText(item.detail || "")
+  };
+}
+
+function truncateText(value, limit = 240) {
+  const text = String(value || "").replace(/\s+/g, " ").trim();
+  return text.length > limit ? `${text.slice(0, limit - 3).trimEnd()}...` : text;
 }

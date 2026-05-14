@@ -1,13 +1,17 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
+  ACTIVITY_LOG_STORAGE_KEY,
   CONFIG_STORAGE_KEY,
   RECORD_CACHE_STORAGE_KEY,
   THEME_STORAGE_KEY,
+  activityLogScope,
+  loadActivityLog,
   loadAppConfig,
   loadRecordCache,
   loadTheme,
   memoryCacheScope,
+  saveActivityLog,
   saveAppConfig,
   saveRecordCache,
   saveTheme
@@ -82,4 +86,37 @@ test("tema tercihi açık ve koyu seçenekleriyle saklanır", () => {
   assert.equal(loadTheme(storage), "light");
   assert.equal(saveTheme("bilinmeyen", storage), "dark");
   assert.equal(loadTheme(storage), "dark");
+});
+
+test("çalışma günlüğü repo branch kapsamıyla saklanır ve temizlenir", () => {
+  const config = { owner: "CagriSahin58", repo: "Work-Memory", branch: "main" };
+  const otherConfig = { owner: "CagriSahin58", repo: "Work-Memory", branch: "dev" };
+  const storage = new MemoryStorage();
+  const items = Array.from({ length: 26 }, (_, index) => ({
+    id: `activity_${index}`,
+    at: "2026-05-14T12:00:00.000Z",
+    kind: index === 0 ? "success" : "bilinmeyen",
+    message: `Olay ${index}`,
+    detail: index === 0 ? "Ayrıntı" : ""
+  }));
+
+  assert.equal(activityLogScope(config), "cagrisahin58/work-memory@main");
+  assert.equal(activityLogScope({}), "local");
+
+  const saved = saveActivityLog(config, items, storage);
+  assert.equal(saved.length, 24);
+  assert.equal(saved[0].kind, "success");
+  assert.equal(saved[1].kind, "info");
+  assert.equal(JSON.parse(storage.getItem(ACTIVITY_LOG_STORAGE_KEY)).scope, "cagrisahin58/work-memory@main");
+  assert.equal(loadActivityLog(config, storage)[0].message, "Olay 0");
+  assert.deepEqual(loadActivityLog(otherConfig, storage), []);
+});
+
+test("bozuk çalışma günlüğü güvenli biçimde boş döner", () => {
+  const config = { owner: "cagrisahin58", repo: "work-memory", branch: "main" };
+  const storage = new MemoryStorage({
+    [ACTIVITY_LOG_STORAGE_KEY]: "{bozuk-json"
+  });
+
+  assert.deepEqual(loadActivityLog(config, storage), []);
 });

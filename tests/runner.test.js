@@ -384,7 +384,7 @@ test("runner server kok endpointinde saglik ve endpoint listesini sunar", async 
 
     assert.equal(response.status, 200);
     assert.equal(body.service, "ctx-lab-runner");
-    assert.deepEqual(body.endpoints, ["/health", "/projects", "/runs", "/runs/codex", "/memory/status", "/memory/sync"]);
+    assert.deepEqual(body.endpoints, ["/health", "/projects", "/runs", "/runs/codex", "/memory/status", "/memory/index", "/memory/sync"]);
   } finally {
     await new Promise((resolve) => server.close(resolve));
     await rm(dir, { recursive: true, force: true });

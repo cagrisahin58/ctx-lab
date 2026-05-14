@@ -832,6 +832,66 @@ kbd {
   color: var(--muted);
 }
 
+.memory-sync {
+  display: grid;
+  gap: 12px;
+}
+
+.sync-state-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.sync-state-item {
+  min-height: 82px;
+  display: grid;
+  align-content: start;
+  gap: 6px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel-soft);
+}
+
+.sync-state-item strong {
+  font-size: 12px;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+
+.sync-state-item span {
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+
+.sync-state-item.ok {
+  border-color: rgba(52, 211, 153, 0.32);
+}
+
+.sync-state-item.waiting {
+  border-color: rgba(245, 158, 11, 0.32);
+}
+
+.sync-state-item.fail {
+  border-color: rgba(248, 113, 113, 0.34);
+}
+
+.sync-diff-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.sync-diff-list span {
+  padding: 5px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(245, 158, 11, 0.34);
+  color: var(--text);
+  background: rgba(245, 158, 11, 0.09);
+  font-size: 12px;
+}
+
 .runner-project p {
   margin: 0;
   color: var(--muted);

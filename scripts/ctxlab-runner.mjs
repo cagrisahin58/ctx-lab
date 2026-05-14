@@ -436,7 +436,7 @@ export function createRunnerServer(options = {}) {
       if (request.method === "GET" && url.pathname === "/") {
         return sendJson(response, 200, {
           ...(await buildHealthPayload(paths, options)),
-          endpoints: ["/health", "/projects", "/runs", "/runs/codex", "/memory/status", "/memory/sync"]
+          endpoints: ["/health", "/projects", "/runs", "/runs/codex", "/memory/status", "/memory/index", "/memory/sync"]
         });
       }
       if (request.method === "GET" && url.pathname === "/health") {

@@ -34,6 +34,7 @@ import { deleteFile, diagnoseMemoryRepo, ensureMemoryRepo, loadMemoryRepo, putFi
 import { demoRecords } from "./fixtures.js";
 import {
   fetchRunnerHealth,
+  fetchMemoryMirrorIndex,
   fetchRunnerProjects,
   fetchRunnerRuns,
   fetchMemoryMirrorStatus,
@@ -78,6 +79,7 @@ const state = {
     projects: [],
     runs: [],
     memory: null,
+    memoryIndex: null,
     error: ""
   },
   cacheMeta: {
@@ -516,12 +518,19 @@ async function refreshRunnerStatus(options = {}) {
       configured: false,
       error: error.message
     })) : null;
+    const memoryIndex = memoryConfig && memory?.indexed
+      ? await fetchMemoryMirrorIndex(memoryConfig).catch((error) => ({
+        error: error.message,
+        records: []
+      }))
+      : null;
     state.runner = {
       loading: false,
       health,
       projects: Array.isArray(registry.projects) ? registry.projects : [],
       runs: Array.isArray(runsPayload.runs) ? runsPayload.runs : [],
       memory,
+      memoryIndex,
       error: ""
     };
     if (!options.silent) setToast("Yerel runner durumu güncellendi.");
@@ -626,6 +635,7 @@ async function syncMemoryMirrorFromConfig() {
     lastIndexedAt: index.indexedAt,
     lastCommit: index.lastCommit
   };
+  state.runner.memoryIndex = index;
   addActivity(`Yerel memory mirror yenilendi: ${index.recordCount} kayıt`, index.warningCount ? "warning" : "success");
   setToast("Yerel memory mirror ve index güncellendi.", index.warningCount ? "warning" : "success");
 }
@@ -1978,6 +1988,7 @@ function renderRunner() {
       </section>
     </div>
     ${renderMemoryMirrorPanel()}
+    ${renderMemorySyncPanel()}
     <section class="panel">
       <h3>Kayıtlı Proje Kökleri</h3>
       <div class="record-list">
@@ -2030,6 +2041,172 @@ function renderMemoryMirrorPanel() {
       </div>
     </section>
   `;
+}
+
+function renderMemorySyncPanel() {
+  const snapshot = memorySyncSnapshot();
+  return `
+    <section class="panel memory-sync">
+      <div class="panel-heading">
+        <div>
+          <h3>Hafıza Senkron Durumu</h3>
+          <p>GitHub cache, yerel mirror ve index farkı burada görünür tutulur.</p>
+        </div>
+        <span class="badge ${snapshot.badge}">${escapeHtml(snapshot.label)}</span>
+      </div>
+      <div class="sync-state-grid">
+        ${syncStateItem("Son GitHub senkronizasyonu", snapshot.cacheText, snapshot.cacheKind)}
+        ${syncStateItem("Yerel mirror", snapshot.mirrorText, snapshot.mirrorKind)}
+        ${syncStateItem("Karşılaştırma", snapshot.compareText, snapshot.compareKind)}
+      </div>
+      ${snapshot.details.length ? `
+        <div class="sync-diff-list">
+          ${snapshot.details.map((detail) => `<span>${escapeHtml(detail)}</span>`).join("")}
+        </div>
+      ` : ""}
+    </section>
+  `;
+}
+
+function syncStateItem(label, value, kind) {
+  return `
+    <div class="sync-state-item ${kind}">
+      <strong>${escapeHtml(label)}</strong>
+      <span>${escapeHtml(value)}</span>
+    </div>
+  `;
+}
+
+function memorySyncSnapshot() {
+  const mirror = state.runner.memory;
+  const index = state.runner.memoryIndex;
+  const cacheTime = dateValue(state.cacheMeta.syncedAt);
+  const mirrorTime = dateValue(mirror?.lastIndexedAt);
+  const cacheText = state.cacheMeta.syncedAt
+    ? `${state.records.length} kayıt · ${formatDate(state.cacheMeta.syncedAt)}`
+    : "Yerel önbellek yok";
+  const mirrorText = mirror?.indexed
+    ? `${mirror.recordCount} kayıt · ${formatDate(mirror.lastIndexedAt)}`
+    : mirror?.error || "Mirror bekliyor";
+  const hasIndexRecords = Array.isArray(index?.records);
+  const localByPath = new Map(state.records.map((record) => [record.path, recordSignature(record)]));
+  const mirrorByPath = new Map(hasIndexRecords ? index.records.map((record) => [record.path, recordSignature(record)]) : []);
+  let missingInMirror = 0;
+  let missingInCache = 0;
+  let changed = 0;
+
+  if (hasIndexRecords) {
+    for (const [path, signature] of localByPath) {
+      if (!mirrorByPath.has(path)) missingInMirror += 1;
+      else if (mirrorByPath.get(path) !== signature) changed += 1;
+    }
+    for (const path of mirrorByPath.keys()) {
+      if (!localByPath.has(path)) missingInCache += 1;
+    }
+  }
+
+  const diffCount = missingInMirror + missingInCache + changed;
+  const cacheNewerThanMirror = cacheTime && mirrorTime && cacheTime > mirrorTime + 1000;
+  const details = [];
+  if (missingInMirror) details.push(`${missingInMirror} kayıt mirror içinde yok`);
+  if (missingInCache) details.push(`${missingInCache} kayıt yerel cache içinde yok`);
+  if (changed) details.push(`${changed} kayıt özeti farklı`);
+  if (cacheNewerThanMirror) details.push("Yerel cache mirror indeksinden daha yeni");
+  if (index?.warningCount || mirror?.warningCount) details.push(`${index?.warningCount || mirror.warningCount} format uyarısı`);
+
+  if (state.demo) {
+    return {
+      label: "Örnek veri",
+      badge: "waiting",
+      cacheText: "Örnek veri modu",
+      cacheKind: "waiting",
+      mirrorText,
+      mirrorKind: mirror?.indexed ? "ok" : "waiting",
+      compareText: "Gerçek repo bağlanınca karşılaştırılır",
+      compareKind: "waiting",
+      details
+    };
+  }
+  if (!state.cacheMeta.syncedAt) {
+    return {
+      label: "Yerel önbellek yok",
+      badge: "blocked",
+      cacheText,
+      cacheKind: "fail",
+      mirrorText,
+      mirrorKind: mirror?.indexed ? "ok" : "waiting",
+      compareText: "GitHub'dan yenileme bekleniyor",
+      compareKind: "waiting",
+      details
+    };
+  }
+  if (!mirror?.indexed) {
+    return {
+      label: "Mirror bekliyor",
+      badge: "waiting",
+      cacheText,
+      cacheKind: "ok",
+      mirrorText,
+      mirrorKind: "waiting",
+      compareText: "Mirror yenilenmeden fark çıkarılamaz",
+      compareKind: "waiting",
+      details
+    };
+  }
+  if (index?.error) {
+    return {
+      label: "Index okunamadı",
+      badge: "blocked",
+      cacheText,
+      cacheKind: "ok",
+      mirrorText,
+      mirrorKind: "ok",
+      compareText: index.error,
+      compareKind: "fail",
+      details
+    };
+  }
+  if (hasIndexRecords && diffCount === 0 && !cacheNewerThanMirror) {
+    return {
+      label: "GitHub ile aynı",
+      badge: "active",
+      cacheText,
+      cacheKind: "ok",
+      mirrorText,
+      mirrorKind: "ok",
+      compareText: "Kayıt yolları ve özet alanları eşleşiyor",
+      compareKind: "ok",
+      details
+    };
+  }
+  return {
+    label: cacheNewerThanMirror ? "Yerel değişiklik var" : "Fark var",
+    badge: "waiting",
+    cacheText,
+    cacheKind: "ok",
+    mirrorText,
+    mirrorKind: "ok",
+    compareText: hasIndexRecords ? `${diffCount} fark` : "Index detayı bekleniyor",
+    compareKind: "waiting",
+    details
+  };
+}
+
+function recordSignature(record = {}) {
+  return [
+    record.id || "",
+    record.type || "",
+    record.status || "",
+    record.title || "",
+    record.updatedAt || record.frontmatter?.updated_at || "",
+    record.nextAction || ""
+  ].join("|");
+}
+
+function dateValue(value) {
+  const date = new Date(value || "");
+  const time = date.getTime();
+  return Number.isNaN(time) ? 0 : time;
 }
 
 function renderRunnerProject(project) {

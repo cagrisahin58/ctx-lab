@@ -34,6 +34,7 @@ for (const expected of [
   "Komut Paleti",
   "Kisayollar",
   "Hafiza Sagligi",
+  "Hafiza Senkron Durumu",
   "Kisa Kurulum",
   "GitHub hafiza reposu",
   "Codex CLI Kontrolu",

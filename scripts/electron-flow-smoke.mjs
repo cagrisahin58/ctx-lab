@@ -70,6 +70,7 @@ try {
   await page.locator("[data-command-search]").fill("runner");
   await page.locator("[data-command-dialog]").getByRole("button", { name: /Yerel Codex Runner/ }).click();
   await expectVisibleText(page, "Yerel Codex Runner");
+  await expectVisibleText(page, "Hafıza Senkron Durumu");
   await page.keyboard.press("Control+K");
   await page.locator("[data-command-search]").fill("proje çalışma");
   await page.locator("[data-command-dialog]").getByRole("button", { name: /Proje Çalışma Merkezi/ }).click();

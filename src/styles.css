@@ -101,6 +101,46 @@ button:disabled {
   opacity: 0.55;
 }
 
+@keyframes timelineIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes activityPulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(45, 212, 191, 0.28);
+  }
+  100% {
+    box-shadow: 0 0 0 10px rgba(45, 212, 191, 0);
+  }
+}
+
+@keyframes statusPulse {
+  0%, 100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes toastIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 button:focus-visible,
 input:focus-visible,
 select:focus-visible,
@@ -322,6 +362,10 @@ kbd {
   background: var(--warning);
 }
 
+.status-bar.is-syncing .status-dot {
+  animation: statusPulse 900ms ease-in-out infinite;
+}
+
 .toolbar {
   display: flex;
   gap: 12px;
@@ -496,6 +540,24 @@ kbd {
   padding: 12px;
   text-align: left;
   background: var(--surface);
+  animation: timelineIn 180ms ease both;
+  transition: border-color 140ms ease, background 140ms ease, transform 140ms ease;
+}
+
+.timeline-event:nth-child(2) {
+  animation-delay: 35ms;
+}
+
+.timeline-event:nth-child(3) {
+  animation-delay: 70ms;
+}
+
+.timeline-event:nth-child(4) {
+  animation-delay: 105ms;
+}
+
+.timeline-event:hover {
+  transform: translateY(-1px);
 }
 
 .timeline-marker {
@@ -513,6 +575,7 @@ kbd {
 
 .timeline-event.codex_run .timeline-marker {
   background: var(--accent);
+  animation: activityPulse 900ms ease-out 1;
 }
 
 .timeline-event.work_item .timeline-marker {
@@ -908,6 +971,7 @@ kbd {
 
 .sync-state-item.waiting {
   border-color: rgba(245, 158, 11, 0.32);
+  animation: statusPulse 1200ms ease-in-out infinite;
 }
 
 .sync-state-item.fail {
@@ -967,6 +1031,7 @@ kbd {
   border: 1px solid var(--line);
   border-radius: 8px;
   background: var(--surface);
+  animation: timelineIn 160ms ease both;
 }
 
 .run-mini span,
@@ -1057,6 +1122,11 @@ kbd {
 
 .activity-item.success {
   border-color: rgba(52, 211, 153, 0.38);
+}
+
+.activity-item:first-child,
+.run-mini:first-child {
+  animation: timelineIn 160ms ease both, activityPulse 900ms ease-out 1;
 }
 
 .command-backdrop {
@@ -1156,10 +1226,11 @@ kbd {
   max-width: 420px;
   box-shadow: var(--shadow);
   font-weight: 700;
+  animation: toastIn 160ms ease both;
 }
 
 @media (prefers-color-scheme: light) {
-  :root {
+  :root:not([data-theme]) {
     color-scheme: light;
     --bg: #f4f7fb;
     --rail: #ffffff;
@@ -1171,6 +1242,17 @@ kbd {
     --faint: #7b8ca3;
     --line: rgba(95, 112, 133, 0.24);
     --shadow: 0 16px 42px rgba(16, 24, 40, 0.08);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.001ms !important;
   }
 }
 

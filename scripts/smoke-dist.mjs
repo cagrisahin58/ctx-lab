@@ -69,6 +69,9 @@ for (const expected of [
 
 assert.ok(bundleText.includes("github.com") || bundleText.includes("api.github.com"), "GitHub istemci izi bulunamadi.");
 assert.ok(!/Seslog|seslog/i.test(bundleText), "Legacy Seslog metni build icinde kalmamali.");
+assert.ok(bundleText.includes("timelineIn"), "Timeline giris animasyonu bundle icinde olmali.");
+assert.ok(bundleText.includes("activityPulse"), "Run/activity hareket sinyali bundle icinde olmali.");
+assert.ok(bundleText.includes("prefers-reduced-motion"), "Dusuk hareket tercihi CSS icinde desteklenmeli.");
 
 console.log("dist smoke ok");
 

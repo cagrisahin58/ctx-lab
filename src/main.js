@@ -928,6 +928,7 @@ function renderProjectRail() {
 function renderStatusBar() {
   const runner = state.runner.health;
   const codex = runner?.codex;
+  const busy = state.loading || state.runner.loading;
   const memoryStatus = state.demo ? "Örnek veri" : (state.cacheMeta.syncedAt ? "Yerel cache hazır" : "Yerel cache yok");
   const githubStatus = state.config.owner && state.config.repo ? "GitHub bağlı" : "GitHub bekliyor";
   const codexStatus = codex?.available ? `Codex ${codex.version}` : (state.runner.error || "Codex kontrol bekliyor");
@@ -935,7 +936,7 @@ function renderStatusBar() {
   const mirrorStatus = mirror?.indexed ? `Mirror index: ${mirror.recordCount} kayıt` : (mirror?.error || "Mirror bekliyor");
   const healthStatus = state.warnings.length ? `Hafıza sağlığı: ${state.warnings.length} uyarı` : "Hafıza sağlığı temiz";
   return `
-    <div class="status-bar">
+    <div class="status-bar ${busy ? "is-syncing" : ""}">
       <span class="status-dot ok"></span><span>${escapeHtml(githubStatus)}</span>
       <span class="status-dot ${state.cacheMeta.syncedAt || state.demo ? "ok" : "warn"}"></span><span>${escapeHtml(memoryStatus)}</span>
       <span class="status-dot ${mirror?.indexed ? "ok" : "warn"}"></span><span>${escapeHtml(mirrorStatus)}</span>

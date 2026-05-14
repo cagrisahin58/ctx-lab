@@ -1,9 +1,11 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
+  appendCodexRunToWorkItem,
   appendSessionToWorkItem,
   appendDecisionToWorkItem,
   buildArchivedRecordContent,
+  buildCodexRunMemoryRecord,
   buildContextPack,
   buildDailyBrief,
   buildDecisionFromSession,
@@ -500,6 +502,39 @@ test("session kaydına bağlı iş kartını bulur ve karar id'sini ekler", () =
   assert.deepEqual(parsed.frontmatter.decisions, [decision.id]);
   assert.equal(parsed.frontmatter.updated_at, "2026-05-13T12:00:00.000Z");
   assert.match(parsed.body, /Current State/);
+});
+
+test("codex run sonucunu memory kaydina cevirir ve is hattina baglar", () => {
+  const session = parseMemoryFile("inbox/test.md", sample, "sha-session");
+  const work = parseMemoryFile(
+    "work_items/work_ctx-lab.md",
+    buildWorkItemFromSession(session).content,
+    "sha-work"
+  );
+  const run = {
+    id: "run_2026-05-14T12-00-00-000Z_ctx-lab",
+    status: "dry_run",
+    automationLevel: "brief",
+    template: "continue_work",
+    sourceRecordId: work.id,
+    sourceWorkItemId: work.id,
+    project: { name: "ctx-lab", repo: "cagrisahin58/ctx-lab", branch: "main" },
+    createdAt: "2026-05-14T12:00:00.000Z",
+    updatedAt: "2026-05-14T12:00:00.000Z",
+    logPath: "C:\\runs\\run.json",
+    summary: "Dry-run prompt kaydedildi."
+  };
+  const memory = buildCodexRunMemoryRecord(run, work, new Date("2026-05-14T12:01:00.000Z"));
+  const parsedRun = parseMemoryFile(memory.path, memory.content, "sha-run");
+  const updatedWork = appendCodexRunToWorkItem(work, parsedRun, new Date("2026-05-14T12:02:00.000Z"));
+  const parsedWork = parseFrontmatter(updatedWork);
+  const events = buildTimelineEvents([parsedRun], [], []);
+
+  assert.match(memory.path, /^handoffs\/2026-05-14T12-01-00-000Z-codex_run_run-2026-05-14t12-00-00-000z-ctx-lab\.md$/);
+  assert.equal(parsedRun.frontmatter.kind, "codex_run");
+  assert.equal(parsedRun.frontmatter.source_work_item, work.id);
+  assert.deepEqual(parsedWork.frontmatter.codex_runs, [parsedRun.id]);
+  assert.equal(events[0].kind, "codex_run");
 });
 
 test("arşiv içeriği status ve archived_at alanlarını günceller", () => {

@@ -358,6 +358,9 @@ export async function startCodexRun(paths = buildRunnerPaths(), input = {}, opti
       repo: project.repo,
       branch: project.branch
     },
+    sourceRecordId: String(input.sourceRecordId || ""),
+    sourceRecordPath: String(input.sourceRecordPath || ""),
+    sourceWorkItemId: String(input.sourceWorkItemId || ""),
     prompt,
     logPath
   };

@@ -1,8 +1,10 @@
 import "./styles.css";
 import {
   appendDecisionToWorkItem,
+  appendCodexRunToWorkItem,
   appendSessionToWorkItem,
   buildArchivedRecordContent,
+  buildCodexRunMemoryRecord,
   buildInboxSessionSummary,
   buildInboxSessionSummaryFromMarkdown,
   buildManualDecision,
@@ -537,19 +539,48 @@ async function selectProjectRootForForm() {
 async function startCodexRunFromForm(form) {
   const data = new FormData(form);
   const projectId = data.get("projectId") || state.runner.projects[0]?.id || "";
+  const sourceRecord = contextRecord();
+  const sourceWorkItem = sourceRecord?.type === "work_items"
+    ? sourceRecord
+    : state.records.find((record) => record.type === "work_items" && record.id === sourceRecord?.linkedWorkItem);
   const run = await startRunnerCodexRun({
     projectId,
     automationLevel: data.get("automationLevel"),
     template: data.get("template"),
     prompt: data.get("prompt"),
-    dryRun: data.get("dryRun") === "on"
+    dryRun: data.get("dryRun") === "on",
+    sourceRecordId: sourceRecord?.id || "",
+    sourceRecordPath: sourceRecord?.path || "",
+    sourceWorkItemId: sourceWorkItem?.id || ""
   });
   state.runner.runs = [run, ...state.runner.runs.filter((item) => item.id !== run.id)].slice(0, 20);
+  if (data.get("linkMemory") === "on") {
+    await persistCodexRunMemoryLink(run, sourceRecord, sourceWorkItem);
+  }
   addActivity(`Codex run kaydı: ${run.id}`, run.status === "failed" ? "error" : "success", run.summary || run.error || "");
   setToast(run.status === "dry_run" ? "Codex dry-run kaydı hazırlandı." : "Codex run tamamlandı.", run.status === "failed" ? "error" : "success");
   form.reset();
   const dryRun = form.querySelector("input[name='dryRun']");
   if (dryRun) dryRun.checked = true;
+}
+
+async function persistCodexRunMemoryLink(run, sourceRecord, sourceWorkItem) {
+  if (!sourceRecord) return;
+  if (!state.demo && (!state.config.owner || !state.config.repo)) {
+    addActivity("Codex run memory kaydına bağlanamadı.", "warning", "Hafıza repo bağlantısı yok.");
+    return;
+  }
+  const runMemory = buildCodexRunMemoryRecord(run, sourceRecord);
+  const savedRun = await saveMemoryRecord(runMemory.path, runMemory.content, `codex run: ${run.id} sonucunu kaydet`);
+  if (sourceWorkItem) {
+    const latestWorkItem = state.records.find((record) => record.id === sourceWorkItem.id) || sourceWorkItem;
+    const updatedWork = appendCodexRunToWorkItem(latestWorkItem, savedRun);
+    const parsedWork = await saveMemoryRecord(latestWorkItem.path, updatedWork, `work: ${latestWorkItem.id} codex run bağlantısını güncelle`);
+    state.selectedId = parsedWork.id;
+  } else {
+    state.selectedId = savedRun.id;
+  }
+  addActivity(`Codex run memory kaydına bağlandı: ${savedRun.id}`, "success");
 }
 
 async function syncMemoryMirrorFromConfig() {
@@ -983,6 +1014,7 @@ function renderCodexRunPanel() {
         <textarea name="prompt" required placeholder="Codex'e verilecek kontrollü görev...">${escapeHtml(workItemPromptSeed())}</textarea>
       </label>
       <label class="check-row"><input type="checkbox" name="dryRun" checked> Dry-run olarak kaydet</label>
+      <label class="check-row"><input type="checkbox" name="linkMemory" checked> Run sonucunu seçili iş hattına bağla</label>
       <button class="primary" type="submit" ${projects.length ? "" : "disabled"}>Run kaydı oluştur</button>
       ${state.runner.runs.length ? `<div class="run-list">${state.runner.runs.slice(0, 4).map(renderRunMini).join("")}</div>` : ""}
     </form>
@@ -1003,7 +1035,7 @@ function renderRunMini(run) {
   return `
     <div class="run-mini">
       <strong>${escapeHtml(run.id)}</strong>
-      <span>${escapeHtml(run.status)} · ${escapeHtml(run.automationLevel || "")}</span>
+      <span>${escapeHtml(run.status)} · ${escapeHtml(run.automationLevel || "")}${run.sourceWorkItemId ? ` · ${escapeHtml(run.sourceWorkItemId)}` : ""}</span>
     </div>
   `;
 }

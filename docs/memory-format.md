@@ -168,3 +168,7 @@ Karar ve devam brifi kayıtları aynı path ile tekrar kaydedilirse yeni kopya �
 GitHub 409/422 yazma hatalarında dosyanın güncel `sha` değeri okunur ve yazma bir kez yeniden denenir.
 
 `Günlük Devam Brifi` kaydedildiğinde `handoffs/daily-YYYY-MM-DD.md` yolu kullanılır ve aynı gün yeniden kaydedilirse dosya güncellenir.
+
+## Codex run kaydı
+
+Yerel Codex otomasyonu çalıştırıldığında sonuç `%APPDATA%/ctx-lab/runs` altında JSON log olarak kalır. Kullanıcı run sonucunu hafıza reposuna bağlamayı seçerse ctx-lab ayrıca `handoffs/` altında `kind: codex_run` frontmatter alanına sahip bir kayıt üretir. Seçili iş hattı varsa bu iş hattının frontmatter alanına `codex_runs` listesi eklenir. Böylece run geçmişi hem yerel logda hem de GitHub work-memory timeline içinde izlenebilir.

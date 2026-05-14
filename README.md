@@ -85,6 +85,8 @@ v2 ile `start-windows` komutu ayrıca `scripts/ctxlab-runner.mjs` servislerini b
 
 Codex run kayıtları `%APPDATA%/ctx-lab/runs` altında JSON log olarak tutulur. İlk masaüstü akışta dry-run varsayılandır; prompt, otomasyon seviyesi, proje allowlist bilgisi ve çalışma sonucu aynı run kaydına yazılır. Desteklenen seviyeler: sadece brif hazırla, öneri üret, dosya değiştir ama commit atma, test çalıştır, commit hazırla, commit + push. Destructive git komutları runner tarafında reddedilir.
 
+Run sonucu seçili iş hattına bağlanabilir. Bu durumda ctx-lab `handoffs/` altında `kind: codex_run` içeren kaynaklı bir kayıt oluşturur ve ilgili iş hattının `codex_runs` frontmatter listesini günceller. Böylece Codex otomasyonu yalnızca yerel logda kalmaz, GitHub work-memory timeline içinde de görünür hale gelir.
+
 Yerel memory mirror `%APPDATA%/ctx-lab/memory/git` altında, türetilmiş index ise `%APPDATA%/ctx-lab/memory/index` altında tutulur. Mirror akışı GitHub token'ını runner'a taşımaz; `git clone/fetch/pull` yerel Git/Git Credential Manager yetkileriyle çalışır. Index, mevcut markdown/frontmatter kayıtlarını okuyup masaüstü timeline ve sağlık görünürlüğü için özet JSON üretir.
 
 ## Manuel oturum özeti akışı

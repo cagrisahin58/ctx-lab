@@ -247,13 +247,17 @@ test("codex dry-run yalnizca kayitli proje kokunde run logu olusturur", async ()
       automationLevel: "brief",
       template: "continue_work",
       prompt: "Devam brifi uret.",
-      dryRun: true
+      dryRun: true,
+      sourceRecordId: "work_ctx-lab",
+      sourceWorkItemId: "work_ctx-lab"
     }, { now: new Date("2026-05-14T12:10:00.000Z") });
     const log = JSON.parse(await readFile(run.logPath, "utf8"));
     const runs = await listCodexRuns(paths);
 
     assert.equal(run.status, "dry_run");
     assert.equal(log.project.id, project.id);
+    assert.equal(log.sourceRecordId, "work_ctx-lab");
+    assert.equal(log.sourceWorkItemId, "work_ctx-lab");
     assert.equal(runs[0].id, run.id);
     assert.match(log.prompt, /Yasak islemler/);
   } finally {

@@ -312,8 +312,8 @@ export function buildTimelineEvents(records, runnerProjects = [], runs = []) {
     } else if (record.type === "handoffs") {
       events.push({
         ...base,
-        kind: "handoff",
-        label: "Devam brifi",
+        kind: record.frontmatter?.kind === "codex_run" ? "codex_run" : "handoff",
+        label: record.frontmatter?.kind === "codex_run" ? "Codex run" : "Devam brifi",
         at: record.frontmatter?.created_at || base.at
       });
     } else if (record.type === "archive") {
@@ -533,6 +533,20 @@ export function appendDecisionToWorkItem(workItem, decision, now = new Date()) {
   });
 }
 
+export function appendCodexRunToWorkItem(workItem, runRecord, now = new Date()) {
+  const runId = typeof runRecord === "string" ? runRecord : runRecord?.id;
+  if (!runId) throw new Error("Codex run id yok.");
+  const existingRuns = normalizeArray(workItem.frontmatter.codex_runs);
+  const codex_runs = existingRuns.includes(runId)
+    ? existingRuns
+    : [...existingRuns, runId];
+
+  return replaceFrontmatter(workItem.raw, {
+    codex_runs,
+    updated_at: now.toISOString()
+  });
+}
+
 export function updateWorkItemStatusContent(workItem, status, now = new Date()) {
   if (!WORK_STATUSES.includes(status)) {
     throw new Error(`Geçersiz iş kartı durumu: ${status}`);
@@ -664,6 +678,60 @@ export function buildDailyBrief(records, target = "codex", now = new Date()) {
     "Çalışma kuralı:",
     "Önce repo durumunu ve seçili iş hattının devam brifini oku. Kayıtlarda olmayan karar, dosya, commit veya metrik uydurma."
   ].join("\n");
+}
+
+export function buildCodexRunMemoryRecord(run, sourceRecord = null, now = new Date()) {
+  if (!run?.id) throw new Error("Codex run kaydı için run id zorunlu.");
+  const stamp = timestampSlug(now);
+  const memoryId = `codex_run_${slugify(run.id)}`;
+  const project = run.project?.name || sourceRecord?.project || "genel";
+  const repo = run.project?.repo || sourceRecord?.repo || "";
+  const branch = run.project?.branch || sourceRecord?.branch || "main";
+  const sourceWorkItem = run.sourceWorkItemId || (sourceRecord?.type === "work_items" ? sourceRecord.id : sourceRecord?.linkedWorkItem || "");
+  const sourceRecordId = run.sourceRecordId || sourceRecord?.id || "";
+  const status = run.status || "unknown";
+  const summary = run.summary || run.error || run.stderr || "Codex run sonucu yerel log kaydına yazıldı.";
+  const resultText = run.stdout || run.stderr || run.error || run.summary || "Run çıktısı yerel log dosyasında.";
+  const content = `${serializeFrontmatter({
+    id: memoryId,
+    kind: "codex_run",
+    source_run: run.id,
+    source_record: sourceRecordId,
+    source_work_item: sourceWorkItem,
+    project,
+    repo,
+    branch,
+    target: "codex",
+    status,
+    automation_level: run.automationLevel || "brief",
+    template: run.template || "continue_work",
+    created_at: run.createdAt || now.toISOString(),
+    updated_at: run.updatedAt || now.toISOString(),
+    log_path: run.logPath || ""
+  })}
+
+# Codex Run Kaydı
+
+## Güncel Durum
+${formatSectionText(summary)}
+
+## Sonuç
+${formatSectionText(resultText)}
+
+## Kaynak
+- Run id: ${run.id}
+- Kaynak kayıt: ${sourceRecordId || "yok"}
+- İş hattı: ${sourceWorkItem || "yok"}
+- Otomasyon seviyesi: ${run.automationLevel || "brief"}
+- Şablon: ${run.template || "continue_work"}
+- Log: ${run.logPath || "yerel log yolu yok"}
+`;
+
+  return {
+    id: memoryId,
+    path: `handoffs/${stamp}-${memoryId}.md`,
+    content
+  };
 }
 
 function sortWorkItems(records) {

@@ -276,8 +276,8 @@ export function buildOnboardingChecklist(input = {}) {
     },
     {
       id: "local_mirror",
-      label: "Yerel mirror ve index",
-      description: "work-memory yerel Git mirror olarak çekilir ve JSON index üretilir.",
+      label: "Yerel ayna ve indeks",
+      description: "work-memory yerel Git aynası olarak çekilir ve JSON indeks üretilir.",
       done: mirrorReady,
       action: "mirror"
     },

@@ -271,6 +271,7 @@ test("onboarding checklist kurulum ilerlemesini somut sinyallerden hesaplar", ()
   assert.equal(empty.find((item) => item.id === "memory_connection").done, false);
   assert.equal(ready.find((item) => item.id === "codex_cli").done, true);
   assert.equal(ready.find((item) => item.id === "local_mirror").done, true);
+  assert.equal(ready.find((item) => item.id === "local_mirror").label, "Yerel ayna ve indeks");
   assert.equal(isOnboardingComplete(empty), false);
   assert.equal(isOnboardingComplete(ready), true);
 });

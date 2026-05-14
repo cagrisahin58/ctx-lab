@@ -16,7 +16,7 @@ AI sohbet geçmişine güvenmek yerine, her önemli oturumdan sonra kısa ve ins
 - `Ctrl+K` komut paletiyle görünüm, proje, GitHub yenileme ve Codex Runner aksiyonlarına hızlı erişim sağlar.
 - Açık/koyu tema tercihini yerelde saklar.
 - Hafıza Sağlığı panelinde duplicate id, eksik alan ve bilinmeyen status uyarılarını gösterir.
-- Hafıza Senkron Durumu panelinde GitHub cache, yerel mirror ve index farkını açıkça gösterir.
+- Hafıza Senkron Durumu panelinde GitHub önbelleği, yerel ayna ve indeks farkını açıkça gösterir.
 
 Uygulama tamamen Türkçe arayüzle gelir. Veri alanları teknik sebeplerle İngilizce kalabilir, ancak kullanıcıya görünen metinler Türkçedir.
 
@@ -79,7 +79,7 @@ npm run verify:desktop
 
 Bu komut Electron güvenlik/IPC smoke kontrolünü ve kullanıcı seviyesindeki masaüstü akışını birlikte çalıştırır. GitHub Actions aynı kapıyı Windows runner üzerinde statik smoke, Electron boot smoke ve kullanıcı akışı olarak ayrı adımlarda çalıştırır; ek olarak Windows launcher deneme kontrolünü yapar.
 
-İlk açılışta `Kısa Kurulum` ekranı hafıza reposu bağlantısı, repo tanılaması, yerel mirror/index, proje kökü, Codex CLI kontrolü ve örnek devam brifi adımlarını tek akışta gösterir. Kurulum tamamlandığında kullanıcı doğrudan `Proje Çalışma Merkezi` ekranına geçer.
+İlk açılışta `Kısa Kurulum` ekranı hafıza reposu bağlantısı, repo tanılaması, yerel ayna/indeks, proje kökü, Codex CLI kontrolü ve örnek devam brifi adımlarını tek akışta gösterir. Kurulum tamamlandığında kullanıcı doğrudan `Proje Çalışma Merkezi` ekranına geçer.
 
 Kalite kapısı:
 
@@ -122,7 +122,7 @@ Codex çalıştırma kayıtları `%APPDATA%/ctx-lab/runs` altında JSON günlük
 
 Çalıştırma sonucu seçili iş hattına bağlanabilir. Bu durumda ctx-lab `handoffs/` altında `kind: codex_run` içeren kaynaklı bir kayıt oluşturur ve ilgili iş hattının `codex_runs` frontmatter listesini günceller. Böylece Codex otomasyonu yalnızca yerel günlükte kalmaz, GitHub work-memory timeline içinde de görünür hale gelir.
 
-Yerel memory mirror `%APPDATA%/ctx-lab/memory/git` altında, türetilmiş index ise `%APPDATA%/ctx-lab/memory/index` altında tutulur. Mirror akışı GitHub token'ını runner'a taşımaz; `git clone/fetch/pull` yerel Git/Git Credential Manager yetkileriyle çalışır. Index, mevcut markdown/frontmatter kayıtlarını okuyup masaüstü timeline ve sağlık görünürlüğü için özet JSON üretir.
+Yerel hafıza aynası `%APPDATA%/ctx-lab/memory/git` altında, türetilmiş indeks ise `%APPDATA%/ctx-lab/memory/index` altında tutulur. Ayna akışı GitHub token'ını runner'a taşımaz; `git clone/fetch/pull` yerel Git/Git Credential Manager yetkileriyle çalışır. İndeks, mevcut markdown/frontmatter kayıtlarını okuyup masaüstü timeline ve sağlık görünürlüğü için özet JSON üretir.
 
 ## Manuel oturum özeti akışı
 

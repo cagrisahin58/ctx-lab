@@ -823,8 +823,8 @@ async function syncMemoryMirrorFromConfig() {
     lastCommit: index.lastCommit
   };
   state.runner.memoryIndex = index;
-  addActivity(`Yerel memory mirror yenilendi: ${index.recordCount} kayıt`, index.warningCount ? "warning" : "success");
-  setToast("Yerel memory mirror ve index güncellendi.", index.warningCount ? "warning" : "success");
+  addActivity(`Yerel hafıza aynası yenilendi: ${index.recordCount} kayıt`, index.warningCount ? "warning" : "success");
+  setToast("Yerel hafıza aynası ve indeks güncellendi.", index.warningCount ? "warning" : "success");
 }
 
 async function saveOnboardingConfigFromForm(form) {
@@ -1107,11 +1107,11 @@ function renderStatusBar() {
   const runner = state.runner.health;
   const codex = runner?.codex;
   const busy = state.loading || state.runner.loading;
-  const memoryStatus = state.demo ? "Örnek veri" : (state.cacheMeta.syncedAt ? "Yerel cache hazır" : "Yerel cache yok");
+  const memoryStatus = state.demo ? "Örnek veri" : (state.cacheMeta.syncedAt ? "Yerel önbellek hazır" : "Yerel önbellek yok");
   const githubStatus = state.config.owner && state.config.repo ? "GitHub bağlı" : "GitHub bekliyor";
   const codexStatus = codex?.available ? `Codex ${codex.version}` : (state.runner.error || "Codex kontrol bekliyor");
   const mirror = state.runner.memory;
-  const mirrorStatus = mirror?.indexed ? `Mirror index: ${mirror.recordCount} kayıt` : (mirror?.error || "Mirror bekliyor");
+  const mirrorStatus = mirror?.indexed ? `Ayna indeksi: ${mirror.recordCount} kayıt` : (mirror?.error || "Ayna bekliyor");
   const healthStatus = state.warnings.length ? `Hafıza sağlığı: ${state.warnings.length} uyarı` : "Hafıza sağlığı temiz";
   return `
     <div class="status-bar ${busy ? "is-syncing" : ""}">
@@ -1621,7 +1621,7 @@ function renderOnboarding() {
           <h3>Yerel Masaüstü Omurgası</h3>
           <div class="toolbar-actions">
             <button data-action="refresh-runner">Codex CLI Kontrolü</button>
-            <button data-action="sync-memory-mirror" ${memoryMirrorConfig() ? "" : "disabled"}>Yerel Mirror Oluştur</button>
+            <button data-action="sync-memory-mirror" ${memoryMirrorConfig() ? "" : "disabled"}>Yerel Ayna Oluştur</button>
           </div>
           ${renderRunnerSnapshot()}
         </section>
@@ -1677,8 +1677,8 @@ function renderRunnerSnapshot() {
       </div>
       <div class="diagnostic-item ${memory?.indexed ? "ok" : "fail"}">
         <span class="badge ${memory?.indexed ? "active" : "waiting"}">${memory?.indexed ? "Hazır" : "Bekliyor"}</span>
-        <strong>Memory mirror</strong>
-        <span>${memory?.indexed ? `${memory.recordCount} kayıt` : escapeHtml(memory?.error || "Mirror bekliyor")}</span>
+        <strong>Hafıza aynası</strong>
+        <span>${memory?.indexed ? `${memory.recordCount} kayıt` : escapeHtml(memory?.error || "Ayna bekliyor")}</span>
       </div>
       <div class="diagnostic-item ${state.runner.projects.length ? "ok" : "fail"}">
         <span class="badge ${state.runner.projects.length ? "active" : "waiting"}">${state.runner.projects.length ? "Hazır" : "Bekliyor"}</span>
@@ -2455,7 +2455,7 @@ function renderRunner() {
   return `
     ${renderHeader(
       "Yerel Codex Runner",
-      "Codex CLI, yerel hafıza mirror'ı ve kayıtlı proje kökleri buradan yönetilir.",
+      "Codex CLI, yerel hafıza aynası ve kayıtlı proje kökleri buradan yönetilir.",
       `<button data-action="refresh-runner" ${loading ? "disabled" : ""}>${loading ? "Yenileniyor" : "Durumu Yenile"}</button>`
     )}
     <div class="runner-grid">
@@ -2527,27 +2527,27 @@ function renderMemoryMirrorPanel() {
     : memory?.indexed
       ? `${memory.recordCount} kayıt indekslendi · ${formatDate(memory.lastIndexedAt)}`
       : memory?.cloneExists
-        ? "Mirror var, index bekliyor."
-        : memory?.error || "Yerel mirror henüz oluşturulmadı.";
+        ? "Ayna var, indeks bekliyor."
+        : memory?.error || "Yerel ayna henüz oluşturulmadı.";
   return `
     <section class="panel">
       <div class="panel-heading">
         <div>
-          <h3>Yerel Memory Mirror</h3>
-          <p>GitHub kaynak gerçekliktir; bu mirror hızlı açılış, fark görünürlüğü ve masaüstü index için kullanılır.</p>
+          <h3>Yerel Hafıza Aynası</h3>
+          <p>GitHub kaynak gerçekliktir; bu yerel ayna hızlı açılış, fark görünürlüğü ve masaüstü indeksi için kullanılır.</p>
         </div>
-        <button class="primary" data-action="sync-memory-mirror" ${hasConfig ? "" : "disabled"}>Mirror Yenile</button>
+        <button class="primary" data-action="sync-memory-mirror" ${hasConfig ? "" : "disabled"}>Aynayı Yenile</button>
       </div>
       <div class="diagnostic-list">
         <div class="diagnostic-item ${memory?.indexed ? "ok" : "fail"}">
           <span class="badge ${memory?.indexed ? "active" : "waiting"}">${memory?.indexed ? "Hazır" : "Bekliyor"}</span>
-          <strong>Index</strong>
+          <strong>İndeks</strong>
           <span>${escapeHtml(statusText)}</span>
         </div>
         ${memory?.cloneDir ? `
           <div class="diagnostic-item ok">
             <span class="badge active">Klasör</span>
-            <strong>Mirror</strong>
+            <strong>Ayna</strong>
             <span>${escapeHtml(memory.cloneDir)}</span>
           </div>
         ` : ""}
@@ -2570,13 +2570,13 @@ function renderMemorySyncPanel() {
       <div class="panel-heading">
         <div>
           <h3>Hafıza Senkron Durumu</h3>
-          <p>GitHub cache, yerel mirror ve index farkı burada görünür tutulur.</p>
+          <p>GitHub önbelleği, yerel ayna ve indeks farkı burada görünür tutulur.</p>
         </div>
         <span class="badge ${snapshot.badge}">${escapeHtml(snapshot.label)}</span>
       </div>
       <div class="sync-state-grid">
         ${syncStateItem("Son GitHub senkronizasyonu", snapshot.cacheText, snapshot.cacheKind)}
-        ${syncStateItem("Yerel mirror", snapshot.mirrorText, snapshot.mirrorKind)}
+        ${syncStateItem("Yerel ayna", snapshot.mirrorText, snapshot.mirrorKind)}
         ${syncStateItem("Karşılaştırma", snapshot.compareText, snapshot.compareKind)}
       </div>
       ${snapshot.details.length ? `
@@ -2607,7 +2607,7 @@ function memorySyncSnapshot() {
     : "Yerel önbellek yok";
   const mirrorText = mirror?.indexed
     ? `${mirror.recordCount} kayıt · ${formatDate(mirror.lastIndexedAt)}`
-    : mirror?.error || "Mirror bekliyor";
+    : mirror?.error || "Ayna bekliyor";
   const hasIndexRecords = Array.isArray(index?.records);
   const localByPath = new Map(state.records.map((record) => [record.path, recordSignature(record)]));
   const mirrorByPath = new Map(hasIndexRecords ? index.records.map((record) => [record.path, recordSignature(record)]) : []);
@@ -2628,10 +2628,10 @@ function memorySyncSnapshot() {
   const diffCount = missingInMirror + missingInCache + changed;
   const cacheNewerThanMirror = cacheTime && mirrorTime && cacheTime > mirrorTime + 1000;
   const details = [];
-  if (missingInMirror) details.push(`${missingInMirror} kayıt mirror içinde yok`);
-  if (missingInCache) details.push(`${missingInCache} kayıt yerel cache içinde yok`);
+  if (missingInMirror) details.push(`${missingInMirror} kayıt ayna içinde yok`);
+  if (missingInCache) details.push(`${missingInCache} kayıt yerel önbellek içinde yok`);
   if (changed) details.push(`${changed} kayıt özeti farklı`);
-  if (cacheNewerThanMirror) details.push("Yerel cache mirror indeksinden daha yeni");
+  if (cacheNewerThanMirror) details.push("Yerel önbellek ayna indeksinden daha yeni");
   if (index?.warningCount || mirror?.warningCount) details.push(`${index?.warningCount || mirror.warningCount} format uyarısı`);
 
   if (state.demo) {
@@ -2662,20 +2662,20 @@ function memorySyncSnapshot() {
   }
   if (!mirror?.indexed) {
     return {
-      label: "Mirror bekliyor",
+      label: "Ayna bekliyor",
       badge: "waiting",
       cacheText,
       cacheKind: "ok",
       mirrorText,
       mirrorKind: "waiting",
-      compareText: "Mirror yenilenmeden fark çıkarılamaz",
+      compareText: "Ayna yenilenmeden fark çıkarılamaz",
       compareKind: "waiting",
       details
     };
   }
   if (index?.error) {
     return {
-      label: "Index okunamadı",
+      label: "İndeks okunamadı",
       badge: "blocked",
       cacheText,
       cacheKind: "ok",
@@ -2706,7 +2706,7 @@ function memorySyncSnapshot() {
     cacheKind: "ok",
     mirrorText,
     mirrorKind: "ok",
-    compareText: hasIndexRecords ? `${diffCount} fark` : "Index detayı bekleniyor",
+    compareText: hasIndexRecords ? `${diffCount} fark` : "İndeks detayı bekleniyor",
     compareKind: "waiting",
     details
   };

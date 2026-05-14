@@ -22,11 +22,27 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Install desktop smoke dependencies
-        run: sudo apt-get update && sudo apt-get install -y xvfb
-
       - name: Run tests, build and smoke checks
         run: npm run verify
 
+  desktop-verify:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
       - name: Run desktop smoke and user flow
-        run: xvfb-run --auto-servernum --server-args="-screen 0 1600x1200x24" npm run verify:desktop
+        run: npm run verify:desktop
+
+      - name: Run Windows launcher dry-run
+        shell: pwsh
+        run: .\scripts\start-windows.ps1 -DryRun -SkipInstall

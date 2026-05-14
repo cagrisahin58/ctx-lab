@@ -76,7 +76,7 @@ Masaüstü kapısını toplu çalıştırmak için:
 npm run verify:desktop
 ```
 
-Bu komut Electron güvenlik/IPC smoke kontrolünü ve kullanıcı seviyesindeki masaüstü akışını birlikte çalıştırır. GitHub Actions aynı kapıyı Linux üzerinde `xvfb-run` ile çalıştırır.
+Bu komut Electron güvenlik/IPC smoke kontrolünü ve kullanıcı seviyesindeki masaüstü akışını birlikte çalıştırır. GitHub Actions aynı kapıyı Windows runner üzerinde çalıştırır ve ek olarak Windows launcher dry-run kontrolünü yapar.
 
 İlk açılışta `Kısa Kurulum` ekranı hafıza reposu bağlantısı, repo tanılaması, yerel mirror/index, proje kökü, Codex CLI kontrolü ve örnek devam brifi adımlarını tek akışta gösterir. Kurulum tamamlandığında kullanıcı doğrudan `Proje Çalışma Merkezi` ekranına geçer.
 

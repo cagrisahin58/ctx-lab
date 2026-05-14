@@ -762,11 +762,24 @@ async function startCodexRunFromForm(form) {
   if (data.get("linkMemory") === "on") {
     await persistCodexRunMemoryLink(run, sourceRecord, sourceWorkItem);
   }
-  addActivity(`Codex çalıştırma kaydı: ${run.id}`, run.status === "failed" ? "error" : "success", run.summary || run.error || "");
-  setToast(run.status === "dry_run" ? "Codex deneme kaydı hazırlandı." : "Codex çalıştırması tamamlandı.", run.status === "failed" ? "error" : "success");
+  addActivity(`Codex çalıştırma kaydı: ${run.id}`, runFeedbackKind(run), run.summary || run.error || "");
+  setToast(runCompletionMessage(run), runFeedbackKind(run));
   form.reset();
   const dryRun = form.querySelector("input[name='dryRun']");
   if (dryRun) dryRun.checked = true;
+}
+
+function runFeedbackKind(run) {
+  if (run.status === "failed") return "error";
+  if (run.status === "blocked") return "warning";
+  return "success";
+}
+
+function runCompletionMessage(run) {
+  if (run.status === "dry_run") return "Codex deneme kaydı hazırlandı.";
+  if (run.status === "blocked") return "Codex çalıştırması onay bekliyor.";
+  if (run.status === "failed") return "Codex çalıştırması hata ile bitti.";
+  return "Codex çalıştırması tamamlandı.";
 }
 
 async function persistCodexRunMemoryLink(run, sourceRecord, sourceWorkItem) {

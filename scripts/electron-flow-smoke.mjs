@@ -293,6 +293,16 @@ try {
   await expectVisibleText(page, "Çalıştırılmadı");
   await expectVisibleText(page, "Commit + push için ayrı onay verdim");
 
+  markPhase("Commit push onay kapisini dogrulama");
+  await runForm.locator('textarea[name="prompt"]').fill("Commit push kapisini onaysiz dene.");
+  await runForm.locator('select[name="automationLevel"]').selectOption("commit_push");
+  await runForm.locator('input[name="dryRun"]').uncheck();
+  await runForm.getByRole("button", { name: "Çalıştırma kaydı oluştur" }).click();
+  await expectVisibleText(page, "Codex çalıştırması onay bekliyor.");
+  await expectVisibleText(page, "Engellendi");
+  await expectVisibleText(page, "Commit/push kullanıcı onayı, görünür özet ve test sonucu olmadan uygulanmaz.");
+  await expectVisibleText(page, "Commit/push onayı verilmedi.");
+
   markPhase("Is akisi surukle birak durumunu dogrulama");
   await page.keyboard.press("Control+K");
   await page.locator("[data-command-search]").fill("iş akışı");

@@ -418,6 +418,8 @@ try {
   await expectVisibleText(page, "Kalıcı gerçeklik burada tutulur");
   await page.locator('button[data-view="workspace"]').click();
   await expectVisibleText(page, "Güncel Bağlam");
+  await expectVisibleText(page, "Bağlı oturumlar");
+  await expectVisibleText(page, "Kararlar");
   await expectVisibleText(page, "Codex'e Devret");
   await expectVisibleText(page, "Çalışma Günlüğü");
   await expectVisibleText(page, "Tek tıkla devam brifi");

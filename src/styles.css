@@ -1191,6 +1191,52 @@ kbd {
   overflow: auto;
 }
 
+.context-linked {
+  display: grid;
+  gap: 8px;
+  padding-top: 2px;
+}
+
+.context-linked-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.context-linked h4,
+.context-linked p {
+  margin: 0;
+}
+
+.context-linked p,
+.context-linked small {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.context-linked-item {
+  display: grid;
+  gap: 3px;
+  width: 100%;
+  padding: 9px 10px;
+  text-align: left;
+  background: var(--surface);
+}
+
+.context-linked-item strong,
+.context-linked-item span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.context-linked-item span {
+  color: var(--muted);
+  font-size: 12px;
+}
+
 .board {
   display: grid;
   grid-template-columns: repeat(4, minmax(220px, 1fr));

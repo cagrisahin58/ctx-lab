@@ -83,6 +83,8 @@ for (const expected of [
   "Aynayi Yenile",
   "Calisma Gunlugu",
   "Gunluk",
+  "Bagli oturumlar",
+  "Bagli karar yok",
   "Olay gunlugu",
   "Olay Akisi",
   "Durum degisimi",

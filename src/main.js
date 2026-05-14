@@ -1350,6 +1350,7 @@ function renderWorkspace(counts) {
   const next = workItem ? getSection(workItem.sections, "next") || workItem.nextAction || "Sıradaki somut adım kayıtlarda yok." : "Önce proje için bir iş hattı seç veya oluştur.";
   const current = workItem ? getSection(workItem.sections, "current") || workItem.summary || "Güncel durum kayıtlarda yok." : "Bu proje için açık iş hattı bulunamadı.";
   const risks = workItem ? getSection(workItem.sections, "risks") || "Açık risk kaydı yok." : "Risk bilgisi için iş hattı gerekli.";
+  const context = workItem ? resolveWorkContext(state.records, workItem) : { sessions: [], decisions: [] };
 
   return `
     ${renderHeader(
@@ -1390,6 +1391,8 @@ function renderWorkspace(counts) {
           ${detailSection("Güncel durum özeti", current)}
           ${detailSection("Sıradaki somut adım", next)}
           ${detailSection("Açık riskler", risks)}
+          ${renderContextRecordLinks("Bağlı oturumlar", context.sessions, "Bağlı oturum yok.")}
+          ${renderContextRecordLinks("Kararlar", context.decisions, "Bağlı karar yok.")}
           <div class="context-actions">
             <button class="primary" data-action="copy-context-pack">Tek tıkla devam brifi</button>
             <button data-action="save-handoff-codex">Devam brifini kaydet</button>
@@ -1404,6 +1407,25 @@ function renderWorkspace(counts) {
 
 function metricCard(label, value) {
   return `<div class="metric"><strong>${value}</strong><span>${label}</span></div>`;
+}
+
+function renderContextRecordLinks(title, records, emptyText) {
+  const visible = (records || []).slice(0, 4);
+  return `
+    <div class="context-linked">
+      <div class="context-linked-head">
+        <h4>${escapeHtml(title)}</h4>
+        <span>${records?.length || 0}</span>
+      </div>
+      ${visible.length ? visible.map((record) => `
+        <button class="context-linked-item" type="button" data-record-id="${escapeHtml(record.id)}">
+          <strong>${escapeHtml(record.title || record.id || "Kayıt")}</strong>
+          <span>${escapeHtml(record.createdAt ? formatDate(record.createdAt) : (record.repo || record.project || record.path || ""))}</span>
+        </button>
+      `).join("") : `<p>${escapeHtml(emptyText)}</p>`}
+      ${(records?.length || 0) > visible.length ? `<small>+${records.length - visible.length} kayıt daha</small>` : ""}
+    </div>
+  `;
 }
 
 function renderTimelineEvent(event) {

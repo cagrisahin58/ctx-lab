@@ -663,6 +663,34 @@ kbd {
   gap: 12px;
 }
 
+.inbox-summary-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.inbox-summary-bar span {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
+  min-height: 24px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: var(--panel-soft);
+}
+
+.inbox-summary-bar strong {
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
 .connection-form .full {
   grid-column: 1 / -1;
 }
@@ -931,10 +959,54 @@ kbd {
 }
 
 .record-card {
+  --record-status-color: var(--line);
+  position: relative;
   padding: 14px;
+  padding-left: 18px;
   display: grid;
   gap: 8px;
   text-align: left;
+  overflow: hidden;
+  box-shadow: inset 4px 0 0 var(--record-status-color), var(--shadow);
+  transition: transform 120ms ease, border-color 120ms ease, background 120ms ease, box-shadow 120ms ease;
+}
+
+.record-card.status-needs_triage {
+  --record-status-color: var(--warning);
+}
+
+.record-card.status-linked {
+  --record-status-color: var(--violet);
+}
+
+.record-card.status-active {
+  --record-status-color: var(--success);
+}
+
+.record-card.status-waiting {
+  --record-status-color: var(--faint);
+}
+
+.record-card.status-blocked {
+  --record-status-color: var(--danger);
+}
+
+.record-card.status-done {
+  --record-status-color: var(--blue);
+}
+
+.record-card.status-archived {
+  --record-status-color: var(--muted);
+}
+
+.record-card.status-needs_triage::before {
+  content: "";
+  position: absolute;
+  inset: 10px auto 10px 0;
+  width: 4px;
+  border-radius: 999px;
+  background: var(--warning);
+  animation: statusPulse 2400ms ease-in-out infinite;
 }
 
 .record-card[draggable="true"] {
@@ -963,6 +1035,55 @@ kbd {
 .record-card p {
   margin: 0;
   color: var(--muted);
+}
+
+.record-card .next-line {
+  color: var(--text);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.inbox-stream {
+  align-content: start;
+  gap: 14px;
+}
+
+.inbox-group {
+  display: grid;
+  gap: 8px;
+}
+
+.inbox-group-header {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 2px 2px 0;
+}
+
+.inbox-group-header div {
+  display: grid;
+  gap: 2px;
+}
+
+.inbox-group-header strong {
+  font-size: 13px;
+  letter-spacing: 0;
+}
+
+.inbox-group-header span {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.inbox-empty {
+  display: grid;
+  gap: 10px;
+  justify-items: start;
+}
+
+.inbox-empty strong {
+  color: var(--text);
 }
 
 .meta {

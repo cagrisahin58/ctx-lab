@@ -225,8 +225,54 @@ function currentSelectableRecords() {
 
 function visibleInboxRecords() {
   const inbox = filteredRecords("inbox");
-  if (state.inboxStatus === "all") return inbox;
-  return inbox.filter((record) => record.status === state.inboxStatus);
+  const visible = state.inboxStatus === "all"
+    ? inbox
+    : inbox.filter((record) => record.status === state.inboxStatus);
+  return sortInboxRecords(visible);
+}
+
+function sortInboxRecords(records) {
+  const direction = state.inboxStatus === "needs_triage" ? 1 : -1;
+  return [...records].sort((a, b) => {
+    const timeDiff = (recordTimestamp(a) - recordTimestamp(b)) * direction;
+    if (timeDiff) return timeDiff;
+    return String(a.title || a.id).localeCompare(String(b.title || b.id), "tr");
+  });
+}
+
+function inboxTimeGroups(records) {
+  const now = new Date();
+  const today = startOfLocalDay(now);
+  const buckets = {
+    today: { key: "today", label: "Bugün", detail: "Son 24 saat içindeki oturumlar", records: [] },
+    yesterday: { key: "yesterday", label: "Dün", detail: "Dünden kalan oturumlar", records: [] },
+    week: { key: "week", label: "Bu hafta", detail: "Son 7 gündeki oturumlar", records: [] },
+    older: { key: "older", label: "Daha eski", detail: "7 günden eski bekleyen kayıtlar", records: [] },
+    undated: { key: "undated", label: "Tarihsiz", detail: "Tarih alanı okunamayan kayıtlar", records: [] }
+  };
+
+  for (const record of records) {
+    const timestamp = recordTimestamp(record);
+    if (!timestamp) {
+      buckets.undated.records.push(record);
+      continue;
+    }
+    const day = startOfLocalDay(new Date(timestamp));
+    const dayDiff = Math.floor((today - day) / (24 * 60 * 60 * 1000));
+    if (dayDiff <= 0) buckets.today.records.push(record);
+    else if (dayDiff === 1) buckets.yesterday.records.push(record);
+    else if (dayDiff < 7) buckets.week.records.push(record);
+    else buckets.older.records.push(record);
+  }
+
+  const order = state.inboxStatus === "needs_triage"
+    ? ["older", "week", "yesterday", "today", "undated"]
+    : ["today", "yesterday", "week", "older", "undated"];
+  return order.map((key) => buckets[key]).filter((group) => group.records.length);
+}
+
+function startOfLocalDay(date) {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
 }
 
 function primaryTypeForView(view) {
@@ -1629,6 +1675,10 @@ function renderHeader(title, subtitle, actions = "") {
 function renderInbox(counts) {
   const inbox = visibleInboxRecords();
   const selected = inbox.find((record) => record.id === state.selectedId) || inbox[0];
+  const groups = inboxTimeGroups(inbox);
+  const allInbox = recordsByType("inbox");
+  const triageCount = allInbox.filter((record) => record.status === "needs_triage").length;
+  const linkedCount = allInbox.filter((record) => record.status === "linked").length;
   return `
     ${renderHeader(
       "Oturum Akışı",
@@ -1645,19 +1695,46 @@ function renderInbox(counts) {
       </select>
     </div>
     ${state.warnings.length ? renderWarnings() : ""}
-    <div class="stats">
-      <div class="stat"><strong>${counts.inbox}</strong><span>Oturum kaydı</span></div>
-      <div class="stat"><strong>${counts.work}</strong><span>İş kartı</span></div>
-      <div class="stat"><strong>${counts.decisions}</strong><span>Karar</span></div>
-      <div class="stat"><strong>${counts.archive}</strong><span>Arşiv</span></div>
+    <div class="inbox-summary-bar" aria-label="Oturum Akışı özeti">
+      <span><strong>${inbox.length}</strong> görünür oturum</span>
+      <span><strong>${triageCount}</strong> işleme bekliyor</span>
+      <span><strong>${linkedCount}</strong> bağlandı</span>
+      <span><strong>${counts.work}</strong> iş hattı</span>
     </div>
     <div class="grid two">
-      <section class="record-list">
-        ${inbox.length ? inbox.map(renderRecordCard).join("") : `<div class="empty">Oturum akışı boş. Hafıza reposuna oturum özeti ekleyin veya örnek veri yükleyin.</div>`}
+      <section class="record-list inbox-stream">
+        ${groups.length ? groups.map(renderInboxGroup).join("") : renderInboxEmpty()}
       </section>
       <section class="panel detail">
         ${selected ? renderRecordDetail(selected, true) : `<div class="empty">İncelemek için bir kayıt seçin.</div>`}
       </section>
+    </div>
+  `;
+}
+
+function renderInboxGroup(group) {
+  return `
+    <section class="inbox-group" aria-label="${escapeHtml(group.label)}">
+      <div class="inbox-group-header">
+        <div>
+          <strong>${escapeHtml(group.label)}</strong>
+          <span>${escapeHtml(group.detail)}</span>
+        </div>
+        <span class="badge">${group.records.length} kayıt</span>
+      </div>
+      <div class="record-list">
+        ${group.records.map(renderRecordCard).join("")}
+      </div>
+    </section>
+  `;
+}
+
+function renderInboxEmpty() {
+  return `
+    <div class="empty inbox-empty">
+      <strong>Oturum akışı boş.</strong>
+      <span>Codex veya Claude oturumunu kapattığında kısa özeti buraya kaydet.</span>
+      <button class="primary" data-view="new-summary">Yeni Oturum Özeti</button>
     </div>
   `;
 }
@@ -2589,6 +2666,27 @@ function dateValue(value) {
   return Number.isNaN(time) ? 0 : time;
 }
 
+function recordTimestamp(record) {
+  return dateValue(
+    record?.frontmatter?.updated_at
+    || record?.frontmatter?.created_at
+    || record?.frontmatter?.archived_at
+    || record?.createdAt
+    || ""
+  );
+}
+
+function recordDateLabel(record) {
+  const timestamp = recordTimestamp(record);
+  if (!timestamp) return "";
+  return new Date(timestamp).toLocaleString("tr-TR", {
+    day: "2-digit",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit"
+  });
+}
+
 function renderRunnerProject(project) {
   return `
     <article class="record-card runner-project">
@@ -2607,14 +2705,19 @@ function renderRecordCard(record) {
   const dragAttrs = record.type === "work_items"
     ? ` draggable="true" data-drag-work-id="${escapeHtml(record.id)}"`
     : "";
+  const statusClass = `status-${cssToken(record.status)}`;
+  const dateLabel = recordDateLabel(record);
   return `
-    <button class="record-card ${state.selectedId === record.id ? "selected" : ""}" data-select="${record.id}"${dragAttrs}>
+    <button class="record-card ${statusClass} ${state.selectedId === record.id ? "selected" : ""}" data-select="${record.id}"${dragAttrs}>
       <h3>${escapeHtml(record.title)}</h3>
       <p>${escapeHtml(record.summary || "Özet yok.")}</p>
+      ${record.nextAction ? `<p class="next-line">Sıradaki adım: ${escapeHtml(record.nextAction)}</p>` : ""}
       <div class="meta">
         <span class="badge ${record.status}">${statusLabel(record.status)}</span>
-        ${record.source ? `<span>${escapeHtml(record.source)}</span>` : ""}
         ${record.project ? `<span>${escapeHtml(record.project)}</span>` : ""}
+        ${record.repo ? `<span>${escapeHtml(record.repo)}</span>` : ""}
+        ${record.source ? `<span>${escapeHtml(record.source)}</span>` : ""}
+        ${dateLabel ? `<span>${escapeHtml(dateLabel)}</span>` : ""}
       </div>
     </button>
   `;
@@ -3015,6 +3118,10 @@ function escapeHtml(value) {
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;");
+}
+
+function cssToken(value) {
+  return String(value || "unknown").toLowerCase().replace(/[^a-z0-9_-]+/g, "-");
 }
 
 function isEditableTarget(target) {

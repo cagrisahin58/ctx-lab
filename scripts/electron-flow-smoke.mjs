@@ -124,6 +124,9 @@ try {
   markPhase("Calisma merkezini ve komut paletini dogrulama");
   await page.getByRole("button", { name: "Önce Gez" }).click();
   await page.locator('button[data-view="inbox"]').click();
+  await expectVisibleText(page, "Bugün");
+  await expectVisibleText(page, "görünür oturum");
+  await expectVisibleText(page, "Sıradaki adım");
   await expectVisibleText(page, "Akıllı eşleşme");
   await expectVisibleText(page, "Önerilen İşe Bağla");
   await page.keyboard.press("a");

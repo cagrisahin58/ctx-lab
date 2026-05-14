@@ -28,6 +28,11 @@ assert.ok(main.includes("contextIsolation: true"), "Electron contextIsolation ac
 assert.ok(main.includes("nodeIntegration: false"), "Renderer nodeIntegration kapali olmali");
 assert.ok(main.includes("sandbox: true"), "Renderer sandbox acik olmali");
 assert.ok(main.includes("icon: appIconPath"), "Electron pencere ikonu tanimli olmali");
+assert.ok(main.includes("Menu.setApplicationMenu"), "Electron uygulama menusu tanimli olmali");
+assert.ok(main.includes("new Tray"), "Electron tray opsiyonu tanimli olmali");
+for (const label of ["ctx-lab Hakkında", "Görünüm", "Geliştirici Araçları", "Yaklaşımı Sıfırla", "ctx-lab'i Aç", "Çıkış"]) {
+  assert.ok(main.includes(label), `Electron menu/tray etiketi eksik: ${label}`);
+}
 
 const builder = readFileSync(join(root, "electron-builder.yml"), "utf8");
 assert.ok(builder.includes("icon: electron/assets/icon.ico"), "Windows paket ikonu tanimli olmali");

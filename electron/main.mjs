@@ -23,20 +23,20 @@ function createMenu() {
     {
       label: "ctx-lab",
       submenu: [
-        { role: "about", label: "ctx-lab Hakkinda" },
+        { role: "about", label: "ctx-lab Hakkında" },
         { type: "separator" },
-        { role: "quit", label: "Cikis" }
+        { role: "quit", label: "Çıkış" }
       ]
     },
     {
-      label: "Gorunum",
+      label: "Görünüm",
       submenu: [
         { role: "reload", label: "Yenile" },
-        { role: "toggleDevTools", label: "Gelistirici Araclari" },
+        { role: "toggleDevTools", label: "Geliştirici Araçları" },
         { type: "separator" },
-        { role: "resetZoom", label: "Yaklasimi Sifirla" },
-        { role: "zoomIn", label: "Yaklas" },
-        { role: "zoomOut", label: "Uzaklas" },
+        { role: "resetZoom", label: "Yaklaşımı Sıfırla" },
+        { role: "zoomIn", label: "Yaklaş" },
+        { role: "zoomOut", label: "Uzaklaş" },
         { type: "separator" },
         { role: "togglefullscreen", label: "Tam Ekran" }
       ]
@@ -52,9 +52,9 @@ function createTrayPlaceholder() {
   tray = new Tray(fallback.resize({ width: 16, height: 16 }));
   tray.setToolTip("ctx-lab");
   tray.setContextMenu(Menu.buildFromTemplate([
-    { label: "ctx-lab'i Ac", click: () => mainWindow?.show() },
+    { label: "ctx-lab'i Aç", click: () => mainWindow?.show() },
     { type: "separator" },
-    { role: "quit", label: "Cikis" }
+    { role: "quit", label: "Çıkış" }
   ]));
 }
 

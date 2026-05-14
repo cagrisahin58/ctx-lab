@@ -1513,6 +1513,60 @@ kbd {
   color: var(--text);
 }
 
+.run-events {
+  display: grid;
+  gap: 6px;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--panel-soft) 82%, var(--accent) 18%);
+}
+
+.run-events h5,
+.run-events p {
+  margin: 0;
+}
+
+.run-events.empty p,
+.run-events-head span,
+.run-event span {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.run-events-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.run-event {
+  display: grid;
+  grid-template-columns: minmax(74px, 0.22fr) minmax(0, 1fr);
+  gap: 8px;
+  align-items: center;
+  padding: 7px 8px;
+  border: 1px solid color-mix(in srgb, var(--line) 76%, var(--accent) 24%);
+  border-radius: 7px;
+  background: var(--surface);
+  animation: timelineIn 160ms ease both;
+}
+
+.run-event strong {
+  font-size: 12px;
+}
+
+.run-event span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.run-event.warning {
+  border-color: rgba(245, 158, 11, 0.36);
+}
+
 .run-evidence pre {
   max-height: 170px;
   overflow: auto;

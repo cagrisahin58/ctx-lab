@@ -13,6 +13,7 @@ import {
   ensureRunnerHome,
   getMemoryMirrorStatus,
   indexMemoryMirror,
+  listCodexRunEvents,
   listCodexRuns,
   normalizeProjectDraft,
   normalizeMemoryMirrorConfig,
@@ -375,6 +376,7 @@ test("codex run gercek calisma icin codex exec json komutunu kullanir", async ()
     assert.equal(run.testResult, "not_detected");
     assert.ok(calls.some((call) => call.args.includes("exec") && call.args.includes("--json")));
     assert.match(calls.at(-1).options.input, /Sadece oner/);
+    assert.ok(run.eventPreview.some((event) => event.event === "stdout" && event.text.includes("progress")));
     assert.equal(events[0].event, "start");
     assert.ok(events.some((event) => event.event === "stdout" && event.text.includes("progress")));
     assert.ok(events.some((event) => event.event === "stderr" && event.text.includes("uyarı")));
@@ -382,6 +384,41 @@ test("codex run gercek calisma icin codex exec json komutunu kullanir", async ()
   } finally {
     await rm(dir, { recursive: true, force: true });
     await rm(projectDir, { recursive: true, force: true });
+  }
+});
+
+test("codex run olay gunlugu son olaylari guvenli sekilde listeler", async () => {
+  const dir = await mkdtemp(join(tmpdir(), "ctxlab-runner-"));
+  const paths = buildRunnerPaths(dir);
+
+  try {
+    await ensureRunnerHome(paths);
+    const runId = "run_2026-05-14T12-40-00-000Z_ctx-lab";
+    await writeFile(join(paths.runsDir, `${runId}.json`), `${JSON.stringify({
+      id: runId,
+      status: "succeeded",
+      eventLogPath: join(paths.runsDir, `${runId}.events.jsonl`)
+    })}\n`, "utf8");
+    await writeFile(join(paths.runsDir, `${runId}.events.jsonl`), [
+      JSON.stringify({ event: "start", at: "2026-05-14T12:40:00.000Z", runId, command: "codex.cmd", sandbox: "read-only" }),
+      JSON.stringify({ event: "stdout", at: "2026-05-14T12:40:10.000Z", runId, text: "ilk satır" }),
+      JSON.stringify({ event: "stderr", at: "2026-05-14T12:40:11.000Z", runId, text: "uyarı" }),
+      JSON.stringify({ event: "finish", at: "2026-05-14T12:41:00.000Z", runId, status: "succeeded", exitCode: 0, testResult: "passed" })
+    ].join("\n"), "utf8");
+
+    const events = await listCodexRunEvents(paths, { runId, limit: 2 });
+    const runs = await listCodexRuns(paths, 1);
+
+    assert.equal(events.status, "ok");
+    assert.deepEqual(events.events.map((event) => event.event), ["stderr", "finish"]);
+    assert.equal(runs[0].eventPreviewStatus, "ok");
+    assert.ok(runs[0].eventPreview.some((event) => event.event === "finish" && event.testResult === "passed"));
+    await assert.rejects(
+      () => listCodexRunEvents(paths, { runId: "../run_1" }),
+      /Geçersiz çalıştırma kimliği/
+    );
+  } finally {
+    await rm(dir, { recursive: true, force: true });
   }
 });
 

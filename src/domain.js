@@ -846,7 +846,8 @@ export function buildCodexRunMemoryRecord(run, sourceRecord = null, now = new Da
     template: run.template || "continue_work",
     created_at: run.createdAt || now.toISOString(),
     updated_at: run.updatedAt || now.toISOString(),
-    log_path: run.logPath || ""
+    log_path: run.logPath || "",
+    event_log_path: run.eventLogPath || ""
   })}
 
 # Codex Çalıştırma Kaydı
@@ -864,6 +865,7 @@ ${formatSectionText(resultText)}
 - Otomasyon seviyesi: ${run.automationLevel || "brief"}
 - Şablon: ${run.template || "continue_work"}
 - Günlük: ${run.logPath || "yerel günlük yolu yok"}
+- Olay günlüğü: ${run.eventLogPath || "yerel olay günlüğü yok"}
 `;
 
   return {

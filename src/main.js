@@ -1485,6 +1485,7 @@ function renderRunEvidence(run) {
       </div>
       ${run.summary ? `<p class="run-summary">${escapeHtml(run.summary)}</p>` : ""}
       ${run.commitGate ? `<p class="run-gate">${escapeHtml(run.commitGate)}</p>` : ""}
+      ${renderRunEventPreview(run)}
       ${output ? `<pre>${escapeHtml(output)}</pre>` : ""}
     </div>
   `;
@@ -1492,6 +1493,56 @@ function renderRunEvidence(run) {
 
 function runFact(label, value) {
   return `<span><strong>${escapeHtml(label)}</strong>${escapeHtml(value)}</span>`;
+}
+
+function renderRunEventPreview(run) {
+  const events = Array.isArray(run.eventPreview) ? run.eventPreview : [];
+  if (!events.length) {
+    return `
+      <div class="run-events empty">
+        <h5>Olay Akışı</h5>
+        <p>${escapeHtml(run.eventPreviewError || "Gerçek Codex çalışmasının stdout/stderr olayları burada görünür.")}</p>
+      </div>
+    `;
+  }
+  return `
+    <div class="run-events">
+      <div class="run-events-head">
+        <h5>Olay Akışı</h5>
+        <span>son ${events.length} olay</span>
+      </div>
+      ${events.map((event) => `
+        <div class="run-event ${event.event === "stderr" || event.event === "corrupt" ? "warning" : ""}">
+          <strong>${escapeHtml(runEventLabel(event))}</strong>
+          <span>${escapeHtml(runEventDetail(event))}</span>
+        </div>
+      `).join("")}
+    </div>
+  `;
+}
+
+function runEventLabel(event = {}) {
+  return {
+    start: "Başladı",
+    stdout: "stdout",
+    stderr: "stderr",
+    finish: "Tamamlandı",
+    corrupt: "Bozuk olay"
+  }[event.event] || event.event || "olay";
+}
+
+function runEventDetail(event = {}) {
+  if (event.event === "start") {
+    return [event.command, event.sandbox].filter(Boolean).join(" · ") || "komut başlatıldı";
+  }
+  if (event.event === "finish") {
+    return [
+      runStatusLabel(event.status),
+      event.exitCode !== undefined ? `çıkış ${event.exitCode}` : "",
+      testResultLabel(event.testResult)
+    ].filter(Boolean).join(" · ");
+  }
+  return compactInline(event.text || event.status || event.testResult || "");
 }
 
 function automationLevelLabel(level) {
@@ -1537,6 +1588,12 @@ function compactOutput(value) {
   const text = String(value || "").trim();
   if (!text) return "";
   return text.length > 900 ? `${text.slice(0, 900)}\n...` : text;
+}
+
+function compactInline(value) {
+  const text = String(value || "").replace(/\s+/g, " ").trim();
+  if (!text) return "ayrıntı yok";
+  return text.length > 160 ? `${text.slice(0, 160)}...` : text;
 }
 
 function renderActivityLog() {

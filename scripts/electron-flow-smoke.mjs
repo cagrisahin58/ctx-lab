@@ -473,6 +473,8 @@ try {
   await expectVisibleText(page, "Çalıştırma Kanıtı");
   await expectVisibleText(page, "Test sonucu");
   await expectVisibleText(page, "Çıkış kodu");
+  await expectVisibleText(page, "Olay Akışı");
+  await expectVisibleText(page, "Gerçek Codex çalışmasının stdout/stderr olayları burada görünür.");
   await expectVisibleText(page, "Deneme kaydı olarak kaydet");
   await expectVisibleText(page, "Çalıştırma sonucunu seçili iş hattına bağla");
   await expectVisibleText(page, "Git başlangıç");

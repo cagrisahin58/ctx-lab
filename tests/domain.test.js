@@ -661,6 +661,7 @@ test("codex run sonucunu memory kaydina cevirir ve is hattina baglar", () => {
     createdAt: "2026-05-14T12:00:00.000Z",
     updatedAt: "2026-05-14T12:00:00.000Z",
     logPath: "C:\\runs\\run.json",
+    eventLogPath: "C:\\runs\\run.events.jsonl",
     summary: "Deneme prompt kaydedildi."
   };
   const memory = buildCodexRunMemoryRecord(run, work, new Date("2026-05-14T12:01:00.000Z"));
@@ -672,6 +673,8 @@ test("codex run sonucunu memory kaydina cevirir ve is hattina baglar", () => {
   assert.match(memory.path, /^handoffs\/2026-05-14T12-01-00-000Z-codex_run_run-2026-05-14t12-00-00-000z-ctx-lab\.md$/);
   assert.equal(parsedRun.frontmatter.kind, "codex_run");
   assert.equal(parsedRun.frontmatter.source_work_item, work.id);
+  assert.equal(parsedRun.frontmatter.event_log_path, "C:\\runs\\run.events.jsonl");
+  assert.match(parsedRun.raw, /Olay günlüğü: C:\\runs\\run\.events\.jsonl/);
   assert.deepEqual(parsedWork.frontmatter.codex_runs, [parsedRun.id]);
   assert.equal(events[0].kind, "codex_run");
 });

@@ -319,7 +319,8 @@ export async function listCodexRuns(paths = buildRunnerPaths(), limit = 20) {
   const runs = [];
   for (const name of runFiles) {
     try {
-      runs.push(JSON.parse(await readFile(join(paths.runsDir, name), "utf8")));
+      const run = JSON.parse(await readFile(join(paths.runsDir, name), "utf8"));
+      runs.push(await attachRunEventPreview(paths, run));
     } catch {
       runs.push({
         id: name.replace(/\.json$/, ""),
@@ -329,6 +330,27 @@ export async function listCodexRuns(paths = buildRunnerPaths(), limit = 20) {
     }
   }
   return runs;
+}
+
+export async function listCodexRunEvents(paths = buildRunnerPaths(), input = {}) {
+  await ensureRunnerHome(paths);
+  const runId = normalizeRunId(typeof input === "string" ? input : input.runId || input.id);
+  const limit = Math.min(Math.max(Number(input.limit) || 8, 1), 50);
+  const eventLogPath = join(paths.runsDir, `${runId}.events.jsonl`);
+  const text = await readFile(eventLogPath, "utf8").catch((error) => {
+    if (error?.code === "ENOENT") return "";
+    throw error;
+  });
+  if (!text.trim()) {
+    return { runId, eventLogPath, status: "missing", events: [] };
+  }
+  const lines = text.trim().split(/\r?\n/).filter(Boolean).slice(-limit);
+  return {
+    runId,
+    eventLogPath,
+    status: "ok",
+    events: lines.map(parseRunEventLine)
+  };
 }
 
 export async function startCodexRun(paths = buildRunnerPaths(), input = {}, options = {}) {
@@ -469,7 +491,7 @@ export async function startCodexRun(paths = buildRunnerPaths(), input = {}, opti
     testResult: record.testResult
   });
   await writeRunLog(logPath, record);
-  return record;
+  return attachRunEventPreview(paths, record);
 }
 
 export function createRunnerServer(options = {}) {
@@ -761,6 +783,65 @@ async function writeRunLog(logPath, record) {
 
 async function appendRunEvent(eventLogPath, event) {
   await appendFile(eventLogPath, `${JSON.stringify(event)}\n`, "utf8");
+}
+
+async function attachRunEventPreview(paths, run) {
+  if (!run?.id || run.status === "corrupt") return run;
+  try {
+    const preview = await listCodexRunEvents(paths, { runId: run.id, limit: 6 });
+    return {
+      ...run,
+      eventPreview: preview.events,
+      eventPreviewStatus: preview.status
+    };
+  } catch (error) {
+    return {
+      ...run,
+      eventPreview: [],
+      eventPreviewStatus: "error",
+      eventPreviewError: error.message || "Olay günlüğü okunamadı."
+    };
+  }
+}
+
+function normalizeRunId(value) {
+  const runId = String(value || "").trim();
+  if (!/^[A-Za-z0-9_.-]+$/.test(runId)) {
+    throw new Error("Geçersiz çalıştırma kimliği.");
+  }
+  return runId;
+}
+
+function parseRunEventLine(line) {
+  try {
+    const event = JSON.parse(line);
+    return sanitizeRunEvent(event);
+  } catch {
+    return {
+      event: "corrupt",
+      at: "",
+      text: "Olay satırı okunamadı."
+    };
+  }
+}
+
+function sanitizeRunEvent(event = {}) {
+  const clean = {
+    event: String(event.event || "event"),
+    at: String(event.at || ""),
+    runId: String(event.runId || "")
+  };
+  for (const key of ["command", "sandbox", "status", "testResult"]) {
+    if (event[key] !== undefined && event[key] !== null) clean[key] = String(event[key]);
+  }
+  if (event.exitCode !== undefined && event.exitCode !== null) clean.exitCode = Number(event.exitCode);
+  if (event.text !== undefined && event.text !== null) clean.text = compactRunEventText(event.text);
+  return clean;
+}
+
+function compactRunEventText(value) {
+  const text = String(value || "").replace(/\r?\n/g, "\n").trim();
+  return text.length > 1200 ? `${text.slice(0, 1200)}\n...` : text;
 }
 
 function timestampSlug(date) {

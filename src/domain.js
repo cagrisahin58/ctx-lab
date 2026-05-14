@@ -837,6 +837,7 @@ export function buildCodexRunMemoryRecord(run, sourceRecord = null, now = new Da
     : "Git değişikliği tespit edilmedi veya snapshot yok.";
   const commitReadiness = formatCommitReadiness(run.commitReadiness);
   const commitDraft = formatCommitDraft(run.commitDraft);
+  const commitApplication = formatCommitApplication(run.commitApplication);
   const content = `${serializeFrontmatter({
     id: memoryId,
     kind: "codex_run",
@@ -872,6 +873,9 @@ ${commitReadiness}
 
 ` : ""}${commitDraft ? `## Commit Taslağı
 ${commitDraft}
+
+` : ""}${commitApplication ? `## Commit Uygulaması
+${commitApplication}
 
 ` : ""}## Kaynak
 - Çalıştırma id: ${run.id}
@@ -1161,6 +1165,18 @@ function formatCommitDraft(draft) {
     for (const file of changedFiles) lines.push(`- ${file}`);
   }
   return lines.join("\n");
+}
+
+function formatCommitApplication(application) {
+  if (!application) return "";
+  const status = application.status === "pushed"
+    ? "Push tamamlandı"
+    : (application.status === "push_failed" ? "Push hata verdi" : "Commit tamamlandı");
+  return [
+    `Durum: ${status}`,
+    `Commit SHA: ${application.commitSha || "yok"}`,
+    application.appliedAt ? `Uygulama zamanı: ${application.appliedAt}` : ""
+  ].filter(Boolean).join("\n");
 }
 
 export function generateHandoffPrompt(record, target = "codex") {

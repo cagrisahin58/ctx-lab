@@ -53,6 +53,15 @@ export async function startRunnerCodexRun(run, options = {}) {
   }, options);
 }
 
+export async function applyRunnerRunCommit(input, options = {}) {
+  const desktop = desktopApi(options);
+  if (desktop) return desktop.applyRunCommit(input);
+  return runnerRequest("/runs/commit", {
+    method: "POST",
+    body: JSON.stringify(input)
+  }, options);
+}
+
 export async function fetchMemoryMirrorStatus(config, options = {}) {
   const desktop = desktopApi(options);
   if (desktop) return desktop.memoryStatus(config);

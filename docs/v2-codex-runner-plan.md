@@ -50,7 +50,7 @@ ctx-lab v2, GitHub destekli hafiza katmanini koruyarak proje zaman akisi merkezl
   - app-data indeks yenileme
   - `codex.cmd exec --json` calistirma
   - Codex sonucunu calistirma kaydina ve work-memory dosyalarina yazma
-  - proje repo commit/push islemleri
+  - proje repo commit/push islemleri; yalniz hazir commit taslagi, basarili test sinyali ve degismemis Git snapshoti onaylanirsa
 - Guvenlik sinirlari:
   - sadece `127.0.0.1`
   - kayitli proje kokleri allowlist

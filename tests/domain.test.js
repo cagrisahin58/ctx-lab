@@ -683,6 +683,11 @@ test("codex run sonucunu memory kaydina cevirir ve is hattina baglar", () => {
       pushAllowed: false,
       note: "Commit taslağı hazır değil; önce başarılı run, test sinyali ve Git değişikliği gerekir."
     },
+    commitApplication: {
+      status: "committed",
+      commitSha: "commitsha123",
+      appliedAt: "2026-05-14T12:03:00.000Z"
+    },
     summary: "Deneme prompt kaydedildi."
   };
   const memory = buildCodexRunMemoryRecord(run, work, new Date("2026-05-14T12:01:00.000Z"));
@@ -704,6 +709,8 @@ test("codex run sonucunu memory kaydina cevirir ve is hattina baglar", () => {
   assert.match(parsedRun.raw, /## Commit Taslağı/);
   assert.match(parsedRun.raw, /Commit mesajı: hazır değil/);
   assert.match(parsedRun.raw, /Push durumu: Kapalı/);
+  assert.match(parsedRun.raw, /## Commit Uygulaması/);
+  assert.match(parsedRun.raw, /Commit SHA: commitsha123/);
   assert.deepEqual(parsedWork.frontmatter.codex_runs, [parsedRun.id]);
   assert.equal(events[0].kind, "codex_run");
 });

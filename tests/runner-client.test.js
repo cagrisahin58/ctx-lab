@@ -10,6 +10,7 @@ import {
   syncMemoryMirror,
   registerRunnerProject,
   selectRunnerProjectDirectory,
+  applyRunnerRunCommit,
   startRunnerCodexRun
 } from "../src/runner-client.js";
 
@@ -75,13 +76,23 @@ test("runner client run listesi, olay gunlugu ve codex run endpointini kullanir"
       return jsonResponse(201, { id: "run_2", status: "dry_run" });
     }
   });
+  const committed = await applyRunnerRunCommit({ runId: "run_2", confirmCommit: true }, {
+    baseUrl: "http://runner.test",
+    fetch: async (url, options) => {
+      calls.push({ url, options });
+      return jsonResponse(201, { id: "run_2", commitApplication: { status: "committed" } });
+    }
+  });
 
   assert.equal(calls[0].url, "http://runner.test/runs?limit=5");
   assert.equal(calls[1].url, "http://runner.test/runs/events?runId=run_1&limit=12");
   assert.equal(JSON.parse(calls[2].options.body).projectId, "project_1");
+  assert.equal(calls[3].url, "http://runner.test/runs/commit");
+  assert.equal(JSON.parse(calls[3].options.body).confirmCommit, true);
   assert.equal(runs.runs[0].id, "run_1");
   assert.equal(events.events[0].event, "finish");
   assert.equal(started.status, "dry_run");
+  assert.equal(committed.commitApplication.status, "committed");
 });
 
 test("runner client memory mirror durumunu, indexini okur ve sync istegi yollar", async () => {
@@ -138,6 +149,7 @@ test("runner client masaustu IPC varsa HTTP yerine onu kullanir", async () => {
     runnerRuns: async () => ({ runs: [{ id: "run_desktop" }] }),
     runnerRunEvents: async (input) => ({ runId: input.runId, events: [{ event: "stdout" }] }),
     startCodexRun: async (run) => ({ ...run, status: "dry_run" }),
+    applyRunCommit: async (input) => ({ id: input.runId, commitApplication: { status: "committed" } }),
     memoryStatus: async () => ({ indexed: true }),
     memoryIndex: async () => ({ records: [{ id: "sess_desktop" }] }),
     syncMemory: async () => ({ recordCount: 3 })
@@ -150,6 +162,7 @@ test("runner client masaustu IPC varsa HTTP yerine onu kullanir", async () => {
   assert.equal((await fetchRunnerRuns({ desktopApi })).runs[0].id, "run_desktop");
   assert.equal((await fetchRunnerRunEvents("run_desktop", { desktopApi })).events[0].event, "stdout");
   assert.equal((await startRunnerCodexRun({ prompt: "x" }, { desktopApi })).status, "dry_run");
+  assert.equal((await applyRunnerRunCommit({ runId: "run_desktop" }, { desktopApi })).commitApplication.status, "committed");
   assert.equal((await fetchMemoryMirrorStatus({}, { desktopApi })).indexed, true);
   assert.equal((await fetchMemoryMirrorIndex({}, { desktopApi })).records[0].id, "sess_desktop");
   assert.equal((await syncMemoryMirror({}, { desktopApi })).recordCount, 3);

@@ -8,6 +8,7 @@ const channels = Object.freeze({
   listRuns: "ctxlab:runs:list",
   runEvents: "ctxlab:runs:events",
   startCodexRun: "ctxlab:runs:start-codex",
+  applyRunCommit: "ctxlab:runs:apply-commit",
   memoryStatus: "ctxlab:memory:status",
   memoryIndex: "ctxlab:memory:index",
   syncMemory: "ctxlab:memory:sync"
@@ -22,6 +23,7 @@ contextBridge.exposeInMainWorld("ctxLabDesktop", {
   runnerRuns: (options) => ipcRenderer.invoke(channels.listRuns, options || {}),
   runnerRunEvents: (options) => ipcRenderer.invoke(channels.runEvents, options || {}),
   startCodexRun: (run) => ipcRenderer.invoke(channels.startCodexRun, run),
+  applyRunCommit: (input) => ipcRenderer.invoke(channels.applyRunCommit, input || {}),
   memoryStatus: (config) => ipcRenderer.invoke(channels.memoryStatus, config || {}),
   memoryIndex: (config) => ipcRenderer.invoke(channels.memoryIndex, config || {}),
   syncMemory: (config) => ipcRenderer.invoke(channels.syncMemory, config || {})

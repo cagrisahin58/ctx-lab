@@ -1607,6 +1607,19 @@ kbd {
   gap: 5px;
 }
 
+.run-commit-application {
+  display: grid;
+  gap: 7px;
+  padding: 10px;
+  border: 1px solid rgba(52, 211, 153, 0.32);
+  border-radius: 8px;
+  background: rgba(52, 211, 153, 0.08);
+}
+
+.run-commit-application h5 {
+  margin: 0;
+}
+
 .run-change-list {
   display: grid;
   gap: 6px;

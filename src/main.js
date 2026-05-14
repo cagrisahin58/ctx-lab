@@ -45,6 +45,7 @@ import {
   registerRunnerProject,
   selectRunnerProjectDirectory,
   syncMemoryMirror,
+  applyRunnerRunCommit,
   startRunnerCodexRun
 } from "./runner-client.js";
 import { loadAppConfig, loadRecordCache, loadTheme, saveAppConfig, saveRecordCache, saveTheme } from "./storage.js";
@@ -801,6 +802,27 @@ async function refreshRunEvents(runId) {
   setToast(events.length ? "Olay akışı yenilendi." : "Olay günlüğü henüz yok.", events.length ? "success" : "warning");
 }
 
+async function applyRunCommit(payload = {}) {
+  const runId = payload.runId || "";
+  const run = state.runner.runs.find((item) => item.id === runId);
+  if (!run) throw new Error("Commit uygulanacak çalıştırma kaydı bulunamadı.");
+  const willPush = Boolean(run.commitDraft?.pushAllowed);
+  const message = willPush
+    ? "Commit taslağı uygulanıp push edilecek. Devam edilsin mi?"
+    : "Commit taslağı uygulanacak. Devam edilsin mi?";
+  const confirmed = typeof window.confirm === "function" ? window.confirm(message) : true;
+  if (!confirmed) return;
+  const updated = await applyRunnerRunCommit({
+    runId,
+    confirmCommit: true,
+    confirmPush: willPush
+  });
+  state.runner.runs = [updated, ...state.runner.runs.filter((item) => item.id !== updated.id)].slice(0, 20);
+  const status = updated.commitApplication?.status === "pushed" ? "commit ve push uygulandı" : "commit uygulandı";
+  addActivity(`Codex ${status}: ${runId}`, "success", updated.commitApplication?.commitSha || "");
+  setToast(`Codex ${status}.`, "success");
+}
+
 function runFeedbackKind(run) {
   if (run.status === "failed") return "error";
   if (run.status === "blocked") return "warning";
@@ -1506,7 +1528,8 @@ function renderRunEvidence(run) {
       </div>
       ${run.summary ? `<p class="run-summary">${escapeHtml(run.summary)}</p>` : ""}
       ${renderCommitReadiness(run.commitReadiness)}
-      ${renderCommitDraft(run.commitDraft)}
+      ${renderCommitDraft(run.commitDraft, run)}
+      ${renderCommitApplication(run.commitApplication)}
       ${run.commitGate ? `<p class="run-gate">${escapeHtml(run.commitGate)}</p>` : ""}
       ${renderChangedFiles(run)}
       ${renderRunEventPreview(run)}
@@ -1539,11 +1562,12 @@ function renderCommitReadiness(readiness) {
   `;
 }
 
-function renderCommitDraft(draft) {
+function renderCommitDraft(draft, run) {
   if (!draft) return "";
   const body = Array.isArray(draft.body) ? draft.body : [];
   const changedFiles = Array.isArray(draft.changedFiles) ? draft.changedFiles : [];
   const stateLabel = draft.pushAllowed ? "Push için hazır" : (draft.ready ? "Commit için hazır" : "Hazır değil");
+  const actionLabel = draft.pushAllowed ? "Commit + Push Uygula" : "Commit Uygula";
   return `
     <div class="run-commit-draft ${draft.ready ? "ready" : "not-ready"}">
       <div class="run-events-head">
@@ -1557,6 +1581,23 @@ function renderCommitDraft(draft) {
       <p>${escapeHtml(draft.note || "")}</p>
       ${body.length ? `<ul>${body.map((line) => `<li>${escapeHtml(line)}</li>`).join("")}</ul>` : ""}
       ${changedFiles.length ? `<div class="commit-draft-files">${changedFiles.slice(0, 6).map((file) => `<code>${escapeHtml(file)}</code>`).join("")}</div>` : ""}
+      ${draft.ready ? `<button class="ghost compact" type="button" data-action="apply-run-commit" data-run-id="${escapeHtml(run.id)}">${escapeHtml(actionLabel)}</button>` : ""}
+    </div>
+  `;
+}
+
+function renderCommitApplication(application) {
+  if (!application) return "";
+  const label = application.status === "pushed"
+    ? "Push tamamlandı"
+    : (application.status === "push_failed" ? "Push hata verdi" : "Commit tamamlandı");
+  return `
+    <div class="run-commit-application">
+      <div class="run-events-head">
+        <h5>Commit Uygulaması</h5>
+        <span>${escapeHtml(label)}</span>
+      </div>
+      <code>${escapeHtml(application.commitSha || "commit sha yok")}</code>
     </div>
   `;
 }
@@ -3342,6 +3383,7 @@ function handleAction(action, payload) {
   if (action === "select-project-root") guarded(selectProjectRootForForm);
   if (action === "start-codex-run") guarded(() => startCodexRunFromForm(payload));
   if (action === "refresh-run-events") guarded(() => refreshRunEvents(payload?.runId));
+  if (action === "apply-run-commit") guarded(() => applyRunCommit(payload));
   if (action === "sync-memory-mirror") guarded(syncMemoryMirrorFromConfig);
   if (action === "generate-onboarding-brief") {
     generateOnboardingBrief();

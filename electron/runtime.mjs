@@ -8,6 +8,7 @@ import {
   registerProject,
   readMemoryIndex,
   syncMemoryMirror,
+  applyCodexRunCommit,
   startCodexRun
 } from "../scripts/ctxlab-runner.mjs";
 
@@ -19,6 +20,7 @@ export const DESKTOP_IPC_CHANNELS = Object.freeze({
   listRuns: "ctxlab:runs:list",
   runEvents: "ctxlab:runs:events",
   startCodexRun: "ctxlab:runs:start-codex",
+  applyRunCommit: "ctxlab:runs:apply-commit",
   memoryStatus: "ctxlab:memory:status",
   memoryIndex: "ctxlab:memory:index",
   syncMemory: "ctxlab:memory:sync"
@@ -66,6 +68,9 @@ export function createDesktopRuntime(options = {}) {
     async startCodexRun(input) {
       return startCodexRun(paths, input, options);
     },
+    async applyRunCommit(input) {
+      return applyCodexRunCommit(paths, input, options);
+    },
     async memoryStatus(input) {
       return getMemoryMirrorStatus(paths, input);
     },
@@ -87,6 +92,7 @@ export function registerDesktopIpcHandlers(ipcMain, runtime) {
     [DESKTOP_IPC_CHANNELS.listRuns]: (_event, input) => runtime.listRuns(input),
     [DESKTOP_IPC_CHANNELS.runEvents]: (_event, input) => runtime.runEvents(input),
     [DESKTOP_IPC_CHANNELS.startCodexRun]: (_event, input) => runtime.startCodexRun(input),
+    [DESKTOP_IPC_CHANNELS.applyRunCommit]: (_event, input) => runtime.applyRunCommit(input),
     [DESKTOP_IPC_CHANNELS.memoryStatus]: (_event, input) => runtime.memoryStatus(input),
     [DESKTOP_IPC_CHANNELS.memoryIndex]: (_event, input) => runtime.memoryIndex(input),
     [DESKTOP_IPC_CHANNELS.syncMemory]: (_event, input) => runtime.syncMemory(input)

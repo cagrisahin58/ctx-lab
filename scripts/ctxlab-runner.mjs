@@ -499,6 +499,68 @@ export async function startCodexRun(paths = buildRunnerPaths(), input = {}, opti
   return attachRunEventPreview(paths, record);
 }
 
+export async function applyCodexRunCommit(paths = buildRunnerPaths(), input = {}, options = {}) {
+  await ensureRunnerHome(paths);
+  const runId = assertSafeRunId(input.runId);
+  const logPath = join(paths.runsDir, `${runId}.json`);
+  const record = JSON.parse(await readFile(logPath, "utf8"));
+  if (!["commit_prepare", "commit_push"].includes(record.automationLevel)) {
+    throw new Error("Bu çalıştırma commit uygulama seviyesinde değil.");
+  }
+  if (!record.commitReadiness?.ready || !record.commitDraft?.ready) {
+    throw new Error("Commit taslağı hazır değil; başarılı run, test sinyali ve Git değişikliği gerekir.");
+  }
+  if (input.confirmCommit !== true) {
+    throw new Error("Commit uygulaması için açık kullanıcı onayı gerekir.");
+  }
+  if (record.automationLevel === "commit_push" && input.confirmPush !== true) {
+    throw new Error("Push uygulaması için ayrı kullanıcı onayı gerekir.");
+  }
+
+  const registry = await readProjectRegistry(paths);
+  const project = resolveAllowedProject(registry, {
+    projectId: record.project?.id,
+    projectPath: record.project?.path
+  });
+  const git = options.gitCommand || runCommand;
+  const current = await readGitSnapshot(project.path, git);
+  assertCommitSnapshotUnchanged(record.gitAfter, current);
+  const filePaths = changedFilePathsFromSnapshot(current);
+  const add = await git("git", ["-C", project.path, "add", "--", ...filePaths]);
+  if (!add.ok) throw new Error(`Git add başarısız: ${add.stderr || add.stdout || "çıktı yok"}`);
+
+  const commit = await git("git", ["-C", project.path, "commit", "-m", record.commitDraft.message]);
+  if (!commit.ok) throw new Error(`Git commit başarısız: ${commit.stderr || commit.stdout || "çıktı yok"}`);
+  const head = await git("git", ["-C", project.path, "rev-parse", "HEAD"]);
+  const appliedAt = (options.now || new Date()).toISOString();
+  record.commitApplication = {
+    status: "committed",
+    appliedAt,
+    commitSha: head.ok ? head.stdout.trim() : "",
+    stdout: commit.stdout || "",
+    stderr: commit.stderr || ""
+  };
+
+  if (record.automationLevel === "commit_push") {
+    const push = await git("git", ["-C", project.path, "push"]);
+    if (!push.ok) {
+      record.commitApplication.status = "push_failed";
+      record.commitApplication.pushStdout = push.stdout || "";
+      record.commitApplication.pushStderr = push.stderr || "";
+      record.updatedAt = appliedAt;
+      await writeRunLog(logPath, record);
+      throw new Error(`Git push başarısız: ${push.stderr || push.stdout || "çıktı yok"}`);
+    }
+    record.commitApplication.status = "pushed";
+    record.commitApplication.pushStdout = push.stdout || "";
+    record.commitApplication.pushStderr = push.stderr || "";
+  }
+
+  record.updatedAt = appliedAt;
+  await writeRunLog(logPath, record);
+  return record;
+}
+
 export function createRunnerServer(options = {}) {
   const paths = options.paths || buildRunnerPaths(options.appDataDir);
   const host = options.host || "127.0.0.1";
@@ -519,7 +581,7 @@ export function createRunnerServer(options = {}) {
       if (request.method === "GET" && url.pathname === "/") {
         return sendJson(response, 200, {
           ...(await buildHealthPayload(paths, options)),
-          endpoints: ["/health", "/projects", "/runs", "/runs/events", "/runs/codex", "/memory/status", "/memory/index", "/memory/sync"]
+          endpoints: ["/health", "/projects", "/runs", "/runs/events", "/runs/codex", "/runs/commit", "/memory/status", "/memory/index", "/memory/sync"]
         });
       }
       if (request.method === "GET" && url.pathname === "/health") {
@@ -543,6 +605,10 @@ export function createRunnerServer(options = {}) {
       if (request.method === "POST" && url.pathname === "/runs/codex") {
         const body = await readJsonBody(request);
         return sendJson(response, 201, await startCodexRun(paths, body, options));
+      }
+      if (request.method === "POST" && url.pathname === "/runs/commit") {
+        const body = await readJsonBody(request);
+        return sendJson(response, 201, await applyCodexRunCommit(paths, body, options));
       }
       if (request.method === "GET" && url.pathname === "/memory/status") {
         return sendJson(response, 200, await getMemoryMirrorStatus(paths, Object.fromEntries(url.searchParams)));
@@ -875,6 +941,44 @@ function truncateCommitSubject(value = "") {
   const subject = String(value || "").replace(/[.!?]+$/g, "");
   if (subject.length <= 72) return subject;
   return `${subject.slice(0, 69).trimEnd()}...`;
+}
+
+function assertSafeRunId(runId) {
+  const value = String(runId || "").trim();
+  if (!/^[a-zA-Z0-9_.-]+$/.test(value)) {
+    throw new Error("Geçerli bir çalıştırma id değeri gerekir.");
+  }
+  return value;
+}
+
+function assertCommitSnapshotUnchanged(expected = {}, current = {}) {
+  if (!expected?.available || !current?.available) {
+    throw new Error("Git durumu commit öncesi doğrulanamadı.");
+  }
+  const expectedFiles = Array.isArray(expected.changedFiles) ? expected.changedFiles : [];
+  const currentFiles = Array.isArray(current.changedFiles) ? current.changedFiles : [];
+  if (!expectedFiles.length || !currentFiles.length) {
+    throw new Error("Commit için Git değişikliği yok.");
+  }
+  if ((expected.changedCount || expectedFiles.length) !== expectedFiles.length) {
+    throw new Error("Run snapshotı eksik; tüm değişiklikler güvenli biçimde stage edilemiyor.");
+  }
+  if (expectedFiles.length !== currentFiles.length || expectedFiles.some((file, index) => file !== currentFiles[index])) {
+    throw new Error("Git durumu Codex run sonrası değişmiş; commit uygulanmadı.");
+  }
+}
+
+function changedFilePathsFromSnapshot(snapshot = {}) {
+  const files = (snapshot.changedFiles || []).map(pathFromGitStatusLine).filter(Boolean);
+  if (!files.length) throw new Error("Stage edilecek dosya yolu bulunamadı.");
+  return files;
+}
+
+function pathFromGitStatusLine(line = "") {
+  const text = String(line || "").trim();
+  const filePath = (text.match(/^[A-Z?! ]{1,2}\s+(.+)$/)?.[1] || "").trim();
+  if (!filePath || filePath.includes(" -> ")) return "";
+  return filePath.replace(/^"|"$/g, "");
 }
 
 function commitReadinessTestDetail(result) {

@@ -21,6 +21,7 @@ import {
   registerProject,
   resolveAppDataDir,
   syncMemoryMirror,
+  applyCodexRunCommit,
   startCodexRun
 } from "../scripts/ctxlab-runner.mjs";
 
@@ -564,6 +565,128 @@ test("codex commit push gercek calisma icin ayrica onay ister", async () => {
   }
 });
 
+test("codex run commit taslagini onayla uygular ve push eder", async () => {
+  const dir = await mkdtemp(join(tmpdir(), "ctxlab-runner-"));
+  const projectDir = await mkdtemp(join(tmpdir(), "ctxlab-project-"));
+  const paths = buildRunnerPaths(dir);
+  const calls = [];
+  let statusCalls = 0;
+  let headCalls = 0;
+
+  const gitCommand = async (_command, args) => {
+    calls.push(args);
+    if (args.includes("--is-inside-work-tree")) return { ok: true, stdout: "true\n", stderr: "", code: 0 };
+    if (args.includes("--abbrev-ref")) return { ok: true, stdout: "main\n", stderr: "", code: 0 };
+    if (args.includes("status")) {
+      statusCalls += 1;
+      return { ok: true, stdout: statusCalls === 1 ? "" : " M src/main.js\n", stderr: "", code: 0 };
+    }
+    if (args.includes("add")) return { ok: true, stdout: "", stderr: "", code: 0 };
+    if (args.includes("commit")) return { ok: true, stdout: "[main commitsha] test\n", stderr: "", code: 0 };
+    if (args.includes("push")) return { ok: true, stdout: "pushed\n", stderr: "", code: 0 };
+    if (args.includes("HEAD")) {
+      headCalls += 1;
+      return { ok: true, stdout: headCalls >= 4 ? "commitsha123\n" : "abcdef1234567890\n", stderr: "", code: 0 };
+    }
+    return { ok: false, stdout: "", stderr: "beklenmeyen git komutu", code: 1 };
+  };
+
+  try {
+    const project = await registerProject(paths, {
+      name: "ctx-lab",
+      path: projectDir
+    });
+    const run = await startCodexRun(paths, {
+      projectId: project.id,
+      automationLevel: "commit_push",
+      prompt: "Commit taslagini uygula.",
+      dryRun: false,
+      confirmCommitPush: true
+    }, {
+      now: new Date("2026-05-14T12:40:00.000Z"),
+      finishedAt: new Date("2026-05-14T12:41:00.000Z"),
+      candidates: ["codex.cmd"],
+      runCommand: async (_command, args) => {
+        if (args.includes("--version")) return { ok: true, stdout: "codex-cli test\n", stderr: "", code: 0 };
+        return { ok: true, stdout: "all tests passed\n", stderr: "", code: 0 };
+      },
+      gitCommand
+    });
+    const updated = await applyCodexRunCommit(paths, {
+      runId: run.id,
+      confirmCommit: true,
+      confirmPush: true
+    }, {
+      now: new Date("2026-05-14T12:42:00.000Z"),
+      gitCommand
+    });
+
+    assert.equal(updated.commitApplication.status, "pushed");
+    assert.equal(updated.commitApplication.commitSha, "commitsha123");
+    assert.ok(calls.some((args) => args.includes("add") && args.includes("src/main.js")));
+    assert.ok(calls.some((args) => args.includes("commit") && args.includes(run.commitDraft.message)));
+    assert.ok(calls.some((args) => args.includes("push")));
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+    await rm(projectDir, { recursive: true, force: true });
+  }
+});
+
+test("codex run commit uygulamasi git durumu degistiyse reddeder", async () => {
+  const dir = await mkdtemp(join(tmpdir(), "ctxlab-runner-"));
+  const projectDir = await mkdtemp(join(tmpdir(), "ctxlab-project-"));
+  const paths = buildRunnerPaths(dir);
+  const calls = [];
+  let statusCalls = 0;
+
+  const gitCommand = async (_command, args) => {
+    calls.push(args);
+    if (args.includes("--is-inside-work-tree")) return { ok: true, stdout: "true\n", stderr: "", code: 0 };
+    if (args.includes("--abbrev-ref")) return { ok: true, stdout: "main\n", stderr: "", code: 0 };
+    if (args.includes("HEAD")) return { ok: true, stdout: "abcdef1234567890\n", stderr: "", code: 0 };
+    if (args.includes("status")) {
+      statusCalls += 1;
+      const stdout = statusCalls === 1 ? "" : (statusCalls === 2 ? " M src/main.js\n" : " M src/other.js\n");
+      return { ok: true, stdout, stderr: "", code: 0 };
+    }
+    if (args.includes("add")) return { ok: true, stdout: "", stderr: "", code: 0 };
+    return { ok: false, stdout: "", stderr: "beklenmeyen git komutu", code: 1 };
+  };
+
+  try {
+    const project = await registerProject(paths, {
+      name: "ctx-lab",
+      path: projectDir
+    });
+    const run = await startCodexRun(paths, {
+      projectId: project.id,
+      automationLevel: "commit_prepare",
+      prompt: "Commit taslagini hazirla.",
+      dryRun: false
+    }, {
+      now: new Date("2026-05-14T12:45:00.000Z"),
+      candidates: ["codex.cmd"],
+      runCommand: async (_command, args) => {
+        if (args.includes("--version")) return { ok: true, stdout: "codex-cli test\n", stderr: "", code: 0 };
+        return { ok: true, stdout: "tests passed\n", stderr: "", code: 0 };
+      },
+      gitCommand
+    });
+
+    await assert.rejects(
+      () => applyCodexRunCommit(paths, {
+        runId: run.id,
+        confirmCommit: true
+      }, { gitCommand }),
+      /Git durumu Codex run sonrası değişmiş/
+    );
+    assert.equal(calls.some((args) => args.includes("add")), false);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+    await rm(projectDir, { recursive: true, force: true });
+  }
+});
+
 test("runner server /health endpointini sunar", async () => {
   const dir = await mkdtemp(join(tmpdir(), "ctxlab-runner-"));
   const paths = buildRunnerPaths(dir);
@@ -603,7 +726,7 @@ test("runner server kok endpointinde saglik ve endpoint listesini sunar", async 
 
     assert.equal(response.status, 200);
     assert.equal(body.service, "ctx-lab-runner");
-    assert.deepEqual(body.endpoints, ["/health", "/projects", "/runs", "/runs/events", "/runs/codex", "/memory/status", "/memory/index", "/memory/sync"]);
+    assert.deepEqual(body.endpoints, ["/health", "/projects", "/runs", "/runs/events", "/runs/codex", "/runs/commit", "/memory/status", "/memory/index", "/memory/sync"]);
   } finally {
     await new Promise((resolve) => server.close(resolve));
     await rm(dir, { recursive: true, force: true });

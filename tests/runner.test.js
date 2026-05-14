@@ -556,6 +556,55 @@ test("codex run test sonucunu ve commit kapisini loglar", async () => {
   }
 });
 
+test("codex run TAP not ok ciktisini basarisiz test sinyali sayar", async () => {
+  const dir = await mkdtemp(join(tmpdir(), "ctxlab-runner-"));
+  const projectDir = await mkdtemp(join(tmpdir(), "ctxlab-project-"));
+  const paths = buildRunnerPaths(dir);
+  let statusCalls = 0;
+
+  try {
+    const project = await registerProject(paths, {
+      name: "ctx-lab",
+      path: projectDir
+    });
+    const run = await startCodexRun(paths, {
+      projectId: project.id,
+      automationLevel: "commit_prepare",
+      prompt: "Testleri calistir ve commit taslagini hazirla.",
+      dryRun: false
+    }, {
+      now: new Date("2026-05-14T12:30:30.000Z"),
+      finishedAt: new Date("2026-05-14T12:31:30.000Z"),
+      candidates: ["codex.cmd"],
+      runCommand: async (_command, args) => {
+        if (args.includes("--version")) return { ok: true, stdout: "codex-cli test\n", stderr: "", code: 0 };
+        return { ok: true, stdout: "TAP version 13\nnot ok 1 - runner smoke\n", stderr: "", code: 0 };
+      },
+      gitCommand: async (_command, args) => {
+        if (args.includes("--is-inside-work-tree")) return { ok: true, stdout: "true\n", stderr: "", code: 0 };
+        if (args.includes("--abbrev-ref")) return { ok: true, stdout: "main\n", stderr: "", code: 0 };
+        if (args.includes("HEAD")) return { ok: true, stdout: "abcdef1234567890\n", stderr: "", code: 0 };
+        if (args.includes("status")) {
+          statusCalls += 1;
+          return { ok: true, stdout: statusCalls === 1 ? "" : " M src/main.js\n", stderr: "", code: 0 };
+        }
+        return { ok: false, stdout: "", stderr: "beklenmeyen git komutu", code: 1 };
+      }
+    });
+    const testCheck = run.commitReadiness.checks.find((check) => check.id === "test");
+
+    assert.equal(run.status, "succeeded");
+    assert.equal(run.testResult, "failed");
+    assert.equal(testCheck.ok, false);
+    assert.match(run.summary, /hata sinyali/);
+    assert.equal(run.commitReadiness.ready, false);
+    assert.equal(run.commitDraft.ready, false);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+    await rm(projectDir, { recursive: true, force: true });
+  }
+});
+
 test("codex run commit seviyesinde HEAD degisirse commit taslagini hazir saymaz", async () => {
   const dir = await mkdtemp(join(tmpdir(), "ctxlab-runner-"));
   const projectDir = await mkdtemp(join(tmpdir(), "ctxlab-project-"));

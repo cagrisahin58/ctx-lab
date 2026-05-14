@@ -876,6 +876,7 @@ function buildCodexResultSummary(result = {}) {
 function detectTestResult(stdout = "", stderr = "") {
   const text = `${stdout || ""}\n${stderr || ""}`;
   if (!text.trim()) return "not_detected";
+  if (/\bnot\s+ok\b/i.test(text)) return "failed";
   if (/\b(fail|failed|failing|error|errored|tests?\s+failed)\b/i.test(text)) return "failed";
   if (/\b(pass|passed|passing|tests?\s+passed|all tests passed|ok)\b/i.test(text)) return "passed";
   return "not_detected";

@@ -88,6 +88,13 @@ button.primary:hover {
   background: var(--accent-strong);
 }
 
+button.danger {
+  border-color: rgba(248, 113, 113, 0.66);
+  background: color-mix(in srgb, var(--danger) 18%, var(--panel-soft));
+  color: #fecaca;
+  font-weight: 700;
+}
+
 button.ghost {
   background: transparent;
 }

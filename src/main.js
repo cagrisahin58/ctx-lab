@@ -68,6 +68,7 @@ const state = {
   demo: false,
   warnings: [],
   query: "",
+  pendingArchiveId: "",
   commandPalette: {
     open: false,
     query: "",
@@ -161,6 +162,7 @@ function setToast(message, kind = "info") {
 
 function setView(view) {
   state.view = view;
+  state.pendingArchiveId = "";
   keepSelectionVisible();
   render();
 }
@@ -202,7 +204,14 @@ function keepSelectionVisible() {
   const visible = state.view === "inbox" ? visibleInboxRecords() : filteredRecords(type);
   if (visible.length && !visible.some((record) => record.id === state.selectedId)) {
     state.selectedId = visible[0].id;
+    state.pendingArchiveId = "";
   }
+}
+
+function currentSelectableRecords() {
+  const type = primaryTypeForView(state.view);
+  if (!type) return [];
+  return state.view === "inbox" ? visibleInboxRecords() : filteredRecords(type);
 }
 
 function visibleInboxRecords() {
@@ -456,6 +465,19 @@ async function archiveSelected() {
   state.selectedId = parsed.id;
   refreshWarnings();
   setToast("Oturum kaydı arşivlendi.");
+}
+
+async function requestArchiveSelected() {
+  const record = selectedRecord();
+  if (!record || record.type !== "inbox") return;
+  if (state.pendingArchiveId !== record.id) {
+    state.pendingArchiveId = record.id;
+    setToast("Arşivlemek için tekrar onay ver.");
+    render();
+    return;
+  }
+  state.pendingArchiveId = "";
+  await archiveSelected();
 }
 
 async function saveDecisionFromSelected() {
@@ -1077,6 +1099,9 @@ function shortcutRows() {
     { keys: "n d", label: "Yeni Karar" },
     { keys: "s", label: "GitHub'dan Yenile" },
     { keys: "/", label: "Aramayı odakla" },
+    { keys: "↑ ↓", label: "Listedeki kaydı değiştir" },
+    { keys: "Enter", label: "Seçili kaydın aksiyonlarına geç" },
+    { keys: "Backspace", label: "Seçili oturumu arşivleme onayı" },
     { keys: "Esc", label: "Paneli kapat" }
   ];
 }
@@ -2420,6 +2445,7 @@ function renderRecordDetail(record, withActions) {
   const suggestion = withActions && record.type === "inbox"
     ? suggestWorkItemForSession(state.records, record)
     : null;
+  const archiveLabel = state.pendingArchiveId === record.id ? "Arşivi Onayla" : "Arşivle";
   return `
     <h3>${escapeHtml(record.title)}</h3>
     <div class="meta">
@@ -2431,7 +2457,7 @@ function renderRecordDetail(record, withActions) {
       <div class="toolbar-actions">
         <button class="primary" data-action="create-work">Yeni/Proje İş Kartına Bağla</button>
         <button data-action="save-decision">Karar Çıkar</button>
-        <button data-action="archive">Arşivle</button>
+        <button class="${state.pendingArchiveId === record.id ? "danger" : ""}" data-action="archive">${archiveLabel}</button>
       </div>
       ${suggestion ? renderTriageSuggestion(suggestion) : ""}
       ${workItems.length ? `
@@ -2548,6 +2574,7 @@ function bindEvents() {
   document.querySelectorAll("[data-select]").forEach((button) => {
     button.addEventListener("click", () => {
       state.selectedId = button.dataset.select;
+      state.pendingArchiveId = "";
       render();
     });
   });
@@ -2784,7 +2811,7 @@ function handleAction(action, payload) {
   if (action === "update-work-status") guarded(() => updateSelectedWorkStatus(payload));
   if (action === "move-work-status") guarded(() => moveWorkItemToStatus(payload?.id, payload?.status));
   if (action === "update-work-next") guarded(() => updateSelectedWorkNextAction(payload));
-  if (action === "archive") guarded(archiveSelected);
+  if (action === "archive") guarded(requestArchiveSelected);
   if (action === "save-decision") guarded(saveDecisionFromSelected);
   if (action === "save-handoff-current") guarded(() => saveHandoff(state.handoffTarget));
   if (action === "save-handoff-codex") guarded(() => saveHandoff("codex"));
@@ -2813,6 +2840,25 @@ function focusSearchInput() {
     search.focus();
     search.setSelectionRange(search.value.length, search.value.length);
   }
+}
+
+function moveSelection(delta) {
+  const records = currentSelectableRecords();
+  if (!records.length) return false;
+  const currentIndex = Math.max(0, records.findIndex((record) => record.id === state.selectedId));
+  const nextIndex = (currentIndex + delta + records.length) % records.length;
+  state.selectedId = records[nextIndex].id;
+  state.pendingArchiveId = "";
+  render();
+  document.querySelector(`[data-select="${CSS.escape(state.selectedId)}"]`)?.focus();
+  return true;
+}
+
+function focusDetailAction() {
+  const target = document.querySelector(".detail [data-action], .detail button, .detail select, .detail input, .detail textarea");
+  if (!target) return false;
+  target.focus();
+  return true;
 }
 
 function handleGlobalKeydown(event) {
@@ -2852,6 +2898,21 @@ function handleGlobalKeydown(event) {
   if (key === "s") {
     event.preventDefault();
     handleAction("sync");
+    return;
+  }
+  if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+    if (moveSelection(event.key === "ArrowDown" ? 1 : -1)) event.preventDefault();
+    return;
+  }
+  if (event.key === "Enter") {
+    if (focusDetailAction()) event.preventDefault();
+    return;
+  }
+  if (key === "backspace" || key === "delete") {
+    if (state.view === "inbox" && selectedRecord()?.type === "inbox") {
+      event.preventDefault();
+      handleAction("archive");
+    }
     return;
   }
 

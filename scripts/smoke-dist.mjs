@@ -67,6 +67,9 @@ for (const expected of [
   "Onerilen Ise Bagla",
   "Tokeni goster",
   "GitHub hafiza reposu disaridan guncellendi",
+  "Listedeki kaydi degistir",
+  "Secili oturumu arsivleme onayi",
+  "Arsivi Onayla",
   "Proje Koku",
   "Oturum Kapanis"
 ]) {

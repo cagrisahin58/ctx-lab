@@ -205,6 +205,8 @@ test("manuel oturum özeti benzersiz inbox yolu üretir", () => {
   assert.equal(summary.id, "sess_2026-05-13T12-34-56-789Z_ctx-lab_codex");
   assert.equal(summary.path, "inbox/2026-05-13T12-34-56-789Z-ctx-lab-codex.md");
   assert.match(summary.content, /status: needs_triage/);
+  assert.match(summary.content, /# Oturum Özeti/);
+  assert.doesNotMatch(summary.content, /# Session Summary/);
   assert.match(summary.content, /Bağlam kaybını azaltmak/);
 });
 
@@ -307,6 +309,8 @@ Markdown içe aktarma akışını denemek.
   assert.equal(summary.path, "inbox/2026-05-13T10-00-00-000Z-ctx-lab-claude.md");
   assert.equal(parsed.frontmatter.status, "needs_triage");
   assert.deepEqual(parsed.frontmatter.tags, ["kapanis"]);
+  assert.match(parsed.body, /# Oturum Özeti/);
+  assert.doesNotMatch(parsed.body, /# Session Summary/);
   assert.match(parsed.body, /Markdown içe aktarma/);
 });
 
@@ -320,6 +324,8 @@ test("oturum kapanış prompt'u ctx-lab formatını ister", () => {
 
   assert.match(prompt, /ctx-lab AI çalışma hafızası/);
   assert.match(prompt, /project: ctx-lab/);
+  assert.match(prompt, /# Oturum Özeti/);
+  assert.doesNotMatch(prompt, /# Session Summary/);
   assert.match(prompt, /## Sonraki Adımlar/);
 });
 

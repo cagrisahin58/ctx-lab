@@ -52,7 +52,7 @@ tags:
 linked_work_item:
 ---
 
-# Session Summary
+# Oturum Özeti
 
 ## Amaç
 Bu oturumun hedefi.

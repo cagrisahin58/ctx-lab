@@ -465,7 +465,7 @@ export function buildWorkItemFromSession(session) {
   const now = new Date().toISOString();
   const title = session.project
     ? `${session.project} çalışma hattı`
-    : session.title.replace(/^Session Summary$/i, "Yeni çalışma hattı");
+    : session.title.replace(/^(Session Summary|Oturum Özeti)$/i, "Yeni çalışma hattı");
 
   const content = `${serializeFrontmatter({
     id: workId,
@@ -950,7 +950,7 @@ export function buildInboxSessionSummary(draft, now = new Date()) {
     linked_work_item: ""
   })}
 
-# Session Summary
+# Oturum Özeti
 
 ## Amaç
 ${draft.goal || "Bu oturumun amacı yazılacak."}
@@ -982,7 +982,7 @@ export function buildInboxSessionSummaryFromMarkdown(raw, fallback = {}, now = n
   const createdDate = new Date(createdAt);
   const stamp = timestampSlug(Number.isNaN(createdDate.getTime()) ? now : createdDate);
   const id = frontmatter.id || `sess_${stamp}_${slugify(project)}_${slugify(source)}`;
-  const body = parsed.body.trim() || defaultSessionBody();
+  const body = normalizeSessionBodyTitle(parsed.body.trim() || defaultSessionBody());
   const content = `${serializeFrontmatter({
     id,
     source,
@@ -1026,7 +1026,7 @@ tags:
 linked_work_item:
 ---
 
-# Session Summary
+# Oturum Özeti
 
 ## Amaç
 
@@ -1047,7 +1047,7 @@ function timestampSlug(date) {
 }
 
 function defaultSessionBody() {
-  return `# Session Summary
+  return `# Oturum Özeti
 
 ## Amaç
 Bu oturumun amacı yazılacak.
@@ -1066,6 +1066,10 @@ Sıradaki adım netleştirilecek.
 
 ## Kanıtlar
 Kaynak belirtilmedi.`;
+}
+
+function normalizeSessionBodyTitle(body) {
+  return String(body || "").replace(/^#\s+Session Summary\s*$/im, "# Oturum Özeti");
 }
 
 function formatSectionText(value) {

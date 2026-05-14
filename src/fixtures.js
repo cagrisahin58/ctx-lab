@@ -17,7 +17,7 @@ tags: [architecture, github-memory]
 linked_work_item:
 ---
 
-# Session Summary
+# Oturum Özeti
 
 ## Amaç
 ctx-lab projesini GitHub-backed AI Work Memory sistemine dönüştürme yönünü netleştirmek.

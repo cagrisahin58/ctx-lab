@@ -14,6 +14,7 @@ const require = createRequire(import.meta.url);
 const electronPath = require("electron");
 const root = process.cwd();
 const userData = await mkdtemp(join(tmpdir(), "ctxlab-electron-flow-"));
+let runtimeUserData = userData;
 let phase = "Electron baslatma";
 
 function markPhase(value) {
@@ -365,7 +366,7 @@ async function seedValidationCache(page, options = {}) {
 }
 
 async function seedMemoryIndex(config, records) {
-  const paths = buildRunnerPaths(userData);
+  const paths = buildRunnerPaths(runtimeUserData);
   const mirror = buildMemoryMirrorPaths(paths, config);
   const index = {
     schemaVersion: 1,
@@ -491,6 +492,7 @@ try {
     cwd: root,
     env
   });
+  runtimeUserData = await electronApp.evaluate(({ app }) => app.getPath("userData"));
 
   const page = await electronApp.firstWindow();
   markPhase("Ilk kurulum ekranini bekleme");

@@ -1987,7 +1987,7 @@ function renderOnboarding() {
       </div>
       <div class="onboarding-actions">
         <section class="panel">
-          <h3>GitHub Hafıza Reposu</h3>
+          <h3>Hafıza Bağlantısı</h3>
           ${renderConnectionSteps()}
           <form class="connection-form" id="onboarding-config-form">
             <label>

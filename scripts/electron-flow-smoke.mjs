@@ -405,7 +405,7 @@ try {
   await page.waitForLoadState("domcontentloaded");
 
   await expectVisibleText(page, "Kısa Kurulum");
-  await expectVisibleText(page, "GitHub Hafıza Reposu");
+  await expectVisibleText(page, "Hafıza Bağlantısı");
   await expectVisibleText(page, "Hafızayı bağla");
   await expectVisibleText(page, "Yapıyı hazırla");
   await expectVisibleText(page, "Doğrula");

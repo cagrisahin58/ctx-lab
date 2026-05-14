@@ -53,6 +53,7 @@ for (const expected of [
   "Kisayol Haritasi",
   "Klavye Akisi",
   "Hafiza Sagligi",
+  "Hafiza Baglantisi",
   "Hafiza Uyarilari",
   "yasam dongusu",
   "arsiv onerileri",
@@ -152,6 +153,7 @@ for (const expected of [
 assert.ok(bundleText.includes("github.com") || bundleText.includes("api.github.com"), "GitHub istemci izi bulunamadi.");
 assert.ok(!/Seslog|seslog/i.test(bundleText), "Legacy Seslog metni build icinde kalmamali.");
 assert.ok(!/Is Karti|is karti/.test(normalizedBundleText), "Gorunur UI is karti terimini tasimamali; Is Hatti kullanilmali.");
+assert.ok(!/Repo Baglantisi/.test(normalizedBundleText), "Gorunur UI Repo Baglantisi terimini tasimamali; Hafiza Baglantisi kullanilmali.");
 assert.ok(bundleText.includes("timelineIn"), "Timeline giris animasyonu bundle icinde olmali.");
 assert.ok(bundleText.includes("activityPulse"), "Run/activity hareket sinyali bundle icinde olmali.");
 assert.ok(bundleText.includes("prefers-reduced-motion"), "Dusuk hareket tercihi CSS icinde desteklenmeli.");

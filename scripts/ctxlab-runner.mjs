@@ -25,6 +25,23 @@ export const PROMPT_TEMPLATES = Object.freeze([
   "test_fix",
   "release_check"
 ]);
+const SENSITIVE_PROJECT_ROOT_SEGMENTS = Object.freeze([
+  ".ssh",
+  ".gnupg",
+  ".aws",
+  ".azure",
+  ".gcloud",
+  ".kube",
+  ".docker",
+  ".git",
+  ".codex",
+  ".claude"
+]);
+const SENSITIVE_PROMPT_PATTERNS = Object.freeze([
+  /(?:^|[\s"'`(])(?:[a-z]:)?[^\s"'`]*[\\/](?:\.ssh|\.gnupg|\.aws|\.azure|\.gcloud|\.kube|\.docker|\.git|\.codex|\.claude)(?:[\\/]|$|[\s"'`)])/i,
+  /(?:^|[\s"'`(])(?:~[\\/])?(?:\.ssh|\.gnupg|\.aws|\.azure|\.gcloud|\.kube|\.docker|\.git|\.codex|\.claude)(?:[\\/]|$|[\s"'`)])/i,
+  /(?:^|[\s"'`(\\/])(?:id_rsa|id_dsa|id_ecdsa|id_ed25519|authorized_keys|known_hosts)(?:$|[\s"'`).\\/])/i
+]);
 
 export function resolveAppDataDir(env = process.env, platform = process.platform) {
   if (env.CTX_LAB_HOME) return platform === "win32" ? win32.resolve(env.CTX_LAB_HOME) : posix.resolve(env.CTX_LAB_HOME);
@@ -126,18 +143,7 @@ export async function registerProject(paths = buildRunnerPaths(), input = {}, op
 }
 
 function assertSafeProjectRoot(projectPath) {
-  const sensitiveSegments = new Set([
-    ".ssh",
-    ".gnupg",
-    ".aws",
-    ".azure",
-    ".gcloud",
-    ".kube",
-    ".docker",
-    ".git",
-    ".codex",
-    ".claude"
-  ]);
+  const sensitiveSegments = new Set(SENSITIVE_PROJECT_ROOT_SEGMENTS);
   const segments = resolve(projectPath)
     .split(/[\\/]+/)
     .map((segment) => segment.toLowerCase())
@@ -818,6 +824,9 @@ function assertSafeAutomationPrompt(prompt) {
   ];
   if (forbidden.some((pattern) => pattern.test(prompt))) {
     throw new Error("Destructive git islemi iceren Codex promptu reddedildi.");
+  }
+  if (SENSITIVE_PROMPT_PATTERNS.some((pattern) => pattern.test(prompt))) {
+    throw new Error("Kimlik bilgisi veya sistem konfigurasyon dosyasi isteyen Codex promptu reddedildi.");
   }
 }
 

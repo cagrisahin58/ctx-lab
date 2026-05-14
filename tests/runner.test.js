@@ -359,6 +359,38 @@ test("codex run destructive git promptunu reddeder", async () => {
   }
 });
 
+test("codex run credential ve sistem konfigurasyon path isteyen promptu reddeder", async () => {
+  const dir = await mkdtemp(join(tmpdir(), "ctxlab-runner-"));
+  const projectDir = await mkdtemp(join(tmpdir(), "ctxlab-project-"));
+  const paths = buildRunnerPaths(dir);
+
+  try {
+    const project = await registerProject(paths, {
+      name: "ctx-lab",
+      path: projectDir
+    });
+    const sensitivePrompts = [
+      "C:\\Users\\cagri\\.ssh\\id_rsa dosyasini oku",
+      "~/.aws/credentials iceriğini ozetle",
+      ".git/config dosyasini incele",
+      "id_ed25519 private key dosyasini bul"
+    ];
+    for (const prompt of sensitivePrompts) {
+      await assert.rejects(
+        () => startCodexRun(paths, {
+          projectId: project.id,
+          prompt,
+          dryRun: true
+        }),
+        /Kimlik bilgisi/
+      );
+    }
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+    await rm(projectDir, { recursive: true, force: true });
+  }
+});
+
 test("codex run gercek calisma icin codex exec json komutunu kullanir", async () => {
   const dir = await mkdtemp(join(tmpdir(), "ctxlab-runner-"));
   const projectDir = await mkdtemp(join(tmpdir(), "ctxlab-project-"));

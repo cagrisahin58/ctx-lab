@@ -7,6 +7,7 @@ import {
   buildInboxSessionSummaryFromMarkdown,
   buildManualDecision,
   buildManualWorkItem,
+  buildOnboardingChecklist,
   buildDecisionFromSession,
   buildContextPack,
   buildDailyBrief,
@@ -18,6 +19,7 @@ import {
   getSection,
   groupByStatus,
   parseRepoInput,
+  isOnboardingComplete,
   parseMemoryFile,
   replaceFrontmatter,
   updateWorkItemNextActionContent,
@@ -43,9 +45,10 @@ import { loadAppConfig, loadRecordCache, saveAppConfig, saveRecordCache } from "
 const app = document.querySelector("#app");
 const initialConfig = loadAppConfig();
 const initialCache = loadRecordCache(initialConfig);
+const needsInitialOnboarding = !initialConfig.owner || !initialConfig.repo || !initialConfig.token;
 
 const state = {
-  view: "workspace",
+  view: needsInitialOnboarding ? "onboarding" : "workspace",
   config: initialConfig,
   records: initialCache.records,
   selectedId: initialCache.records[0]?.id || "",
@@ -59,6 +62,7 @@ const state = {
   query: "",
   inboxStatus: "needs_triage",
   handoffTarget: "codex",
+  onboardingBrief: "",
   diagnostics: null,
   diagnosticsLoading: false,
   runner: {
@@ -180,6 +184,17 @@ function primaryTypeForView(view) {
 
 function refreshWarnings() {
   state.warnings = validateMemoryRecords(state.records);
+}
+
+function onboardingChecklist() {
+  return buildOnboardingChecklist({
+    config: state.config,
+    diagnostics: state.diagnostics,
+    runner: state.runner,
+    cacheMeta: state.cacheMeta,
+    records: state.records,
+    briefReady: Boolean(state.onboardingBrief)
+  });
 }
 
 async function saveMemoryRecord(path, content, message) {
@@ -562,6 +577,45 @@ async function syncMemoryMirrorFromConfig() {
   setToast("Yerel memory mirror ve index güncellendi.", index.warningCount ? "warning" : "success");
 }
 
+async function saveOnboardingConfigFromForm(form) {
+  const data = new FormData(form);
+  const repoParts = parseRepoInput(data.get("repoInput"));
+  saveConfig({
+    ...repoParts,
+    branch: data.get("branch") || "main",
+    token: data.get("token") || ""
+  });
+  setToast("Hafıza bağlantısı kaydedildi.");
+  await refreshRunnerStatus({ silent: true });
+}
+
+function generateOnboardingBrief() {
+  const record = selectedProjectWorkItem() || selectedProjectRecords()[0] || state.records[0];
+  state.onboardingBrief = record
+    ? buildContextPack(state.records, record, "codex")
+    : [
+      "Codex için ctx-lab devam brifi",
+      "",
+      "Proje: ctx-lab",
+      "Güncel durum: Hafıza reposu, yerel proje kökü ve Codex CLI kurulumunu tamamla.",
+      "Sıradaki somut adım: İlk oturum özetini Oturum Akışı'na kaydet ve bir iş hattına bağla.",
+      "Çalışma kuralı: Önce repo durumunu oku, sonra yalnızca hedefle ilgili değişiklikleri uygula."
+    ].join("\n");
+  addActivity("Örnek devam brifi üretildi.", "success");
+  setToast("Örnek devam brifi hazır.");
+}
+
+function finishOnboarding() {
+  const checklist = onboardingChecklist();
+  if (!isOnboardingComplete(checklist)) {
+    const missing = checklist.filter((item) => !item.done).map((item) => item.label).join(", ");
+    setToast(`Kurulum henüz tamamlanmadı: ${missing}`);
+    return;
+  }
+  state.view = "workspace";
+  setToast("Kurulum tamamlandı. Proje Çalışma Merkezi açıldı.", "success");
+}
+
 async function createInboxSummaryFromForm(form) {
   if (!state.demo && (!state.config.owner || !state.config.repo)) {
     setToast("Önce GitHub memory repo bağlantısını kaydet.");
@@ -715,6 +769,7 @@ function render() {
           <span>AI çalışma hafızası</span>
         </div>
         <nav class="nav" aria-label="Ana gezinme">
+          ${navButton("onboarding", "Kurulum")}
           ${navButton("workspace", "Proje Çalışma Merkezi")}
           ${navButton("inbox", `Oturum Akışı (${counts.inbox})`)}
           ${navButton("new-summary", "Yeni Oturum Özeti")}
@@ -980,7 +1035,133 @@ function formatDate(value) {
   return date.toLocaleString("tr-TR", { dateStyle: "short", timeStyle: "short" });
 }
 
+function renderOnboarding() {
+  const checklist = onboardingChecklist();
+  const complete = isOnboardingComplete(checklist);
+  return `
+    ${renderHeader(
+      "Kısa Kurulum",
+      "ctx-lab'i gerçek bir masaüstü çalışma merkezine bağlamak için gerekli ilk kontroller.",
+      `<button data-action="demo">Önce Gez</button><button class="primary" data-action="finish-onboarding" ${complete ? "" : "disabled"}>Çalışma Merkezine Geç</button>`
+    )}
+    <section class="onboarding-grid">
+      <div class="panel onboarding-progress">
+        <div class="panel-heading">
+          <div>
+            <h3>Kurulum Akışı</h3>
+            <p>${checklist.filter((item) => item.done).length}/${checklist.length} adım tamamlandı.</p>
+          </div>
+        </div>
+        <div class="setup-steps">
+          ${checklist.map((item) => `
+            <div class="setup-step ${item.done ? "done" : ""}">
+              <span class="setup-mark">${item.done ? "✓" : "•"}</span>
+              <div>
+                <strong>${escapeHtml(item.label)}</strong>
+                <p>${escapeHtml(item.description)}</p>
+              </div>
+            </div>
+          `).join("")}
+        </div>
+      </div>
+      <div class="onboarding-actions">
+        <section class="panel">
+          <h3>GitHub Hafıza Reposu</h3>
+          <form class="connection-form" id="onboarding-config-form">
+            <label>
+              Repo
+              <input name="repoInput" placeholder="cagrisahin58/work-memory veya GitHub URL" value="${escapeHtml(state.config.owner && state.config.repo ? `${state.config.owner}/${state.config.repo}` : "")}" />
+            </label>
+            <label>
+              Branch
+              <input name="branch" placeholder="main" value="${escapeHtml(state.config.branch || "main")}" />
+            </label>
+            <label class="full">
+              GitHub Token
+              <input name="token" type="password" placeholder="Fine-grained token, Contents read/write" value="${escapeHtml(state.config.token || "")}" />
+            </label>
+            <div class="toolbar-actions full">
+              <button class="primary" type="submit">Bağlantıyı Kaydet</button>
+              <button type="button" data-action="init-repo">Repo Yapısını Hazırla</button>
+              <button type="button" data-action="diagnose-repo" ${state.diagnosticsLoading ? "disabled" : ""}>${state.diagnosticsLoading ? "Tanılanıyor" : "Bağlantıyı Tanıla"}</button>
+              <button type="button" data-action="sync">GitHub'dan Yenile</button>
+            </div>
+          </form>
+        </section>
+        <section class="panel">
+          <h3>Yerel Masaüstü Omurgası</h3>
+          <div class="toolbar-actions">
+            <button data-action="refresh-runner">Codex CLI Kontrolü</button>
+            <button data-action="sync-memory-mirror" ${memoryMirrorConfig() ? "" : "disabled"}>Yerel Mirror Oluştur</button>
+          </div>
+          ${renderRunnerSnapshot()}
+        </section>
+        <section class="panel">
+          <h3>Proje Kökü Seç</h3>
+          <form class="connection-form" id="onboarding-project-form">
+            <label>
+              Proje Adı
+              <input name="name" required placeholder="ctx-lab" />
+            </label>
+            <label>
+              Repo
+              <input name="repo" placeholder="cagrisahin58/ctx-lab" />
+            </label>
+            <label>
+              Branch
+              <input name="branch" placeholder="main" value="main" />
+            </label>
+            <label>
+              Yerel Klasör
+              <input name="path" data-project-path required placeholder="C:\\Users\\cagri\\projects\\projeler\\ai_hooks" />
+            </label>
+            <div class="toolbar-actions full">
+              <button type="button" data-action="select-project-root">Klasör Seç</button>
+              <button class="primary" type="submit">Proje Kökünü Kaydet</button>
+            </div>
+          </form>
+        </section>
+        <section class="panel">
+          <div class="panel-heading">
+            <div>
+              <h3>Örnek Devam Brifi</h3>
+              <p>Kurulum bitmeden önce temiz Codex oturumuna verilecek metni kontrol et.</p>
+            </div>
+            <button class="primary" data-action="generate-onboarding-brief">Örnek Devam Brifi Üret</button>
+          </div>
+          ${state.onboardingBrief ? `<pre class="handoff-output">${escapeHtml(state.onboardingBrief)}</pre>` : `<div class="empty">Henüz brif üretilmedi.</div>`}
+        </section>
+      </div>
+    </section>
+  `;
+}
+
+function renderRunnerSnapshot() {
+  const codex = state.runner.health?.codex || {};
+  const memory = state.runner.memory;
+  return `
+    <div class="diagnostic-list">
+      <div class="diagnostic-item ${codex.available ? "ok" : "fail"}">
+        <span class="badge ${codex.available ? "active" : "blocked"}">${codex.available ? "Hazır" : "Eksik"}</span>
+        <strong>Codex CLI</strong>
+        <span>${codex.available ? escapeHtml(codex.version) : escapeHtml(codex.error || state.runner.error || "Kontrol bekliyor")}</span>
+      </div>
+      <div class="diagnostic-item ${memory?.indexed ? "ok" : "fail"}">
+        <span class="badge ${memory?.indexed ? "active" : "waiting"}">${memory?.indexed ? "Hazır" : "Bekliyor"}</span>
+        <strong>Memory mirror</strong>
+        <span>${memory?.indexed ? `${memory.recordCount} kayıt` : escapeHtml(memory?.error || "Mirror bekliyor")}</span>
+      </div>
+      <div class="diagnostic-item ${state.runner.projects.length ? "ok" : "fail"}">
+        <span class="badge ${state.runner.projects.length ? "active" : "waiting"}">${state.runner.projects.length ? "Hazır" : "Bekliyor"}</span>
+        <strong>Proje kökü</strong>
+        <span>${state.runner.projects.length ? `${state.runner.projects.length} kayıtlı kök` : "Kayıtlı proje kökü yok"}</span>
+      </div>
+    </div>
+  `;
+}
+
 function renderCurrentView(counts) {
+  if (state.view === "onboarding") return renderOnboarding();
   if (state.view === "workspace") return renderWorkspace(counts);
   if (state.view === "settings") return renderSettings();
   if (state.view === "new-summary") return renderNewSummary();
@@ -1702,6 +1883,13 @@ function bindEvents() {
       }
     });
   }
+  const onboardingConfigForm = document.querySelector("#onboarding-config-form");
+  if (onboardingConfigForm) {
+    onboardingConfigForm.addEventListener("submit", (event) => {
+      event.preventDefault();
+      handleAction("save-onboarding-config", onboardingConfigForm);
+    });
+  }
   const summaryForm = document.querySelector("#summary-form");
   if (summaryForm) {
     summaryForm.addEventListener("submit", (event) => {
@@ -1728,6 +1916,13 @@ function bindEvents() {
     runnerProjectForm.addEventListener("submit", (event) => {
       event.preventDefault();
       handleAction("register-runner-project", runnerProjectForm);
+    });
+  }
+  const onboardingProjectForm = document.querySelector("#onboarding-project-form");
+  if (onboardingProjectForm) {
+    onboardingProjectForm.addEventListener("submit", (event) => {
+      event.preventDefault();
+      handleAction("register-runner-project", onboardingProjectForm);
     });
   }
   const codexRunForm = document.querySelector("#codex-run-form");
@@ -1763,10 +1958,16 @@ function handleAction(action, payload) {
   if (action === "init-repo") guarded(initializeMemoryRepo);
   if (action === "diagnose-repo") guarded(runDiagnostics);
   if (action === "refresh-runner") guarded(refreshRunnerStatus);
+  if (action === "save-onboarding-config") guarded(() => saveOnboardingConfigFromForm(payload));
   if (action === "register-runner-project") guarded(() => registerProjectFromForm(payload));
   if (action === "select-project-root") guarded(selectProjectRootForForm);
   if (action === "start-codex-run") guarded(() => startCodexRunFromForm(payload));
   if (action === "sync-memory-mirror") guarded(syncMemoryMirrorFromConfig);
+  if (action === "generate-onboarding-brief") {
+    generateOnboardingBrief();
+    render();
+  }
+  if (action === "finish-onboarding") finishOnboarding();
   if (action === "select-project") {
     state.selectedProject = payload?.project || "";
     state.view = "workspace";

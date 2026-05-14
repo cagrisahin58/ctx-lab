@@ -204,6 +204,70 @@ export function validateMemoryRecords(records) {
   return warnings;
 }
 
+export function buildOnboardingChecklist(input = {}) {
+  const config = input.config || {};
+  const diagnostics = input.diagnostics || null;
+  const runner = input.runner || {};
+  const cacheMeta = input.cacheMeta || {};
+  const records = Array.isArray(input.records) ? input.records : [];
+  const hasMemoryConfig = Boolean(config.owner && config.repo && (config.branch || "main"));
+  const hasToken = Boolean(String(config.token || "").trim());
+  const repoReady = Boolean(diagnostics?.ok || cacheMeta.syncedAt || records.length);
+  const mirrorReady = Boolean(runner.memory?.indexed);
+  const projectReady = Boolean(runner.projects?.length);
+  const codexReady = Boolean(runner.health?.codex?.available);
+  const briefReady = Boolean(input.briefReady);
+
+  return [
+    {
+      id: "memory_connection",
+      label: "GitHub hafıza reposu",
+      description: "Owner/repo, branch ve token kaydedilir.",
+      done: hasMemoryConfig && hasToken,
+      action: "settings"
+    },
+    {
+      id: "repo_diagnostics",
+      label: "Repo yapısı ve yazma testi",
+      description: "config.yaml, klasörler ve Contents read/write yetkisi doğrulanır.",
+      done: repoReady,
+      action: "diagnose"
+    },
+    {
+      id: "local_mirror",
+      label: "Yerel mirror ve index",
+      description: "work-memory yerel Git mirror olarak çekilir ve JSON index üretilir.",
+      done: mirrorReady,
+      action: "mirror"
+    },
+    {
+      id: "project_root",
+      label: "Yerel proje kökü",
+      description: "Codex otomasyonu için izinli proje klasörü kaydedilir.",
+      done: projectReady,
+      action: "project"
+    },
+    {
+      id: "codex_cli",
+      label: "Codex CLI kontrolü",
+      description: "codex.cmd bulunur ve sürüm bilgisi okunur.",
+      done: codexReady,
+      action: "runner"
+    },
+    {
+      id: "sample_brief",
+      label: "Örnek devam brifi",
+      description: "Temiz bir AI oturumuna verilecek ilk devam brifi önizlenir.",
+      done: briefReady,
+      action: "brief"
+    }
+  ];
+}
+
+export function isOnboardingComplete(checklist = []) {
+  return Array.isArray(checklist) && checklist.length > 0 && checklist.every((item) => item.done);
+}
+
 export function buildTimelineEvents(records, runnerProjects = [], runs = []) {
   const events = [];
 

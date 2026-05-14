@@ -11,6 +11,7 @@ import {
   buildInboxSessionSummaryFromMarkdown,
   buildManualDecision,
   buildManualWorkItem,
+  buildOnboardingChecklist,
   buildSessionClosePrompt,
   buildTimelineEvents,
   buildWorkItemFromSession,
@@ -21,6 +22,7 @@ import {
   parseFrontmatter,
   parseMemoryFile,
   parseRepoInput,
+  isOnboardingComplete,
   replaceFrontmatter,
   resolveWorkContext,
   slugify,
@@ -193,6 +195,26 @@ test("memory kayıtlarındaki duplicate id ve durum sorunlarını uyarır", () =
 
   assert.ok(warnings.some((warning) => warning.includes("duplicate id (sess_test)")));
   assert.ok(warnings.some((warning) => warning.includes("bilinmeyen durum (stale)")));
+});
+
+test("onboarding checklist kurulum ilerlemesini somut sinyallerden hesaplar", () => {
+  const empty = buildOnboardingChecklist();
+  const ready = buildOnboardingChecklist({
+    config: { owner: "cagrisahin58", repo: "work-memory", branch: "main", token: "ghp_test" },
+    diagnostics: { ok: true },
+    runner: {
+      health: { codex: { available: true } },
+      projects: [{ id: "project_1" }],
+      memory: { indexed: true }
+    },
+    briefReady: true
+  });
+
+  assert.equal(empty.find((item) => item.id === "memory_connection").done, false);
+  assert.equal(ready.find((item) => item.id === "codex_cli").done, true);
+  assert.equal(ready.find((item) => item.id === "local_mirror").done, true);
+  assert.equal(isOnboardingComplete(empty), false);
+  assert.equal(isOnboardingComplete(ready), true);
 });
 
 test("var olan iş kartına yeni session id ekler", () => {

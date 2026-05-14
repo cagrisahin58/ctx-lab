@@ -45,6 +45,8 @@ npm run desktop:smoke
 
 Electron kabuğu renderer tarafında Node entegrasyonunu kapalı tutar; proje klasörü seçimi, runner sağlığı, proje registry ve Codex run kayıtları yalnızca izinli IPC kanallarından geçer.
 
+İlk açılışta `Kısa Kurulum` ekranı hafıza reposu bağlantısı, repo tanılaması, yerel mirror/index, proje kökü, Codex CLI kontrolü ve örnek devam brifi adımlarını tek akışta gösterir. Kurulum tamamlandığında kullanıcı doğrudan `Proje Çalışma Merkezi` ekranına geçer.
+
 Kalite kapısı:
 
 ```bash

@@ -66,7 +66,8 @@ ctx-lab v2, GitHub-backed hafiza katmanini koruyarak proje timeline merkezli, Tu
 4. Proje Timeline veri modeli: legacy kayitlardan timeline event uretimi.
 5. UI yenileme: Turkce terminoloji, timeline, command rail, durum cubugu.
 6. Codex run: hazir promptlar, dry-run, JSONL stdout/stderr log, commit/push oncesi gorunur ozet.
-7. claude-review P0 UX paketi: dark mode, command palette, activity log, kisa yollar, onboarding.
+7. Onboarding: hafiza reposu, repo tanilama, yerel mirror/index, proje koku, Codex CLI ve ornek devam brifi tek akista dogrulanir.
+8. claude-review P0 UX paketi: dark mode, command palette, activity log, kisa yollar.
 
 ## Test kapisi
 

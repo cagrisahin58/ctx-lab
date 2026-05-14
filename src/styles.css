@@ -294,6 +294,61 @@ label {
   align-items: start;
 }
 
+.onboarding-grid {
+  display: grid;
+  grid-template-columns: minmax(280px, 0.38fr) minmax(560px, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.onboarding-actions,
+.setup-steps {
+  display: grid;
+  gap: 12px;
+}
+
+.onboarding-progress {
+  position: sticky;
+  top: 18px;
+}
+
+.setup-step {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+}
+
+.setup-step p {
+  margin: 4px 0 0;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.setup-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  background: var(--panel-soft);
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.setup-step.done {
+  border-color: rgba(52, 211, 153, 0.38);
+}
+
+.setup-step.done .setup-mark {
+  background: rgba(52, 211, 153, 0.16);
+  color: var(--success);
+}
+
 .workspace-main,
 .context-pane,
 .grid,
@@ -670,6 +725,7 @@ label {
 
   .app-shell,
   .workspace-grid,
+  .onboarding-grid,
   .grid.two,
   .runner-grid,
   .stats,

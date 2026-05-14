@@ -257,6 +257,11 @@ test("iş hattı yaşam döngüsü ve arşiv önerilerini uyarır", () => {
 
 test("onboarding checklist kurulum ilerlemesini somut sinyallerden hesaplar", () => {
   const empty = buildOnboardingChecklist();
+  const cachedWithoutDiagnostics = buildOnboardingChecklist({
+    config: { owner: "cagrisahin58", repo: "work-memory", branch: "main", token: "ghp_test" },
+    cacheMeta: { syncedAt: "2026-05-14T10:00:00.000Z" },
+    records: [parseMemoryFile("inbox/test.md", sample, "sha")]
+  });
   const ready = buildOnboardingChecklist({
     config: { owner: "cagrisahin58", repo: "work-memory", branch: "main", token: "ghp_test" },
     diagnostics: { ok: true },
@@ -269,6 +274,7 @@ test("onboarding checklist kurulum ilerlemesini somut sinyallerden hesaplar", ()
   });
 
   assert.equal(empty.find((item) => item.id === "memory_connection").done, false);
+  assert.equal(cachedWithoutDiagnostics.find((item) => item.id === "repo_diagnostics").done, false);
   assert.equal(ready.find((item) => item.id === "codex_cli").done, true);
   assert.equal(ready.find((item) => item.id === "local_mirror").done, true);
   assert.equal(ready.find((item) => item.id === "local_mirror").label, "Yerel ayna ve indeks");

@@ -23,6 +23,10 @@ Geçerli kayıt tipleri: `inbox`, `work_items`, `decisions`, `handoffs`, `archiv
 Geçerli durumlar: `needs_triage`, `linked`, `active`, `waiting`, `blocked`, `done`, `archived`.
 İş kartı panosunda yönetilen durumlar: `active`, `waiting`, `blocked`, `done`.
 
+## Timeline event katmanı
+
+v2 arayüzü mevcut markdown/frontmatter formatını bozmadan kayıtlardan türetilmiş bir timeline katmanı oluşturur. Bu katman kalıcı şemayı değiştirmez; `inbox` oturumları, `work_items` iş hattı güncellemeleri, `decisions` kararlar, `handoffs` devam brifleri, `archive` kayıtları, yerel proje kökleri ve Codex run logları tek sıralı olay listesine dönüştürülür. Eski kayıtlar timeline içinde görünmeye devam eder.
+
 ## Oturum özeti
 
 Dosya yolu örneği:

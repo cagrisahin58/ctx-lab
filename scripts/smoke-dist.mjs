@@ -25,6 +25,7 @@ const bundleText = Object.values(assets).join("\n");
 
 for (const expected of [
   "Oturum Akisi",
+  "Proje Calisma Merkezi",
   "Is Akisi",
   "Karar Defteri",
   "Devam Brifi",
@@ -34,8 +35,10 @@ for (const expected of [
   "Yeni Is Hatti",
   "Yeni Karar",
   "Devam brifi hedefi",
-  "Baglam Paketini Kopyala",
+  "Devam Brifini Kopyala",
   "Yerel Codex Runner",
+  "Calisma Gunlugu",
+  "Codex'e Devret",
   "Proje Koku",
   "Oturum Kapanis"
 ]) {

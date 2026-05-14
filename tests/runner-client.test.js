@@ -1,6 +1,13 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { fetchRunnerHealth, fetchRunnerProjects, registerRunnerProject } from "../src/runner-client.js";
+import {
+  fetchRunnerHealth,
+  fetchRunnerProjects,
+  fetchRunnerRuns,
+  registerRunnerProject,
+  selectRunnerProjectDirectory,
+  startRunnerCodexRun
+} from "../src/runner-client.js";
 
 test("runner client health endpointini okur", async () => {
   const calls = [];
@@ -37,6 +44,48 @@ test("runner client proje kaydini JSON olarak gonderir", async () => {
 
   assert.equal(JSON.parse(requestBody).path, "C:\\repo");
   assert.equal(result.project.name, "ctx-lab");
+});
+
+test("runner client run listesi ve codex run endpointini kullanir", async () => {
+  const calls = [];
+  const runs = await fetchRunnerRuns({
+    baseUrl: "http://runner.test",
+    limit: 5,
+    fetch: async (url, options) => {
+      calls.push({ url, options });
+      return jsonResponse(200, { runs: [{ id: "run_1" }] });
+    }
+  });
+  const started = await startRunnerCodexRun({ projectId: "project_1", prompt: "Brif" }, {
+    baseUrl: "http://runner.test",
+    fetch: async (url, options) => {
+      calls.push({ url, options });
+      return jsonResponse(201, { id: "run_2", status: "dry_run" });
+    }
+  });
+
+  assert.equal(calls[0].url, "http://runner.test/runs?limit=5");
+  assert.equal(JSON.parse(calls[1].options.body).projectId, "project_1");
+  assert.equal(runs.runs[0].id, "run_1");
+  assert.equal(started.status, "dry_run");
+});
+
+test("runner client masaustu IPC varsa HTTP yerine onu kullanir", async () => {
+  const desktopApi = {
+    runnerHealth: async () => ({ service: "desktop" }),
+    runnerProjects: async () => ({ projects: [{ name: "ctx-lab" }] }),
+    registerProject: async (project) => ({ project }),
+    selectProjectDirectory: async () => ({ path: "C:\\repo" }),
+    runnerRuns: async () => ({ runs: [{ id: "run_desktop" }] }),
+    startCodexRun: async (run) => ({ ...run, status: "dry_run" })
+  };
+
+  assert.equal((await fetchRunnerHealth({ desktopApi })).service, "desktop");
+  assert.equal((await fetchRunnerProjects({ desktopApi })).projects[0].name, "ctx-lab");
+  assert.equal((await registerRunnerProject({ name: "x" }, { desktopApi })).project.name, "x");
+  assert.equal((await selectRunnerProjectDirectory({ desktopApi })).path, "C:\\repo");
+  assert.equal((await fetchRunnerRuns({ desktopApi })).runs[0].id, "run_desktop");
+  assert.equal((await startRunnerCodexRun({ prompt: "x" }, { desktopApi })).status, "dry_run");
 });
 
 test("runner client hata govdesini kullaniciya tasir", async () => {

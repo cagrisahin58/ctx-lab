@@ -204,6 +204,101 @@ export function validateMemoryRecords(records) {
   return warnings;
 }
 
+export function buildTimelineEvents(records, runnerProjects = [], runs = []) {
+  const events = [];
+
+  for (const record of records) {
+    const base = {
+      id: `record:${record.path}`,
+      recordId: record.id,
+      project: record.project || "genel",
+      repo: record.repo || "",
+      status: record.status || "",
+      title: record.title,
+      summary: record.summary || "",
+      nextAction: record.nextAction || getSection(record.sections || {}, "next") || "",
+      path: record.path,
+      at: record.frontmatter?.updated_at || record.frontmatter?.created_at || record.frontmatter?.archived_at || ""
+    };
+
+    if (record.type === "inbox") {
+      events.push({
+        ...base,
+        kind: "session",
+        label: "Oturum",
+        title: record.title || "Oturum özeti",
+        at: record.frontmatter?.created_at || base.at
+      });
+    } else if (record.type === "work_items") {
+      events.push({
+        ...base,
+        kind: "work_item",
+        label: "İş hattı",
+        summary: getSection(record.sections || {}, "current") || base.summary,
+        at: record.frontmatter?.updated_at || base.at
+      });
+    } else if (record.type === "decisions") {
+      events.push({
+        ...base,
+        kind: "decision",
+        label: "Karar",
+        summary: getSection(record.sections || {}, "decisions") || base.summary,
+        at: record.frontmatter?.created_at || base.at
+      });
+    } else if (record.type === "handoffs") {
+      events.push({
+        ...base,
+        kind: "handoff",
+        label: "Devam brifi",
+        at: record.frontmatter?.created_at || base.at
+      });
+    } else if (record.type === "archive") {
+      events.push({
+        ...base,
+        kind: "archive",
+        label: "Arşiv",
+        at: record.frontmatter?.archived_at || base.at
+      });
+    }
+  }
+
+  for (const run of runs || []) {
+    events.push({
+      id: `run:${run.id}`,
+      recordId: run.id,
+      kind: "codex_run",
+      label: "Codex run",
+      project: run.project?.name || "genel",
+      repo: run.project?.repo || "",
+      status: run.status || "",
+      title: `${run.automationLevel || "brief"} · ${run.template || "continue_work"}`,
+      summary: run.summary || run.error || run.stderr || "Codex run kaydı.",
+      nextAction: "",
+      path: run.logPath || "",
+      at: run.finishedAt || run.updatedAt || run.createdAt || ""
+    });
+  }
+
+  for (const project of runnerProjects || []) {
+    events.push({
+      id: `project:${project.id}`,
+      recordId: project.id,
+      kind: "project_registered",
+      label: "Proje kökü",
+      project: project.name || "proje",
+      repo: project.repo || "",
+      status: "registered",
+      title: project.path || project.name,
+      summary: "Yerel proje kökü otomasyon allowlist'ine eklendi.",
+      nextAction: "",
+      path: project.path || "",
+      at: project.updatedAt || project.createdAt || ""
+    });
+  }
+
+  return events.sort((a, b) => eventTime(b.at) - eventTime(a.at) || a.label.localeCompare(b.label, "tr"));
+}
+
 function statusFromType(type) {
   if (type === "inbox") return "needs_triage";
   if (type === "archive") return "archived";
@@ -557,6 +652,11 @@ function formatDecisionBullets(decisions) {
 
 function compactLine(value) {
   return String(value || "").replace(/\s+/g, " ").trim().slice(0, 260);
+}
+
+function eventTime(value) {
+  const time = new Date(value || 0).getTime();
+  return Number.isNaN(time) ? 0 : time;
 }
 
 function replaceSection(body, key, fallbackTitle, value) {

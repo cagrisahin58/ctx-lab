@@ -11,6 +11,7 @@ import {
   buildContextPack,
   buildDailyBrief,
   buildSessionClosePrompt,
+  buildTimelineEvents,
   buildWorkItemFromSession,
   filterRecords,
   findWorkItemForSession,
@@ -27,7 +28,14 @@ import {
 } from "./domain.js";
 import { deleteFile, diagnoseMemoryRepo, ensureMemoryRepo, loadMemoryRepo, putFile } from "./github.js";
 import { demoRecords } from "./fixtures.js";
-import { fetchRunnerHealth, fetchRunnerProjects, registerRunnerProject } from "./runner-client.js";
+import {
+  fetchRunnerHealth,
+  fetchRunnerProjects,
+  fetchRunnerRuns,
+  registerRunnerProject,
+  selectRunnerProjectDirectory,
+  startRunnerCodexRun
+} from "./runner-client.js";
 import { loadAppConfig, loadRecordCache, saveAppConfig, saveRecordCache } from "./storage.js";
 
 const app = document.querySelector("#app");
@@ -35,12 +43,15 @@ const initialConfig = loadAppConfig();
 const initialCache = loadRecordCache(initialConfig);
 
 const state = {
-  view: "inbox",
+  view: "workspace",
   config: initialConfig,
   records: initialCache.records,
   selectedId: initialCache.records[0]?.id || "",
+  selectedProject: "",
   loading: false,
   toast: "",
+  activityOpen: true,
+  activityLog: [],
   demo: false,
   warnings: [],
   query: "",
@@ -52,6 +63,7 @@ const state = {
     loading: false,
     health: null,
     projects: [],
+    runs: [],
     error: ""
   },
   cacheMeta: {
@@ -69,6 +81,7 @@ function saveConfig(config) {
     syncedAt: cache.syncedAt
   };
   state.selectedId = state.records[0]?.id || "";
+  state.selectedProject = "";
   state.demo = false;
   state.diagnostics = null;
   refreshWarnings();
@@ -90,8 +103,22 @@ function persistRecordCache() {
   }
 }
 
-function setToast(message) {
+function addActivity(message, kind = "info", detail = "") {
+  state.activityLog = [
+    {
+      id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+      at: new Date().toISOString(),
+      kind,
+      message,
+      detail
+    },
+    ...state.activityLog
+  ].slice(0, 24);
+}
+
+function setToast(message, kind = "info") {
   state.toast = message;
+  addActivity(message, kind);
   render();
   window.clearTimeout(setToast.timer);
   setToast.timer = window.setTimeout(() => {
@@ -203,6 +230,7 @@ function selectedRecord(type = "") {
 
 function contextRecord() {
   if (state.view === "handoff") return handoffAnchorRecord();
+  if (state.view === "workspace") return selectedProjectWorkItem() || selectedProjectRecords()[0] || null;
   return state.view === "board" ? selectedRecord("work_items") : selectedRecord();
 }
 
@@ -213,6 +241,74 @@ function handoffRecords() {
 function handoffAnchorRecord() {
   const records = handoffRecords();
   return records.find((record) => record.id === state.selectedId) || records[0] || null;
+}
+
+function projectSummaries() {
+  const map = new Map();
+  for (const record of state.records) {
+    const name = record.project || "genel";
+    const current = map.get(name) || {
+      name,
+      repo: record.repo || "",
+      records: 0,
+      open: 0,
+      risks: 0,
+      latestAt: ""
+    };
+    current.records += 1;
+    if (record.status && !["done", "archived", "linked"].includes(record.status)) current.open += 1;
+    if (record.status === "blocked") current.risks += 1;
+    current.repo ||= record.repo || "";
+    const at = record.frontmatter?.updated_at || record.frontmatter?.created_at || record.frontmatter?.archived_at || "";
+    if (new Date(at).getTime() > new Date(current.latestAt || 0).getTime()) current.latestAt = at;
+    map.set(name, current);
+  }
+  for (const project of state.runner.projects) {
+    const name = project.name || "proje";
+    const current = map.get(name) || {
+      name,
+      repo: project.repo || "",
+      records: 0,
+      open: 0,
+      risks: 0,
+      latestAt: project.updatedAt || project.createdAt || ""
+    };
+    current.repo ||= project.repo || "";
+    current.localPath = project.path;
+    current.projectId = project.id;
+    map.set(name, current);
+  }
+  return [...map.values()].sort((a, b) => (b.open - a.open) || a.name.localeCompare(b.name, "tr"));
+}
+
+function selectedProjectName() {
+  const projects = projectSummaries();
+  if (state.selectedProject && projects.some((project) => project.name === state.selectedProject)) {
+    return state.selectedProject;
+  }
+  return projects[0]?.name || "";
+}
+
+function selectedProjectRecords() {
+  const name = selectedProjectName();
+  return name ? state.records.filter((record) => (record.project || "genel") === name) : state.records;
+}
+
+function selectedProjectRuns() {
+  const name = selectedProjectName();
+  return name ? state.runner.runs.filter((run) => (run.project?.name || "genel") === name) : state.runner.runs;
+}
+
+function selectedProjectEvents() {
+  const name = selectedProjectName();
+  const projects = name ? state.runner.projects.filter((project) => (project.name || "proje") === name) : state.runner.projects;
+  return buildTimelineEvents(selectedProjectRecords(), projects, selectedProjectRuns());
+}
+
+function selectedProjectWorkItem() {
+  return selectedProjectRecords().find((record) => record.type === "work_items" && record.status !== "done")
+    || selectedProjectRecords().find((record) => record.type === "work_items")
+    || null;
 }
 
 async function createWorkFromSelected(targetWorkId = "") {
@@ -359,14 +455,16 @@ async function refreshRunnerStatus(options = {}) {
   state.runner.loading = true;
   if (!options.silent) render();
   try {
-    const [health, registry] = await Promise.all([
+    const [health, registry, runsPayload] = await Promise.all([
       fetchRunnerHealth(),
-      fetchRunnerProjects()
+      fetchRunnerProjects(),
+      fetchRunnerRuns().catch(() => ({ runs: [] }))
     ]);
     state.runner = {
       loading: false,
       health,
       projects: Array.isArray(registry.projects) ? registry.projects : [],
+      runs: Array.isArray(runsPayload.runs) ? runsPayload.runs : [],
       error: ""
     };
     if (!options.silent) setToast("Yerel runner durumu güncellendi.");
@@ -393,6 +491,32 @@ async function registerProjectFromForm(form) {
   setToast("Proje kökü yerel runner'a kaydedildi.");
   form.reset();
   await refreshRunnerStatus({ silent: true });
+}
+
+async function selectProjectRootForForm() {
+  const result = await selectRunnerProjectDirectory();
+  if (result.canceled || !result.path) return;
+  const input = document.querySelector("[data-project-path]");
+  if (input) input.value = result.path;
+  setToast("Proje kökü seçildi.");
+}
+
+async function startCodexRunFromForm(form) {
+  const data = new FormData(form);
+  const projectId = data.get("projectId") || state.runner.projects[0]?.id || "";
+  const run = await startRunnerCodexRun({
+    projectId,
+    automationLevel: data.get("automationLevel"),
+    template: data.get("template"),
+    prompt: data.get("prompt"),
+    dryRun: data.get("dryRun") === "on"
+  });
+  state.runner.runs = [run, ...state.runner.runs.filter((item) => item.id !== run.id)].slice(0, 20);
+  addActivity(`Codex run kaydı: ${run.id}`, run.status === "failed" ? "error" : "success", run.summary || run.error || "");
+  setToast(run.status === "dry_run" ? "Codex dry-run kaydı hazırlandı." : "Codex run tamamlandı.", run.status === "failed" ? "error" : "success");
+  form.reset();
+  const dryRun = form.querySelector("input[name='dryRun']");
+  if (dryRun) dryRun.checked = true;
 }
 
 async function createInboxSummaryFromForm(form) {
@@ -499,7 +623,7 @@ async function copyContextPack(target = "codex") {
   const record = contextRecord();
   if (!record) return;
   await navigator.clipboard.writeText(buildContextPack(state.records, record, target));
-  setToast("Bağlam paketi kopyalandı.");
+  setToast("Devam brifi kopyalandı.");
 }
 
 function dailyBriefText(target = "codex") {
@@ -534,7 +658,10 @@ function render() {
     inbox: recordsByType("inbox").length,
     work: recordsByType("work_items").length,
     decisions: recordsByType("decisions").length,
-    archive: recordsByType("archive").length
+    archive: recordsByType("archive").length,
+    active: recordsByType("work_items").filter((record) => record.status === "active").length,
+    waiting: recordsByType("work_items").filter((record) => record.status === "waiting").length,
+    blocked: recordsByType("work_items").filter((record) => record.status === "blocked").length
   };
 
   app.innerHTML = `
@@ -545,6 +672,7 @@ function render() {
           <span>AI çalışma hafızası</span>
         </div>
         <nav class="nav" aria-label="Ana gezinme">
+          ${navButton("workspace", "Proje Çalışma Merkezi")}
           ${navButton("inbox", `Oturum Akışı (${counts.inbox})`)}
           ${navButton("new-summary", "Yeni Oturum Özeti")}
           ${navButton("board", `İş Akışı (${counts.work})`)}
@@ -554,6 +682,7 @@ function render() {
           ${navButton("runner", "Yerel Codex Runner")}
           ${navButton("settings", "Hafıza Bağlantısı")}
         </nav>
+        ${renderProjectRail()}
         <div class="sync-panel">
           <span>${state.demo ? "Örnek veri modu" : repoLabel()}</span>
           ${state.demo ? "" : `<span class="cache-meta">${cacheLabel()}</span>`}
@@ -564,6 +693,7 @@ function render() {
         </div>
       </aside>
       <main class="content">
+        ${renderStatusBar()}
         ${renderCurrentView(counts)}
       </main>
       ${state.toast ? `<div class="toast">${escapeHtml(state.toast)}</div>` : ""}
@@ -592,7 +722,220 @@ function cacheLabel() {
   return `Yerel önbellek: ${state.records.length} kayıt · ${label}`;
 }
 
+function renderProjectRail() {
+  const projects = projectSummaries();
+  if (!projects.length) {
+    return `<div class="project-rail empty-rail">Henüz proje kaydı yok.</div>`;
+  }
+  const selected = selectedProjectName();
+  return `
+    <div class="project-rail">
+      <div class="rail-title">Projeler</div>
+      <div class="project-list">
+        ${projects.map((project) => `
+          <button class="project-pill ${project.name === selected ? "active" : ""}" data-action="select-project" data-project="${escapeHtml(project.name)}">
+            <strong>${escapeHtml(project.name)}</strong>
+            <span>${escapeHtml(project.repo || project.localPath || "repo belirtilmedi")}</span>
+            <small>${project.open} açık · ${project.records} kayıt</small>
+          </button>
+        `).join("")}
+      </div>
+    </div>
+  `;
+}
+
+function renderStatusBar() {
+  const runner = state.runner.health;
+  const codex = runner?.codex;
+  const memoryStatus = state.demo ? "Örnek veri" : (state.cacheMeta.syncedAt ? "Yerel cache hazır" : "Yerel cache yok");
+  const githubStatus = state.config.owner && state.config.repo ? "GitHub bağlı" : "GitHub bekliyor";
+  const codexStatus = codex?.available ? `Codex ${codex.version}` : (state.runner.error || "Codex kontrol bekliyor");
+  return `
+    <div class="status-bar">
+      <span class="status-dot ok"></span><span>${escapeHtml(githubStatus)}</span>
+      <span class="status-dot ${state.cacheMeta.syncedAt || state.demo ? "ok" : "warn"}"></span><span>${escapeHtml(memoryStatus)}</span>
+      <span class="status-dot ${codex?.available ? "ok" : "warn"}"></span><span>${escapeHtml(codexStatus)}</span>
+      <button class="ghost compact" data-action="refresh-runner">Runner</button>
+    </div>
+  `;
+}
+
+function renderWorkspace(counts) {
+  const projectName = selectedProjectName();
+  const records = selectedProjectRecords();
+  const workItem = selectedProjectWorkItem();
+  const events = selectedProjectEvents();
+  const activeRuns = selectedProjectRuns();
+  const summary = projectSummaries().find((project) => project.name === projectName);
+  const next = workItem ? getSection(workItem.sections, "next") || workItem.nextAction || "Sıradaki somut adım kayıtlarda yok." : "Önce proje için bir iş hattı seç veya oluştur.";
+  const current = workItem ? getSection(workItem.sections, "current") || workItem.summary || "Güncel durum kayıtlarda yok." : "Bu proje için açık iş hattı bulunamadı.";
+  const risks = workItem ? getSection(workItem.sections, "risks") || "Açık risk kaydı yok." : "Risk bilgisi için iş hattı gerekli.";
+
+  return `
+    ${renderHeader(
+      "Proje Çalışma Merkezi",
+      "Oturumları, kararları, iş hattı değişimlerini, Codex run kayıtlarını ve GitHub senkronizasyonunu tek timeline içinde izle.",
+      `<button data-view="new-summary">Yeni Oturum</button><button class="primary" data-action="copy-context-pack">Devam Brifi</button>`
+    )}
+    <section class="workspace-grid">
+      <div class="workspace-main">
+        <div class="metric-strip">
+          ${metricCard("Açık iş", counts.active + counts.waiting + counts.blocked)}
+          ${metricCard("İşleme bekliyor", counts.inbox)}
+          ${metricCard("Karar", counts.decisions)}
+          ${metricCard("Codex run", activeRuns.length)}
+        </div>
+        <div class="panel timeline-panel">
+          <div class="panel-heading">
+            <div>
+              <h3>${escapeHtml(projectName || "Proje seçilmedi")}</h3>
+              <p>${escapeHtml(summary?.repo || "Repo bilgisi yok")}</p>
+            </div>
+            <span class="badge">${records.length} kayıt</span>
+          </div>
+          <div class="timeline">
+            ${events.length ? events.map(renderTimelineEvent).join("") : `<div class="empty">Bu proje için timeline olayı yok.</div>`}
+          </div>
+        </div>
+      </div>
+      <aside class="context-pane">
+        <div class="panel context-card">
+          <div class="panel-heading">
+            <div>
+              <h3>Güncel Bağlam</h3>
+              <p>${escapeHtml(workItem?.title || projectName || "İş hattı seçilmedi")}</p>
+            </div>
+            ${workItem ? `<span class="badge ${workItem.status}">${statusLabel(workItem.status)}</span>` : ""}
+          </div>
+          ${detailSection("Güncel durum özeti", current)}
+          ${detailSection("Sıradaki somut adım", next)}
+          ${detailSection("Açık riskler", risks)}
+          <div class="context-actions">
+            <button class="primary" data-action="copy-context-pack">Tek tıkla devam brifi</button>
+            <button data-action="save-handoff-codex">Devam brifini kaydet</button>
+          </div>
+        </div>
+        ${renderCodexRunPanel()}
+        ${renderActivityLog()}
+      </aside>
+    </section>
+  `;
+}
+
+function metricCard(label, value) {
+  return `<div class="metric"><strong>${value}</strong><span>${label}</span></div>`;
+}
+
+function renderTimelineEvent(event) {
+  return `
+    <button class="timeline-event ${event.kind}" data-record-id="${escapeHtml(event.recordId || "")}">
+      <span class="timeline-marker"></span>
+      <span class="timeline-body">
+        <span class="timeline-top">
+          <strong>${escapeHtml(event.label)}</strong>
+          <small>${formatDate(event.at)}</small>
+        </span>
+        <span class="timeline-title">${escapeHtml(event.title || event.recordId || "Kayıt")}</span>
+        <span class="timeline-summary">${escapeHtml(event.summary || "Özet yok.")}</span>
+        <span class="meta">${escapeHtml(event.repo || event.path || "")}${event.status ? ` · ${escapeHtml(statusLabel(event.status))}` : ""}</span>
+      </span>
+    </button>
+  `;
+}
+
+function renderCodexRunPanel() {
+  const projects = state.runner.projects;
+  return `
+    <form class="panel codex-run-form" id="codex-run-form">
+      <div class="panel-heading">
+        <div>
+          <h3>Codex'e Devret</h3>
+          <p>Varsayılan dry-run; run logları yerel app-data altında tutulur.</p>
+        </div>
+      </div>
+      <label>Proje kökü
+        <select name="projectId" ${projects.length ? "" : "disabled"}>
+          ${projects.map((project) => `<option value="${escapeHtml(project.id)}">${escapeHtml(project.name)} · ${escapeHtml(project.path)}</option>`).join("")}
+        </select>
+      </label>
+      <div class="form-row">
+        <label>Seviye
+          <select name="automationLevel">
+            <option value="brief">Sadece brif hazırla</option>
+            <option value="suggest">Öneri üret</option>
+            <option value="edit_no_commit">Dosya değiştir, commit atma</option>
+            <option value="test">Test çalıştır</option>
+            <option value="commit_prepare">Commit hazırla</option>
+            <option value="commit_push">Commit + push</option>
+          </select>
+        </label>
+        <label>Şablon
+          <select name="template">
+            <option value="continue_work">Devam çalışması</option>
+            <option value="review">Kod inceleme</option>
+            <option value="test_fix">Test düzeltme</option>
+            <option value="release_check">Yayın kontrolü</option>
+          </select>
+        </label>
+      </div>
+      <label>Prompt
+        <textarea name="prompt" required placeholder="Codex'e verilecek kontrollü görev...">${escapeHtml(workItemPromptSeed())}</textarea>
+      </label>
+      <label class="check-row"><input type="checkbox" name="dryRun" checked> Dry-run olarak kaydet</label>
+      <button class="primary" type="submit" ${projects.length ? "" : "disabled"}>Run kaydı oluştur</button>
+      ${state.runner.runs.length ? `<div class="run-list">${state.runner.runs.slice(0, 4).map(renderRunMini).join("")}</div>` : ""}
+    </form>
+  `;
+}
+
+function workItemPromptSeed() {
+  const workItem = selectedProjectWorkItem();
+  if (!workItem) return "Seçili proje için mevcut durumu analiz et ve devam brifi üret.";
+  return [
+    `İş hattı: ${workItem.title}`,
+    `Güncel durum: ${getSection(workItem.sections, "current") || workItem.summary || ""}`,
+    `Sıradaki adım: ${getSection(workItem.sections, "next") || workItem.nextAction || ""}`
+  ].filter(Boolean).join("\n");
+}
+
+function renderRunMini(run) {
+  return `
+    <div class="run-mini">
+      <strong>${escapeHtml(run.id)}</strong>
+      <span>${escapeHtml(run.status)} · ${escapeHtml(run.automationLevel || "")}</span>
+    </div>
+  `;
+}
+
+function renderActivityLog() {
+  return `
+    <div class="panel activity-log">
+      <div class="panel-heading">
+        <div>
+          <h3>Çalışma Günlüğü</h3>
+          <p>Son kullanıcı aksiyonları ve runner olayları.</p>
+        </div>
+      </div>
+      <div class="activity-items">
+        ${state.activityLog.length ? state.activityLog.map((item) => `
+          <div class="activity-item ${item.kind}">
+            <strong>${escapeHtml(item.message)}</strong>
+            <span>${formatDate(item.at)}${item.detail ? ` · ${escapeHtml(item.detail)}` : ""}</span>
+          </div>
+        `).join("") : `<div class="empty">Henüz çalışma günlüğü olayı yok.</div>`}
+      </div>
+    </div>
+  `;
+}
+
+function formatDate(value) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "tarih yok";
+  return date.toLocaleString("tr-TR", { dateStyle: "short", timeStyle: "short" });
+}
+
 function renderCurrentView(counts) {
+  if (state.view === "workspace") return renderWorkspace(counts);
   if (state.view === "settings") return renderSettings();
   if (state.view === "new-summary") return renderNewSummary();
   if (state.view === "new-work") return renderNewWork();
@@ -868,7 +1211,7 @@ function renderWorkContext(workItem) {
       <span>${escapeHtml(workItem.path)}</span>
     </div>
     <div class="toolbar-actions">
-      <button class="primary" data-action="copy-context-pack">Bağlam Paketini Kopyala</button>
+      <button class="primary" data-action="copy-context-pack">Devam Brifini Kopyala</button>
       <button data-action="save-handoff-codex">Devam Brifini Kaydet</button>
       <select class="status-select" data-status-select data-work-id="${escapeHtml(workItem.id)}" aria-label="İş kartı durumu">
         ${WORK_STATUSES.map((status) => `<option value="${status}" ${workItem.status === status ? "selected" : ""}>${statusLabel(status)}</option>`).join("")}
@@ -1096,9 +1439,10 @@ function renderRunner() {
           </label>
           <label>
             Yerel Klasör
-            <input name="path" required placeholder="C:\\Users\\cagri\\projects\\projeler\\ai_hooks" />
+            <input name="path" data-project-path required placeholder="C:\\Users\\cagri\\projects\\projeler\\ai_hooks" />
           </label>
           <div class="toolbar-actions full">
+            <button type="button" data-action="select-project-root">Klasör Seç</button>
             <button class="primary" type="submit">Proje Kökünü Kaydet</button>
           </div>
         </form>
@@ -1209,7 +1553,13 @@ function bindEvents() {
     });
   });
   document.querySelectorAll("[data-action]").forEach((button) => {
-    button.addEventListener("click", () => handleAction(button.dataset.action));
+    button.addEventListener("click", () => handleAction(button.dataset.action, button.dataset));
+  });
+  document.querySelectorAll("[data-record-id]").forEach((button) => {
+    button.addEventListener("click", () => {
+      if (button.dataset.recordId) state.selectedId = button.dataset.recordId;
+      render();
+    });
   });
   document.querySelectorAll("[data-search]").forEach((input) => {
     input.addEventListener("input", () => {
@@ -1288,6 +1638,13 @@ function bindEvents() {
       handleAction("register-runner-project", runnerProjectForm);
     });
   }
+  const codexRunForm = document.querySelector("#codex-run-form");
+  if (codexRunForm) {
+    codexRunForm.addEventListener("submit", (event) => {
+      event.preventDefault();
+      handleAction("start-codex-run", codexRunForm);
+    });
+  }
   document.querySelectorAll("[data-next-action-form]").forEach((form) => {
     form.addEventListener("submit", (event) => {
       event.preventDefault();
@@ -1315,6 +1672,13 @@ function handleAction(action, payload) {
   if (action === "diagnose-repo") guarded(runDiagnostics);
   if (action === "refresh-runner") guarded(refreshRunnerStatus);
   if (action === "register-runner-project") guarded(() => registerProjectFromForm(payload));
+  if (action === "select-project-root") guarded(selectProjectRootForForm);
+  if (action === "start-codex-run") guarded(() => startCodexRunFromForm(payload));
+  if (action === "select-project") {
+    state.selectedProject = payload?.project || "";
+    state.view = "workspace";
+    render();
+  }
   if (action === "demo") loadDemo();
   if (action === "clear-search") {
     state.query = "";

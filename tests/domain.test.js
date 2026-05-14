@@ -12,6 +12,7 @@ import {
   buildManualDecision,
   buildManualWorkItem,
   buildSessionClosePrompt,
+  buildTimelineEvents,
   buildWorkItemFromSession,
   filterRecords,
   findWorkItemForSession,
@@ -343,6 +344,38 @@ test("açık işler ve işleme bekleyen oturumlar için günlük çalışma brif
   assert.match(brief, /İşleme bekleyen oturum: 1/);
   assert.match(brief, /blocked çalışma hattı \[blocked\]/);
   assert.doesNotMatch(brief, /done çalışma hattı/);
+});
+
+test("legacy kayıtlardan proje timeline olayları üretir", () => {
+  const session = parseMemoryFile("inbox/test.md", sample, "sha-session");
+  const work = parseMemoryFile(
+    "work_items/work_ctx-lab.md",
+    buildWorkItemFromSession(session).content.replace("updated_at: ", "updated_at: 2026-05-14T12:10:00.000Z"),
+    "sha-work"
+  );
+  const decision = parseMemoryFile(
+    "decisions/dec_test.md",
+    `---
+id: dec_test
+title: Timeline karari
+project: ctx-lab
+created_at: 2026-05-14T12:05:00.000Z
+---
+
+## Karar
+Timeline event katmanı eklenecek.
+`,
+    "sha-decision"
+  );
+  const events = buildTimelineEvents([session, work, decision], [
+    { id: "project_1", name: "ctx-lab", path: "C:\\repo", updatedAt: "2026-05-14T12:20:00.000Z" }
+  ], [
+    { id: "run_1", status: "dry_run", automationLevel: "brief", template: "continue_work", project: { name: "ctx-lab" }, createdAt: "2026-05-14T12:30:00.000Z" }
+  ]);
+
+  assert.deepEqual(events.slice(0, 2).map((event) => event.kind), ["codex_run", "project_registered"]);
+  assert.ok(events.some((event) => event.kind === "session" && event.recordId === "sess_test"));
+  assert.ok(events.some((event) => event.kind === "decision" && event.summary.includes("Timeline event")));
 });
 
 test("kayıtları çok kelimeli arama metniyle süzer", () => {

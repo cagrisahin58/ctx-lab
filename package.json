@@ -3,8 +3,13 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
+  "main": "electron/main.mjs",
   "scripts": {
     "dev": "vite --host 127.0.0.1",
+    "desktop:dev": "node scripts/desktop-dev.mjs",
+    "desktop": "electron .",
+    "desktop:build": "npm run build && electron .",
+    "desktop:smoke": "npm run build && node scripts/desktop-smoke.mjs && electron . --smoke",
     "start:windows": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/start-windows.ps1",
     "runner": "node scripts/ctxlab-runner.mjs",
     "runner:check": "node scripts/ctxlab-runner.mjs --dry-run",
@@ -15,6 +20,7 @@
     "verify": "npm test && npm run build && npm run smoke"
   },
   "devDependencies": {
+    "electron": "^42.0.1",
     "vite": "^6.0.0"
   }
 }

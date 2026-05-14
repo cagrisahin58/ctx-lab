@@ -31,6 +31,20 @@ Windows için tek komut:
 
 Bu komut gerekiyorsa bağımlılıkları kurar, `127.0.0.1:5173` üzerinde dev server başlatır, `127.0.0.1:5174` üzerinde yerel Codex Runner'ı açar ve tarayıcıyı başlatır. Alternatif port için `.\scripts\start-windows.cmd -Port 5175 -RunnerPort 5176` kullanılabilir.
 
+Masaüstü geliştirme kabuğu:
+
+```bash
+npm run desktop:dev
+```
+
+Bu komut Vite dev server'ını başlatır ve Electron kabuğunu güvenli preload/IPC yüzeyiyle açar. Production smoke için:
+
+```bash
+npm run desktop:smoke
+```
+
+Electron kabuğu renderer tarafında Node entegrasyonunu kapalı tutar; proje klasörü seçimi, runner sağlığı, proje registry ve Codex run kayıtları yalnızca izinli IPC kanallarından geçer.
+
 Kalite kapısı:
 
 ```bash
@@ -66,6 +80,8 @@ Token ve son başarılı memory snapshot'ı yalnızca tarayıcı localStorage al
 v2 ile `start-windows` komutu ayrıca `scripts/ctxlab-runner.mjs` servislerini başlatır. Runner yalnızca `127.0.0.1` üzerinde çalışır; Codex CLI durumunu denetler, `%APPDATA%/ctx-lab` altında yerel hafıza klasörlerini hazırlar ve otomasyon kapsamına alınacak proje köklerini `projects.json` dosyasında tutar.
 
 `Yerel Codex Runner` ekranında runner sağlığı, Codex CLI sürümü ve kayıtlı proje kökleri görülür. Bir proje kökü kaydedilmeden Codex otomasyonu o klasörde dosya değiştirmeyecek şekilde tasarlanır.
+
+Codex run kayıtları `%APPDATA%/ctx-lab/runs` altında JSON log olarak tutulur. İlk masaüstü akışta dry-run varsayılandır; prompt, otomasyon seviyesi, proje allowlist bilgisi ve çalışma sonucu aynı run kaydına yazılır. Desteklenen seviyeler: sadece brif hazırla, öneri üret, dosya değiştir ama commit atma, test çalıştır, commit hazırla, commit + push. Destructive git komutları runner tarafında reddedilir.
 
 ## Manuel oturum özeti akışı
 

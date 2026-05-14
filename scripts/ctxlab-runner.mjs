@@ -1,5 +1,5 @@
 import { createServer } from "node:http";
-import { access, mkdir, readFile, stat, writeFile } from "node:fs/promises";
+import { access, mkdir, readFile, readdir, stat, writeFile } from "node:fs/promises";
 import { constants } from "node:fs";
 import { homedir } from "node:os";
 import { basename, join, posix, resolve, win32 } from "node:path";
@@ -9,6 +9,20 @@ import { createHash } from "node:crypto";
 
 export const DEFAULT_RUNNER_PORT = 5174;
 export const RUNNER_VERSION = "0.1.0";
+export const AUTOMATION_LEVELS = Object.freeze([
+  "brief",
+  "suggest",
+  "edit_no_commit",
+  "test",
+  "commit_prepare",
+  "commit_push"
+]);
+export const PROMPT_TEMPLATES = Object.freeze([
+  "continue_work",
+  "review",
+  "test_fix",
+  "release_check"
+]);
 
 export function resolveAppDataDir(env = process.env, platform = process.platform) {
   if (env.CTX_LAB_HOME) return platform === "win32" ? win32.resolve(env.CTX_LAB_HOME) : posix.resolve(env.CTX_LAB_HOME);
@@ -156,6 +170,113 @@ export async function buildHealthPayload(paths = buildRunnerPaths(), options = {
   };
 }
 
+export async function listCodexRuns(paths = buildRunnerPaths(), limit = 20) {
+  await ensureRunnerHome(paths);
+  const names = await readdir(paths.runsDir).catch(() => []);
+  const runFiles = names
+    .filter((name) => name.endsWith(".json"))
+    .sort()
+    .reverse()
+    .slice(0, Number(limit) || 20);
+
+  const runs = [];
+  for (const name of runFiles) {
+    try {
+      runs.push(JSON.parse(await readFile(join(paths.runsDir, name), "utf8")));
+    } catch {
+      runs.push({
+        id: name.replace(/\.json$/, ""),
+        status: "corrupt",
+        error: "Run logu okunamadi."
+      });
+    }
+  }
+  return runs;
+}
+
+export async function startCodexRun(paths = buildRunnerPaths(), input = {}, options = {}) {
+  await ensureRunnerHome(paths);
+  const registry = await readProjectRegistry(paths);
+  const project = resolveAllowedProject(registry, input);
+  const automationLevel = normalizeAutomationLevel(input.automationLevel);
+  const template = normalizePromptTemplate(input.template);
+  assertSafeAutomationPrompt(String(input.prompt || ""));
+  const prompt = buildCodexRunPrompt(project, input, automationLevel, template);
+
+  const now = options.now || new Date();
+  const id = input.id || `run_${timestampSlug(now)}_${slugForId(project.name)}`;
+  const logPath = join(paths.runsDir, `${id}.json`);
+  const dryRun = input.dryRun !== false || automationLevel === "brief";
+  const baseRecord = {
+    id,
+    createdAt: now.toISOString(),
+    updatedAt: now.toISOString(),
+    status: dryRun ? "dry_run" : "running",
+    dryRun,
+    automationLevel,
+    template,
+    project: {
+      id: project.id,
+      name: project.name,
+      path: project.path,
+      repo: project.repo,
+      branch: project.branch
+    },
+    prompt,
+    logPath
+  };
+
+  if (dryRun) {
+    const record = {
+      ...baseRecord,
+      status: "dry_run",
+      summary: "Codex calistirilmadi; prompt ve proje kapsami kaydedildi."
+    };
+    await writeRunLog(logPath, record);
+    return record;
+  }
+
+  const codex = await detectCodex(options);
+  if (!codex.available) {
+    const record = {
+      ...baseRecord,
+      status: "failed",
+      codex,
+      error: codex.error || "Codex CLI bulunamadi."
+    };
+    await writeRunLog(logPath, record);
+    return record;
+  }
+
+  await writeRunLog(logPath, { ...baseRecord, codex });
+  const sandbox = sandboxForAutomationLevel(automationLevel);
+  const run = options.runCommand || runCommand;
+  const result = await run(codex.command, [
+    "exec",
+    "--json",
+    "--cd",
+    project.path,
+    "--sandbox",
+    sandbox,
+    "-"
+  ], { cwd: project.path, input: prompt });
+
+  const finishedAt = (options.finishedAt || new Date()).toISOString();
+  const record = {
+    ...baseRecord,
+    updatedAt: finishedAt,
+    finishedAt,
+    status: result.ok ? "succeeded" : "failed",
+    codex,
+    sandbox,
+    stdout: result.stdout || "",
+    stderr: result.stderr || "",
+    exitCode: result.code ?? (result.ok ? 0 : 1)
+  };
+  await writeRunLog(logPath, record);
+  return record;
+}
+
 export function createRunnerServer(options = {}) {
   const paths = options.paths || buildRunnerPaths(options.appDataDir);
   const host = options.host || "127.0.0.1";
@@ -176,7 +297,7 @@ export function createRunnerServer(options = {}) {
       if (request.method === "GET" && url.pathname === "/") {
         return sendJson(response, 200, {
           ...(await buildHealthPayload(paths, options)),
-          endpoints: ["/health", "/projects"]
+          endpoints: ["/health", "/projects", "/runs", "/runs/codex"]
         });
       }
       if (request.method === "GET" && url.pathname === "/health") {
@@ -191,11 +312,120 @@ export function createRunnerServer(options = {}) {
         const project = await registerProject(paths, body, options);
         return sendJson(response, 201, { ok: true, project, registry: await readProjectRegistry(paths) });
       }
+      if (request.method === "GET" && url.pathname === "/runs") {
+        return sendJson(response, 200, { runs: await listCodexRuns(paths, url.searchParams.get("limit")) });
+      }
+      if (request.method === "POST" && url.pathname === "/runs/codex") {
+        const body = await readJsonBody(request);
+        return sendJson(response, 201, await startCodexRun(paths, body, options));
+      }
       return sendJson(response, 404, { ok: false, error: "Endpoint bulunamadı" });
     } catch (error) {
       return sendJson(response, 500, { ok: false, error: error.message });
     }
   });
+}
+
+function resolveAllowedProject(registry, input) {
+  const projects = Array.isArray(registry.projects) ? registry.projects : [];
+  const requestedPath = String(input.path || input.projectPath || "").trim();
+  const requestedId = String(input.projectId || "").trim();
+  const pathMatch = requestedPath ? resolve(requestedPath).toLowerCase() : "";
+  const project = projects.find((item) => {
+    if (requestedId && item.id === requestedId) return true;
+    if (!pathMatch) return false;
+    return resolve(item.path).toLowerCase() === pathMatch;
+  });
+
+  if (!project) {
+    throw new Error("Codex yalnizca kayitli proje koklerinde calistirilabilir.");
+  }
+  return project;
+}
+
+function normalizeAutomationLevel(value) {
+  const normalized = String(value || "brief").trim();
+  if (AUTOMATION_LEVELS.includes(normalized)) return normalized;
+  throw new Error(`Gecersiz otomasyon seviyesi: ${normalized}`);
+}
+
+function normalizePromptTemplate(value) {
+  const normalized = String(value || "continue_work").trim();
+  if (PROMPT_TEMPLATES.includes(normalized)) return normalized;
+  throw new Error(`Gecersiz prompt sablonu: ${normalized}`);
+}
+
+function buildCodexRunPrompt(project, input, automationLevel, template) {
+  const userPrompt = String(input.prompt || "").trim();
+  if (!userPrompt) throw new Error("Codex promptu zorunlu.");
+
+  const templateText = {
+    continue_work: "Secili is hattini veya oturumu devam ettir.",
+    review: "Degisiklikleri correctness, test ve guvenlik riskleri acisindan incele.",
+    test_fix: "Testleri calistir, hatayi kok nedenine inerek duzelt ve sonucu raporla.",
+    release_check: "Build, smoke ve dogrulama kapilarini kontrol ederek yayina hazirlik raporu uret."
+  }[template];
+
+  const levelText = {
+    brief: "Sadece brif hazirla; dosya degistirme.",
+    suggest: "Oneri uret; dosya degistirme.",
+    edit_no_commit: "Gerekli dosya degisikliklerini yap; commit atma.",
+    test: "Gerekli testleri calistir; commit atma.",
+    commit_prepare: "Degisiklik ozetini ve commit taslagini hazirla; kullanici onayi olmadan commit atma.",
+    commit_push: "Test sonucu ve commit ozetini gorunur yap; destructive git islemleri yapma."
+  }[automationLevel];
+
+  return [
+    "ctx-lab masaustu otomasyon kosusu.",
+    `Proje: ${project.name}`,
+    `Repo: ${project.repo || "belirtilmedi"}`,
+    `Branch: ${project.branch || "main"}`,
+    `Proje koku: ${project.path}`,
+    `Prompt sablonu: ${templateText}`,
+    `Otomasyon seviyesi: ${levelText}`,
+    "Yasak islemler: git reset --hard, git clean -fd, git branch -D, git push --force, credential dosyasi okuma.",
+    "Tum gorunur kullanici metinleri Turkce tutulacak.",
+    "",
+    userPrompt
+  ].join("\n");
+}
+
+function assertSafeAutomationPrompt(prompt) {
+  const forbidden = [
+    /git\s+reset\s+--hard/i,
+    /git\s+clean\s+-[a-z]*f/i,
+    /git\s+branch\s+-D/i,
+    /git\s+push\s+--force/i,
+    /push\s+-f/i
+  ];
+  if (forbidden.some((pattern) => pattern.test(prompt))) {
+    throw new Error("Destructive git islemi iceren Codex promptu reddedildi.");
+  }
+}
+
+function sandboxForAutomationLevel(level) {
+  if (level === "suggest") return "read-only";
+  return "workspace-write";
+}
+
+async function writeRunLog(logPath, record) {
+  await writeFile(logPath, `${JSON.stringify(record, null, 2)}\n`, "utf8");
+}
+
+function timestampSlug(date) {
+  return date.toISOString().replace(/[:.]/g, "-");
+}
+
+function slugForId(value) {
+  return String(value || "proje")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/ı/g, "i")
+    .replace(/İ/g, "I")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 48) || "proje";
 }
 
 async function readJsonBody(request) {
@@ -217,11 +447,15 @@ function sendJson(response, status, payload) {
   response.end(JSON.stringify(payload, null, 2));
 }
 
-function runCommand(command, args) {
+function runCommand(command, args, options = {}) {
   return new Promise((resolveResult) => {
+    const spawnOptions = {
+      cwd: options.cwd,
+      windowsHide: true
+    };
     const child = process.platform === "win32"
-      ? spawn("cmd.exe", ["/d", "/s", "/c", [command, ...args].map(quoteCmdArg).join(" ")], { windowsHide: true })
-      : spawn(command, args);
+      ? spawn("cmd.exe", ["/d", "/s", "/c", [command, ...args].map(quoteCmdArg).join(" ")], spawnOptions)
+      : spawn(command, args, spawnOptions);
     let stdout = "";
     let stderr = "";
     child.stdout.on("data", (chunk) => {
@@ -233,8 +467,12 @@ function runCommand(command, args) {
     child.on("error", (error) => {
       resolveResult({ ok: false, stdout, stderr: error.message });
     });
+    if (options.input) {
+      child.stdin.write(options.input);
+    }
+    child.stdin.end();
     child.on("close", (code) => {
-      resolveResult({ ok: code === 0, stdout, stderr });
+      resolveResult({ ok: code === 0, stdout, stderr, code });
     });
   });
 }

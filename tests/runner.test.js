@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import {
@@ -10,10 +10,12 @@ import {
   createRunnerServer,
   detectCodex,
   ensureRunnerHome,
+  listCodexRuns,
   normalizeProjectDraft,
   readProjectRegistry,
   registerProject,
-  resolveAppDataDir
+  resolveAppDataDir,
+  startCodexRun
 } from "../scripts/ctxlab-runner.mjs";
 
 test("runner app-data yollarını platforma göre üretir", () => {
@@ -125,6 +127,116 @@ test("runner proje kaydini allowlist registry dosyasina ekler ve gunceller", asy
   }
 });
 
+test("codex dry-run yalnizca kayitli proje kokunde run logu olusturur", async () => {
+  const dir = await mkdtemp(join(tmpdir(), "ctxlab-runner-"));
+  const projectDir = await mkdtemp(join(tmpdir(), "ctxlab-project-"));
+  const paths = buildRunnerPaths(dir);
+
+  try {
+    const project = await registerProject(paths, {
+      name: "ctx-lab",
+      path: projectDir,
+      repo: "cagrisahin58/ctx-lab"
+    }, { now: new Date("2026-05-14T12:00:00.000Z") });
+    const run = await startCodexRun(paths, {
+      projectId: project.id,
+      automationLevel: "brief",
+      template: "continue_work",
+      prompt: "Devam brifi uret.",
+      dryRun: true
+    }, { now: new Date("2026-05-14T12:10:00.000Z") });
+    const log = JSON.parse(await readFile(run.logPath, "utf8"));
+    const runs = await listCodexRuns(paths);
+
+    assert.equal(run.status, "dry_run");
+    assert.equal(log.project.id, project.id);
+    assert.equal(runs[0].id, run.id);
+    assert.match(log.prompt, /Yasak islemler/);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+    await rm(projectDir, { recursive: true, force: true });
+  }
+});
+
+test("codex run kayitsiz proje kokunu reddeder", async () => {
+  const dir = await mkdtemp(join(tmpdir(), "ctxlab-runner-"));
+  const paths = buildRunnerPaths(dir);
+
+  try {
+    await assert.rejects(
+      () => startCodexRun(paths, {
+        projectPath: process.cwd(),
+        automationLevel: "brief",
+        prompt: "Brif uret."
+      }),
+      /kayitli proje/
+    );
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test("codex run destructive git promptunu reddeder", async () => {
+  const dir = await mkdtemp(join(tmpdir(), "ctxlab-runner-"));
+  const projectDir = await mkdtemp(join(tmpdir(), "ctxlab-project-"));
+  const paths = buildRunnerPaths(dir);
+
+  try {
+    const project = await registerProject(paths, {
+      name: "ctx-lab",
+      path: projectDir
+    });
+    await assert.rejects(
+      () => startCodexRun(paths, {
+        projectId: project.id,
+        prompt: "git reset --hard calistir",
+        dryRun: true
+      }),
+      /Destructive git/
+    );
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+    await rm(projectDir, { recursive: true, force: true });
+  }
+});
+
+test("codex run gercek calisma icin codex exec json komutunu kullanir", async () => {
+  const dir = await mkdtemp(join(tmpdir(), "ctxlab-runner-"));
+  const projectDir = await mkdtemp(join(tmpdir(), "ctxlab-project-"));
+  const paths = buildRunnerPaths(dir);
+  const calls = [];
+
+  try {
+    const project = await registerProject(paths, {
+      name: "ctx-lab",
+      path: projectDir
+    });
+    const run = await startCodexRun(paths, {
+      projectId: project.id,
+      automationLevel: "suggest",
+      prompt: "Sadece oner.",
+      dryRun: false
+    }, {
+      now: new Date("2026-05-14T12:20:00.000Z"),
+      finishedAt: new Date("2026-05-14T12:21:00.000Z"),
+      candidates: ["codex.cmd"],
+      runCommand: async (command, args, options = {}) => {
+        calls.push({ command, args, options });
+        if (args.includes("--version")) return { ok: true, stdout: "codex-cli test\n", stderr: "", code: 0 };
+        return { ok: true, stdout: "{\"event\":\"done\"}\n", stderr: "", code: 0 };
+      }
+    });
+
+    assert.equal(run.status, "succeeded");
+    assert.equal(run.sandbox, "read-only");
+    assert.ok(calls.some((call) => call.args.includes("exec") && call.args.includes("--json")));
+    assert.match(calls.at(-1).options.input, /Sadece oner/);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+    await rm(projectDir, { recursive: true, force: true });
+  }
+});
+
 test("runner server /health endpointini sunar", async () => {
   const dir = await mkdtemp(join(tmpdir(), "ctxlab-runner-"));
   const paths = buildRunnerPaths(dir);
@@ -164,7 +276,7 @@ test("runner server kok endpointinde saglik ve endpoint listesini sunar", async 
 
     assert.equal(response.status, 200);
     assert.equal(body.service, "ctx-lab-runner");
-    assert.deepEqual(body.endpoints, ["/health", "/projects"]);
+    assert.deepEqual(body.endpoints, ["/health", "/projects", "/runs", "/runs/codex"]);
   } finally {
     await new Promise((resolve) => server.close(resolve));
     await rm(dir, { recursive: true, force: true });

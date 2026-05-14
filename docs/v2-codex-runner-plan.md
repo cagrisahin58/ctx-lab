@@ -10,7 +10,7 @@ ctx-lab v2, GitHub-backed hafiza katmanini koruyarak proje timeline merkezli, Tu
 
 - Ana gorunum: Proje Timeline.
 - Otonomi: Codex dosya degistirebilir, test calistirabilir, commit atabilir ve push yapabilir.
-- Runner: `127.0.0.1` uzerinde Node localhost servisi.
+- Runner: Electron main process IPC yuzeyi ve geriye uyumluluk icin `127.0.0.1` Node localhost servisi.
 - Yerel hafiza: hem app-data indeks hem yerel git clone mirror.
 - API: ilk v2 icin OpenAI API sart degil; Codex CLI (`codex.cmd exec`) kullanilacak.
 - Dil: gorunur tum metinler Turkce olacak; dahili field ve klasor adlari geriye uyumluluk icin Ingilizce kalabilir.
@@ -61,11 +61,12 @@ ctx-lab v2, GitHub-backed hafiza katmanini koruyarak proje timeline merkezli, Tu
 ## Uygulama asamalari
 
 1. Runner temeli: health, app-data dizinleri, Codex CLI tespiti, proje registry.
-2. Memory mirror: work-memory clone/pull/index.
-3. Proje Timeline veri modeli: legacy kayitlardan timeline event uretimi.
-4. UI yenileme: Turkce terminoloji, timeline, command rail, durum cubugu.
-5. Codex run: hazir promptlar, JSON output schema, run stream, commit/push.
-6. claude-review P0 UX paketi: dark mode, command palette, activity log, kisa yollar, onboarding.
+2. Electron kabugu: guvenli preload/IPC, app-data path, klasor secimi, desktop smoke.
+3. Memory mirror: work-memory clone/pull/index.
+4. Proje Timeline veri modeli: legacy kayitlardan timeline event uretimi.
+5. UI yenileme: Turkce terminoloji, timeline, command rail, durum cubugu.
+6. Codex run: hazir promptlar, dry-run, JSONL stdout/stderr log, commit/push oncesi gorunur ozet.
+7. claude-review P0 UX paketi: dark mode, command palette, activity log, kisa yollar, onboarding.
 
 ## Test kapisi
 

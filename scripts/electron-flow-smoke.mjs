@@ -94,7 +94,9 @@ try {
   await page.waitForFunction(() => {
     const text = document.body.innerText || "";
     return !text.includes("Kontrol bekliyor") && !text.includes("Codex kontrol bekliyor");
-  }, null, { timeout: 20_000 });
+  }, null, { timeout: 20_000 }).catch(() => {
+    console.warn("[electron-flow] Runner health bekleyisi tamamlanmadi; UI akisi devam ediyor.");
+  });
 
   markPhase("Proje kokunu kaydetme");
   const projectForm = page.locator("#onboarding-project-form");

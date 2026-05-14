@@ -558,15 +558,18 @@ async function refreshRunnerStatus(options = {}) {
 
 async function registerProjectFromForm(form) {
   const data = new FormData(form);
-  await registerRunnerProject({
+  const result = await registerRunnerProject({
     name: data.get("name"),
     path: data.get("path"),
     repo: data.get("repo"),
     branch: data.get("branch") || "main"
   });
+  if (Array.isArray(result.registry?.projects)) {
+    state.runner.projects = result.registry.projects;
+  }
   setToast("Proje kökü yerel runner'a kaydedildi.");
   form.reset();
-  await refreshRunnerStatus({ silent: true });
+  refreshRunnerStatus({ silent: true });
 }
 
 async function selectProjectRootForForm() {

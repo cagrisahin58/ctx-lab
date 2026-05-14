@@ -1889,9 +1889,9 @@ function renderNewWork() {
           Riskler / Engeller
           <textarea name="risks" placeholder="Açık risk, bağımlılık veya engel var mı?"></textarea>
         </label>
-        <div class="toolbar-actions full">
+        <div class="form-actions full">
+          <button class="ghost" type="button" data-view="board">Vazgeç</button>
           <button class="primary" type="submit">İş Hattını Oluştur</button>
-          <button type="button" data-view="board">Vazgeç</button>
         </div>
       </form>
     </section>
@@ -1960,9 +1960,9 @@ function renderNewDecision() {
           Kaynak
           <textarea name="source" placeholder="Oturum, commit, dosya veya kısa kanıt notu"></textarea>
         </label>
-        <div class="toolbar-actions full">
+        <div class="form-actions full">
+          <button class="ghost" type="button" data-view="decisions">Vazgeç</button>
           <button class="primary" type="submit">Kararı Kaydet</button>
-          <button type="button" data-view="decisions">Vazgeç</button>
         </div>
       </form>
     </section>
@@ -2182,9 +2182,9 @@ function renderNewSummary() {
           Kanıtlar
           <textarea name="evidence" placeholder="- Dosya, commit, PR veya sohbet referansı"></textarea>
         </label>
-        <div class="toolbar-actions full">
+        <div class="form-actions full">
+          <button class="ghost" type="button" data-view="inbox">Vazgeç</button>
           <button class="primary" type="submit">Oturum Akışına Kaydet</button>
-          <button type="button" data-view="inbox">Vazgeç</button>
         </div>
       </form>
     </section>

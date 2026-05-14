@@ -420,6 +420,19 @@ kbd {
   flex-wrap: wrap;
 }
 
+.form-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+
+.form-actions .primary {
+  margin-left: auto;
+}
+
 .page-title {
   display: grid;
   gap: 4px;

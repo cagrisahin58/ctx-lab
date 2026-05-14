@@ -449,6 +449,20 @@ async function updateSelectedWorkStatus(payload) {
   setToast("İş kartı durumu güncellendi.");
 }
 
+async function moveWorkItemToStatus(workItemId, status) {
+  const record = state.records.find((item) => item.id === workItemId);
+  if (!record || record.type !== "work_items") {
+    setToast("Taşınacak iş kartı bulunamadı.");
+    return;
+  }
+  if (record.status === status) {
+    state.selectedId = record.id;
+    render();
+    return;
+  }
+  await updateSelectedWorkStatus({ id: workItemId, status });
+}
+
 async function updateSelectedWorkNextAction(payload) {
   const record = state.records.find((item) => item.id === payload?.id);
   if (!record || record.type !== "work_items") {
@@ -1437,8 +1451,11 @@ function renderBoard() {
     <div class="board-layout">
       <div class="board">
         ${columns.map(([status, title]) => `
-          <section class="column">
-            <h3>${title}</h3>
+          <section class="column" data-board-column="${status}">
+            <div class="column-head">
+              <h3>${title}${status === "blocked" ? " !" : ""}</h3>
+              <span>${(groups[status] || []).length}</span>
+            </div>
             ${(groups[status] || []).map(renderRecordCard).join("") || `<div class="empty">Kayıt yok.</div>`}
           </section>
         `).join("")}
@@ -1928,8 +1945,11 @@ function renderRunnerProject(project) {
 }
 
 function renderRecordCard(record) {
+  const dragAttrs = record.type === "work_items"
+    ? ` draggable="true" data-drag-work-id="${escapeHtml(record.id)}"`
+    : "";
   return `
-    <button class="record-card ${state.selectedId === record.id ? "selected" : ""}" data-select="${record.id}">
+    <button class="record-card ${state.selectedId === record.id ? "selected" : ""}" data-select="${record.id}"${dragAttrs}>
       <h3>${escapeHtml(record.title)}</h3>
       <p>${escapeHtml(record.summary || "Özet yok.")}</p>
       <div class="meta">
@@ -2083,6 +2103,35 @@ function bindEvents() {
     button.addEventListener("click", () => {
       if (button.dataset.recordId) state.selectedId = button.dataset.recordId;
       render();
+    });
+  });
+  document.querySelectorAll("[data-drag-work-id]").forEach((card) => {
+    card.addEventListener("dragstart", (event) => {
+      state.selectedId = card.dataset.dragWorkId;
+      card.classList.add("dragging");
+      event.dataTransfer.effectAllowed = "move";
+      event.dataTransfer.setData("text/plain", card.dataset.dragWorkId);
+      event.dataTransfer.setData("application/x-ctxlab-work-id", card.dataset.dragWorkId);
+    });
+    card.addEventListener("dragend", () => {
+      card.classList.remove("dragging");
+      document.querySelectorAll("[data-board-column]").forEach((column) => column.classList.remove("drag-over"));
+    });
+  });
+  document.querySelectorAll("[data-board-column]").forEach((column) => {
+    column.addEventListener("dragover", (event) => {
+      event.preventDefault();
+      column.classList.add("drag-over");
+      event.dataTransfer.dropEffect = "move";
+    });
+    column.addEventListener("dragleave", (event) => {
+      if (!column.contains(event.relatedTarget)) column.classList.remove("drag-over");
+    });
+    column.addEventListener("drop", (event) => {
+      event.preventDefault();
+      column.classList.remove("drag-over");
+      const workItemId = event.dataTransfer.getData("application/x-ctxlab-work-id") || event.dataTransfer.getData("text/plain");
+      if (workItemId) handleAction("move-work-status", { id: workItemId, status: column.dataset.boardColumn });
     });
   });
   document.querySelectorAll("[data-search]").forEach((input) => {
@@ -2245,6 +2294,7 @@ function handleAction(action, payload) {
     guarded(() => createWorkFromSelected(target));
   }
   if (action === "update-work-status") guarded(() => updateSelectedWorkStatus(payload));
+  if (action === "move-work-status") guarded(() => moveWorkItemToStatus(payload?.id, payload?.status));
   if (action === "update-work-next") guarded(() => updateSelectedWorkNextAction(payload));
   if (action === "archive") guarded(archiveSelected);
   if (action === "save-decision") guarded(saveDecisionFromSelected);

@@ -8,6 +8,7 @@ AI sohbet geçmişine güvenmek yerine, her önemli oturumdan sonra kısa ve ins
 
 - Oturum Akışı'nda yeni oturum özetlerini toplar,
 - İş Akışı'nda aktif işleri gösterir,
+- İş Akışı kartlarını sürükle-bırak ile durumlar arasında taşır,
 - aynı proje için gelen yeni oturumları mevcut iş kartına bağlar,
 - karar defterini kaynaklı tutar,
 - Codex veya Claude için iş hattı merkezli devam brifi üretir.

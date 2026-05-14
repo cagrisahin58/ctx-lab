@@ -81,6 +81,18 @@ try {
   await expectVisibleText(page, "Codex dry-run kaydı hazırlandı.");
   await expectVisibleText(page, "dry_run");
 
+  await page.keyboard.press("Control+K");
+  await page.locator("[data-command-search]").fill("iş akışı");
+  await page.locator("[data-command-dialog]").getByRole("button", { name: /İş Akışı/ }).click();
+  await expectVisibleText(page, "Kalıcı gerçeklik burada tutulur");
+  const workCard = page.locator('[data-drag-work-id="work_ctx_lab_redesign"]');
+  const waitingColumn = page.locator('[data-board-column="waiting"]');
+  await workCard.dragTo(waitingColumn);
+  await page.locator('[data-board-column="waiting"] [data-drag-work-id="work_ctx_lab_redesign"]').waitFor({
+    state: "visible",
+    timeout: 15_000
+  });
+
   const title = await electronApp.evaluate(({ BrowserWindow }) => {
     return BrowserWindow.getAllWindows()[0]?.getTitle();
   });

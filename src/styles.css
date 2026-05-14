@@ -544,6 +544,15 @@ kbd {
   text-align: left;
 }
 
+.record-card[draggable="true"] {
+  cursor: grab;
+}
+
+.record-card.dragging {
+  opacity: 0.58;
+  cursor: grabbing;
+}
+
 .record-card.selected {
   outline: 2px solid var(--accent);
 }
@@ -632,11 +641,35 @@ kbd {
   align-content: start;
   gap: 10px;
   min-height: 320px;
+  transition: border-color 120ms ease, background 120ms ease;
 }
 
-.column h3 {
+.column.drag-over {
+  border-color: rgba(45, 212, 191, 0.72);
+  background: rgba(45, 212, 191, 0.08);
+}
+
+.column-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.column-head h3 {
   margin: 0;
   font-size: 15px;
+}
+
+.column-head span {
+  min-width: 24px;
+  border-radius: 999px;
+  padding: 3px 8px;
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+  text-align: center;
 }
 
 .search-strip,

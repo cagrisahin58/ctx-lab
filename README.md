@@ -71,7 +71,7 @@ Kullanıcı seviyesindeki masaüstü akışını doğrulamak için:
 npm run desktop:flow
 ```
 
-Bu kontrol Electron'u izole bir kullanıcı veri klasörüyle açar; ilk kurulum ekranını, yerel proje kökü kaydını, örnek devam brifi üretimini, demo veriden çalışma merkezine geçişi, `Ctrl+K` komut paletiyle ana görünümleri, Codex deneme kaydı oluşturmayı, çalıştırma sonucunun hafızaya ve devam brifi kaynaklarına bağlanmasını, commit/push onay kapısını, hafıza sağlığı uyarılarını, yerel ayna fark görünürlüğünü ve ekran görüntüsü alınabildiğini doğrular.
+Bu kontrol Electron'u izole bir kullanıcı veri klasörüyle açar; ilk kurulum ekranını, yerel proje kökü kaydını, örnek devam brifi üretimini, demo veriden çalışma merkezine geçişi, Oturum Akışı klavye dolaşımını (`↑`/`↓` ve `J`/`K`), `Ctrl+K` komut paletiyle ana görünümleri, Codex deneme kaydı oluşturmayı, çalıştırma sonucunun hafızaya ve devam brifi kaynaklarına bağlanmasını, commit/push onay kapısını, hafıza sağlığı uyarılarını, yerel ayna fark görünürlüğünü ve ekran görüntüsü alınabildiğini doğrular.
 
 Masaüstü kapısını toplu çalıştırmak için:
 

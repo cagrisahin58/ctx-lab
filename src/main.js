@@ -11,6 +11,7 @@ import {
   buildManualWorkItem,
   buildMemoryExportFiles,
   buildOnboardingChecklist,
+  computeDecisionImpact,
   buildDecisionFromSession,
   buildContextPack,
   buildDailyBrief,
@@ -3472,6 +3473,7 @@ function renderRecordCard(record) {
       <h3>${escapeHtml(record.title)}</h3>
       <p>${escapeHtml(record.summary || "Özet yok.")}</p>
       ${record.nextAction ? `<p class="next-line">Sıradaki adım: ${escapeHtml(record.nextAction)}</p>` : ""}
+      ${record.type === "decisions" ? renderDecisionImpact(record, "compact") : ""}
       <div class="meta">
         <span class="badge ${record.status}">${statusLabel(record.status)}</span>
         ${record.project ? `<span>${escapeHtml(record.project)}</span>` : ""}
@@ -3516,11 +3518,42 @@ function renderRecordDetail(record, withActions) {
     ${detailSection("Amaç", getSection(record.sections, "goal") || getSection(record.sections, "objective"))}
     ${detailSection("Yapılanlar / Güncel Durum", getSection(record.sections, "happened") || getSection(record.sections, "current"))}
     ${detailSection("Kararlar", getSection(record.sections, "decisions"))}
+    ${record.type === "decisions" ? renderDecisionImpact(record, "detail") : ""}
     ${record.type === "decisions" ? detailSection("Gerekçe", getSection(record.sections, "rationale")) : ""}
     ${record.type === "decisions" ? detailSection("Etki", getSection(record.sections, "impact")) : ""}
     ${record.type === "decisions" ? detailSection("Kaynak", getSection(record.sections, "source_section")) : ""}
     ${detailSection("Açık Sorular / Riskler", getSection(record.sections, "questions") || getSection(record.sections, "risks"))}
     ${detailSection("Sonraki Adımlar", getSection(record.sections, "next"))}
+  `;
+}
+
+function renderDecisionImpact(record, mode = "detail") {
+  const impact = computeDecisionImpact(state.records, record);
+  const age = impact.daysSince === null ? "Tarih yok" : `${impact.daysSince} gün`;
+  const workNames = impact.workItems.map((item) => item.title || item.id).slice(0, 3).join(" · ");
+  const sessionNames = impact.sessions.map((item) => item.title || item.id).slice(0, 3).join(" · ");
+  if (mode === "compact") {
+    return `
+      <div class="decision-impact compact" aria-label="Karar etkisi">
+        <span>Bağlı iş hattı: ${impact.workItemCount}</span>
+        <span>Bağlı oturum: ${impact.sessionCount}</span>
+        <span>Geçen gün: ${escapeHtml(age)}</span>
+      </div>
+    `;
+  }
+  return `
+    <section class="decision-impact detail">
+      <h4>Karar Etkisi</h4>
+      <div class="impact-metrics">
+        ${metricCard("Bağlı iş hattı", impact.workItemCount)}
+        ${metricCard("Bağlı oturum", impact.sessionCount)}
+        ${metricCard("Geçen gün", age)}
+      </div>
+      <div class="impact-links">
+        <span>İş hattı: ${escapeHtml(workNames || "Bağlı iş hattı yok")}</span>
+        <span>Oturum: ${escapeHtml(sessionNames || "Bağlı oturum yok")}</span>
+      </div>
+    </section>
   `;
 }
 

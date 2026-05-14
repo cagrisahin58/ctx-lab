@@ -993,6 +993,45 @@ export function resolveWorkContext(records, anchorRecord) {
   return { workItem, sessions, decisions };
 }
 
+export function computeDecisionImpact(records, decision, now = new Date()) {
+  if (!decision || decision.type !== "decisions") {
+    return { workItems: [], sessions: [], workItemCount: 0, sessionCount: 0, daysSince: null };
+  }
+
+  const workItems = sortRecords(
+    records.filter((record) => {
+      if (record.type !== "work_items") return false;
+      const decisionIds = new Set(normalizeArray(record.frontmatter.decisions));
+      const workSessionIds = new Set(normalizeArray(record.frontmatter.sessions));
+      const sourceSessionIds = normalizeArray(decision.frontmatter.source_session);
+      const sourceWorkItemIds = normalizeArray(decision.frontmatter.source_work_item);
+      return decisionIds.has(decision.id) ||
+        sourceWorkItemIds.includes(record.id) ||
+        sourceSessionIds.some((id) => workSessionIds.has(id));
+    })
+  );
+  const sessionIds = new Set(normalizeArray(decision.frontmatter.source_session));
+  for (const workItem of workItems) {
+    for (const id of normalizeArray(workItem.frontmatter.sessions)) sessionIds.add(id);
+  }
+  const sessions = sortRecords(
+    records.filter((record) => record.type === "inbox" && sessionIds.has(record.id))
+  );
+  const created = coerceTime(decision.frontmatter.created_at || decision.createdAt || "");
+  const nowTime = coerceTime(now);
+  const daysSince = Number.isFinite(created) && Number.isFinite(nowTime)
+    ? Math.max(0, Math.floor((nowTime - created) / DAY_MS))
+    : null;
+
+  return {
+    workItems,
+    sessions,
+    workItemCount: workItems.length,
+    sessionCount: sessions.length,
+    daysSince
+  };
+}
+
 export function buildContextPack(records, anchorRecord, target = "codex") {
   const toolName = target === "claude" ? "Claude Code" : "Codex";
   const { workItem, sessions, decisions } = resolveWorkContext(records, anchorRecord);

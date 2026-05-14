@@ -15,6 +15,7 @@ import {
   buildManualWorkItem,
   buildMemoryExportFiles,
   buildOnboardingChecklist,
+  computeDecisionImpact,
   buildSessionClosePrompt,
   buildTimelineEvents,
   buildWorkItemFromSession,
@@ -410,6 +411,41 @@ test("iş hattı olmadan source_work_item boş kararları yanlış bağlamaz", (
 
   assert.equal(context.workItem, null);
   assert.equal(context.decisions.length, 0);
+});
+
+test("karar etkisi bağlı iş hattı, oturum ve yaş bilgisini hesaplar", () => {
+  const session = parseMemoryFile("inbox/test.md", sample, "sha-session");
+  const work = parseMemoryFile(
+    "work_items/work_ctx-lab.md",
+    buildWorkItemFromSession(session).content,
+    "sha-work"
+  );
+  const decision = parseMemoryFile(
+    "decisions/dec_test.md",
+    `---
+id: dec_test
+title: Kaynak gerçeklik kararı
+project: ctx-lab
+source_session: sess_test
+created_at: 2026-05-01T00:00:00.000Z
+---
+
+## Karar
+GitHub hafıza reposu kaynak gerçeklik olacak.
+`,
+    "sha-decision"
+  );
+  const impact = computeDecisionImpact(
+    [session, work, decision],
+    decision,
+    new Date("2026-05-14T00:00:00.000Z")
+  );
+
+  assert.equal(impact.workItemCount, 1);
+  assert.equal(impact.sessionCount, 1);
+  assert.equal(impact.daysSince, 13);
+  assert.equal(impact.workItems[0].id, "work_ctx-lab");
+  assert.equal(impact.sessions[0].id, "sess_test");
 });
 
 test("açık işler ve işleme bekleyen oturumlar için günlük çalışma brifi üretir", () => {

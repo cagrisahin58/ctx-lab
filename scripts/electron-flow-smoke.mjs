@@ -542,6 +542,10 @@ try {
   await page.locator("[data-command-search]").fill("karar defteri");
   await page.locator('[data-command-id="view:decisions"]').click();
   await expectVisibleText(page, "Karar Detayı");
+  await expectVisibleText(page, "Karar Etkisi");
+  await expectVisibleText(page, "Bağlı iş hattı");
+  await expectVisibleText(page, "Bağlı oturum");
+  await expectVisibleText(page, "Geçen gün");
   await expectVisibleText(page, "GitHub hafıza reposu kaynak gerçeklik olacak");
   await expectVisibleText(page, "Kalıcı çalışma hafızası için GitHub hafıza reposu ana gerçeklik olacak.");
   await page.keyboard.press("Control+K");

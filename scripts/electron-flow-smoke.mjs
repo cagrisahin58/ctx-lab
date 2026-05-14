@@ -1,11 +1,12 @@
 import assert from "node:assert/strict";
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { createRequire } from "node:module";
 import { _electron as electron } from "playwright-core";
 import { parseMemoryFile } from "../src/domain.js";
 import { CONFIG_STORAGE_KEY, RECORD_CACHE_STORAGE_KEY } from "../src/storage.js";
+import { buildMemoryMirrorPaths, buildRunnerPaths } from "../scripts/ctxlab-runner.mjs";
 
 const require = createRequire(import.meta.url);
 const electronPath = require("electron");
@@ -102,12 +103,14 @@ async function seedValidationCache(page) {
     branch: "main",
     token: "test-token"
   };
+  const records = validationFixtureRecords();
   const cache = {
     scope: "cagrisahin58/ctx-lab@main",
     syncedAt: "2026-05-14T08:05:00.000Z",
     remoteHead: "validation-fixture-head",
-    records: validationFixtureRecords()
+    records
   };
+  await seedMemoryIndex(config, records);
   await page.evaluate(({ configKey, cacheKey, configValue, cacheValue }) => {
     localStorage.setItem(configKey, JSON.stringify(configValue));
     localStorage.setItem(cacheKey, JSON.stringify(cacheValue));
@@ -117,6 +120,45 @@ async function seedValidationCache(page) {
     configValue: config,
     cacheValue: cache
   });
+}
+
+async function seedMemoryIndex(config, records) {
+  const paths = buildRunnerPaths(userData);
+  const mirror = buildMemoryMirrorPaths(paths, config);
+  const index = {
+    schemaVersion: 1,
+    owner: config.owner,
+    repo: config.repo,
+    branch: config.branch,
+    cloneDir: mirror.cloneDir,
+    memoryRoot: join(mirror.cloneDir, "work-memory"),
+    indexedAt: "2026-05-14T08:06:00.000Z",
+    lastCommit: "validation-fixture-head",
+    recordCount: records.length,
+    warningCount: 4,
+    counts: records.reduce((counts, record) => {
+      counts[record.type] = (counts[record.type] || 0) + 1;
+      return counts;
+    }, {}),
+    warnings: ["validation fixture"],
+    records: records.map((record) => ({
+      id: record.id,
+      type: record.type,
+      path: record.path,
+      status: record.status,
+      project: record.project,
+      repo: record.repo,
+      branch: record.branch,
+      title: record.title,
+      summary: record.summary,
+      nextAction: record.nextAction,
+      createdAt: record.createdAt,
+      updatedAt: record.frontmatter?.updated_at || "",
+      sha: record.sha
+    }))
+  };
+  await mkdir(dirname(mirror.indexFile), { recursive: true });
+  await writeFile(mirror.indexFile, `${JSON.stringify(index, null, 2)}\n`, "utf8");
 }
 
 async function moveWorkCardToColumn(page, workId, status) {
@@ -353,6 +395,14 @@ try {
   await expectVisibleText(page, "bozuk frontmatter");
   await expectVisibleText(page, "inbox/duplicate-b.md");
   await expectVisibleText(page, "duplicate id");
+  await page.keyboard.press("Control+K");
+  await page.locator("[data-command-search]").fill("çalıştırıcı");
+  await page.locator('[data-command-id="view:runner"]').click();
+  await expectVisibleText(page, "Hafıza Senkron Durumu");
+  await expectVisibleText(page, "Son GitHub senkronizasyonu");
+  await expectVisibleText(page, "Yerel ayna");
+  await expectVisibleText(page, "GitHub ile aynı");
+  await expectVisibleText(page, "Kayıt yolları ve özet alanları eşleşiyor");
 
   const title = await electronApp.evaluate(({ BrowserWindow }) => {
     return BrowserWindow.getAllWindows()[0]?.getTitle();

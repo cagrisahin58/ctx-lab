@@ -114,6 +114,7 @@ assert.ok(!/Seslog|seslog/i.test(bundleText), "Legacy Seslog metni build icinde 
 assert.ok(bundleText.includes("timelineIn"), "Timeline giris animasyonu bundle icinde olmali.");
 assert.ok(bundleText.includes("activityPulse"), "Run/activity hareket sinyali bundle icinde olmali.");
 assert.ok(bundleText.includes("prefers-reduced-motion"), "Dusuk hareket tercihi CSS icinde desteklenmeli.");
+assert.ok(bundleText.includes("aria-live=\"polite\""), "Toast ve activity log ekran okuyucu icin aria-live desteklemeli.");
 
 console.log("dist smoke ok");
 

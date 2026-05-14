@@ -1066,7 +1066,7 @@ function render() {
         ${state.activityOpen && state.view !== "workspace" ? renderActivityDrawer() : ""}
       </main>
       ${renderCommandPalette()}
-      ${state.toast ? `<div class="toast">${escapeHtml(state.toast)}</div>` : ""}
+      ${state.toast ? `<div class="toast" role="status" aria-live="polite" aria-atomic="true">${escapeHtml(state.toast)}</div>` : ""}
     </div>
   `;
 
@@ -1547,7 +1547,7 @@ function renderActivityLog() {
           <p>Son kullanıcı aksiyonları ve çalıştırıcı olayları.</p>
         </div>
       </div>
-      <div class="activity-items">
+      <div class="activity-items" aria-live="polite" aria-relevant="additions text">
         ${state.activityLog.length ? state.activityLog.map((item) => `
           <div class="activity-item ${item.kind}">
             <strong>${escapeHtml(item.message)}</strong>

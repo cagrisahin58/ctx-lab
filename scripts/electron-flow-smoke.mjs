@@ -394,6 +394,10 @@ try {
   await projectForm.locator('input[name="branch"]').fill("main");
   await projectForm.getByRole("button", { name: "Proje Kökünü Kaydet" }).click();
   await expectVisibleText(page, "Proje kökü yerel çalıştırıcıya kaydedildi.");
+  await page.locator('.toast[role="status"][aria-live="polite"][aria-atomic="true"]').waitFor({
+    state: "visible",
+    timeout: 15_000
+  });
   await expectVisibleText(page, "1 kayıtlı kök");
 
   await page.getByRole("button", { name: "Örnek Devam Brifi Üret" }).click();

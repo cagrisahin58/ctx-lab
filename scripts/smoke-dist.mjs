@@ -86,6 +86,8 @@ for (const expected of [
   "Oturum Akisina Git",
   "Calisma Merkezine Git",
   "Gunluk Devam Brifi",
+  "Sesli Oku",
+  "Sesli okuma hazir",
   "Yerel onbellek",
   "Yeni Is Hatti",
   "Is hatti, proje veya durum ara",

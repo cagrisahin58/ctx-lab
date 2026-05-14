@@ -86,6 +86,7 @@ const state = {
   inboxStatus: "needs_triage",
   handoffTarget: "codex",
   onboardingBrief: "",
+  dailySpeechActive: false,
   projectPathDraft: "",
   tokenVisible: false,
   diagnostics: null,
@@ -109,6 +110,7 @@ const state = {
 
 let keyPrefix = "";
 let keyPrefixTimer = 0;
+let dailySpeechToken = 0;
 
 function saveConfig(config) {
   const nextConfig = { ...state.config, ...config };
@@ -1170,6 +1172,55 @@ function downloadContextPack(target = "codex") {
 
 function dailyBriefText(target = "codex") {
   return buildDailyBrief(state.records, target);
+}
+
+function dailySpeechSupported() {
+  return typeof window !== "undefined" &&
+    typeof window.speechSynthesis?.speak === "function" &&
+    typeof window.SpeechSynthesisUtterance === "function";
+}
+
+function stopDailyBriefSpeech(options = {}) {
+  dailySpeechToken += 1;
+  if (typeof window !== "undefined" && typeof window.speechSynthesis?.cancel === "function") {
+    window.speechSynthesis.cancel();
+  }
+  state.dailySpeechActive = false;
+  if (!options.silent) {
+    setToast("Sesli okuma durduruldu.");
+  } else {
+    render();
+  }
+}
+
+function speakDailyBrief() {
+  if (!dailySpeechSupported()) {
+    setToast("Sesli okuma bu ortamda desteklenmiyor.");
+    return;
+  }
+
+  const token = dailySpeechToken + 1;
+  dailySpeechToken = token;
+  const utterance = new window.SpeechSynthesisUtterance(dailyBriefText("codex"));
+  utterance.lang = "tr-TR";
+  utterance.rate = 0.95;
+  utterance.pitch = 1;
+  utterance.onend = () => {
+    if (dailySpeechToken !== token) return;
+    state.dailySpeechActive = false;
+    addActivity("Günlük brif sesli okuma tamamlandı.", "success");
+    render();
+  };
+  utterance.onerror = () => {
+    if (dailySpeechToken !== token) return;
+    state.dailySpeechActive = false;
+    setToast("Günlük brif sesli okunamadı.");
+  };
+
+  window.speechSynthesis.cancel();
+  state.dailySpeechActive = true;
+  window.speechSynthesis.speak(utterance);
+  setToast("Günlük brif sesli okunuyor.");
 }
 
 async function copyDailyBrief() {
@@ -2630,12 +2681,23 @@ function renderMarkdownPreview(markdown) {
 
 function renderDailyBrief() {
   const brief = dailyBriefText("codex");
+  const speechReady = dailySpeechSupported();
   return `
     ${renderHeader("Günlük Devam Brifi", "Açık iş hatlarını, işleme bekleyen kayıtları ve sıradaki adımları tek devam metninde topla.")}
     <section class="panel detail">
       <div class="toolbar-actions">
         <button class="primary" data-action="copy-daily-brief">Brifi Kopyala</button>
         <button data-action="save-daily-brief">Devam Brifi Olarak Kaydet</button>
+        <button data-action="${state.dailySpeechActive ? "stop-daily-brief-speech" : "speak-daily-brief"}" ${speechReady ? "" : "disabled"}>
+          ${state.dailySpeechActive ? "Sesli Okumayı Durdur" : "Sesli Oku"}
+        </button>
+      </div>
+      <div class="brief-speech-status ${state.dailySpeechActive ? "active" : speechReady ? "ready" : "blocked"}" aria-live="polite">
+        ${state.dailySpeechActive
+          ? "Sesli okuma aktif. Gerektiğinde durdurulabilir."
+          : speechReady
+            ? "Sesli okuma hazır; brif Türkçe Web Speech ile okunur."
+            : "Sesli okuma bu ortamda desteklenmiyor."}
       </div>
       <pre class="handoff-output">${escapeHtml(brief)}</pre>
     </section>
@@ -3764,6 +3826,8 @@ function handleAction(action, payload) {
   if (action === "download-context-pack") guarded(downloadContextPack);
   if (action === "copy-daily-brief") guarded(copyDailyBrief);
   if (action === "save-daily-brief") guarded(saveDailyBrief);
+  if (action === "speak-daily-brief") speakDailyBrief();
+  if (action === "stop-daily-brief-speech") stopDailyBriefSpeech();
   if (action === "create-work") guarded(createWorkFromSelected);
   if (action === "link-suggested-work") {
     const target = payload?.suggestedWorkId || "";

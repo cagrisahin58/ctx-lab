@@ -555,6 +555,59 @@ try {
   await page.locator('button[data-view="workspace"]').click();
   await expectVisibleText(page, "Codex'e Devret");
 
+  markPhase("Gunluk devam brifi sesli okuma akisini dogrulama");
+  await page.evaluate(() => {
+    window.__ctxlabSpeechCalls = [];
+    window.__ctxlabSpeechCancels = 0;
+    function MockSpeechSynthesisUtterance(text) {
+      this.text = text;
+      this.lang = "";
+      this.rate = 1;
+      this.pitch = 1;
+      this.onend = null;
+      this.onerror = null;
+    }
+    Object.defineProperty(window, "SpeechSynthesisUtterance", {
+      configurable: true,
+      value: MockSpeechSynthesisUtterance
+    });
+    Object.defineProperty(window, "speechSynthesis", {
+      configurable: true,
+      value: {
+        speak(utterance) {
+          window.__ctxlabSpeechCalls.push({
+            text: utterance.text,
+            lang: utterance.lang,
+            rate: utterance.rate,
+            pitch: utterance.pitch
+          });
+        },
+        cancel() {
+          window.__ctxlabSpeechCancels += 1;
+        }
+      }
+    });
+  });
+  await page.keyboard.press("Control+K");
+  await page.locator("[data-command-search]").fill("günlük devam");
+  await page.locator('[data-command-id="view:daily"]').click();
+  await expectVisibleText(page, "Günlük Devam Brifi");
+  await expectVisibleText(page, "Sesli Oku");
+  await expectVisibleText(page, "Sesli okuma hazır");
+  await page.getByRole("button", { name: "Sesli Oku" }).click();
+  await expectVisibleText(page, "Günlük brif sesli okunuyor.");
+  await expectVisibleText(page, "Sesli Okumayı Durdur");
+  const speechCall = await page.evaluate(() => window.__ctxlabSpeechCalls?.[0] || null);
+  assert.ok(speechCall, "Günlük brif sesli okuma Web Speech API'ye gönderilmeli");
+  assert.equal(speechCall.lang, "tr-TR");
+  assert.equal(speechCall.rate, 0.95);
+  assert.match(speechCall.text, /ctx-lab günlük çalışma brifi/);
+  await page.getByRole("button", { name: "Sesli Okumayı Durdur" }).click();
+  await expectVisibleText(page, "Sesli okuma durduruldu.");
+  assert.ok(await page.evaluate(() => window.__ctxlabSpeechCancels >= 2), "Sesli okuma başlatma ve durdurma cancel çağırmalı");
+  await page.locator('button[data-view="workspace"]').click();
+  await expectVisibleText(page, "Codex'e Devret");
+
   markPhase("Codex deneme kaydi olusturma");
   const runForm = page.locator("#codex-run-form");
   await runForm.locator('textarea[name="prompt"]').fill("ctx-lab Electron smoke icin deneme devam brifi hazirla.");

@@ -51,6 +51,7 @@ for (const expected of [
   "Ornek Devam Brifi",
   "Is Akisi",
   "Karar Defteri",
+  "Karar Detayi",
   "Devam Brifi",
   "Paket icerigi",
   "Tahmini token",

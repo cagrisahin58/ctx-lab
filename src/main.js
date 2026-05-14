@@ -503,6 +503,7 @@ async function saveDecisionFromSelected() {
     const updatedWork = appendDecisionToWorkItem(workItem, savedDecision);
     await saveMemoryRecord(workItem.path, updatedWork, `work: ${workItem.id} karar bağlantısını güncelle`);
   }
+  state.selectedId = savedDecision.id;
   state.view = "decisions";
   setToast("Karar kaydı oluşturuldu.");
 }
@@ -1781,6 +1782,7 @@ function renderNewWork() {
 
 function renderDecisions() {
   const decisions = filteredRecords("decisions");
+  const selected = decisions.find((record) => record.id === state.selectedId) || decisions[0];
   return `
     ${renderHeader(
       "Karar Defteri",
@@ -1788,8 +1790,13 @@ function renderDecisions() {
       `<button class="primary" data-view="new-decision">Yeni Karar</button>`
     )}
     ${renderSearchBar("Karar kayıtlarında ara")}
-    <div class="grid">
-      ${decisions.length ? decisions.map((record) => `<section class="panel">${renderRecordDetail(record, false)}</section>`).join("") : `<div class="empty">Henüz karar kaydı yok.</div>`}
+    <div class="grid two">
+      <section class="record-list">
+        ${decisions.length ? decisions.map(renderRecordCard).join("") : `<div class="empty">Henüz karar kaydı yok.</div>`}
+      </section>
+      <section class="panel detail">
+        ${selected ? `<span class="eyebrow">Karar Detayı</span>${renderRecordDetail(selected, false)}` : `<div class="empty">İncelemek için bir karar seçin.</div>`}
+      </section>
     </div>
   `;
 }

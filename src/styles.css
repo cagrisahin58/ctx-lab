@@ -180,6 +180,17 @@ label {
   font-size: 13px;
 }
 
+.secret-field {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+}
+
+.secret-field button {
+  white-space: nowrap;
+}
+
 .app-shell {
   display: grid;
   grid-template-columns: 300px minmax(0, 1fr);
@@ -1297,6 +1308,7 @@ kbd {
   .filter-row,
   .triage-linker,
   .triage-suggestion,
+  .secret-field,
   .diagnostic-item,
   .connection-form {
     grid-template-columns: 1fr;

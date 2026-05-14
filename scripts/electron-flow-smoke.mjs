@@ -91,6 +91,10 @@ try {
   await expectVisibleText(page, "Codex CLI Kontrolü");
   await expectVisibleText(page, "Örnek Devam Brifi");
   await expectVisibleText(page, "Proje Çalışma Merkezi");
+  await page.getByRole("button", { name: "Tokeni göster" }).click();
+  assert.equal(await page.locator('#onboarding-config-form input[name="token"]').getAttribute("type"), "text");
+  await page.getByRole("button", { name: "Tokeni gizle" }).click();
+  assert.equal(await page.locator('#onboarding-config-form input[name="token"]').getAttribute("type"), "password");
   await page.waitForFunction(() => {
     const text = document.body.innerText || "";
     return !text.includes("Kontrol bekliyor") && !text.includes("Codex kontrol bekliyor");

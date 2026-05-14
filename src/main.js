@@ -76,6 +76,7 @@ const state = {
   inboxStatus: "needs_triage",
   handoffTarget: "codex",
   onboardingBrief: "",
+  tokenVisible: false,
   diagnostics: null,
   diagnosticsLoading: false,
   runner: {
@@ -161,6 +162,11 @@ function toggleTheme() {
   state.theme = saveTheme(state.theme === "dark" ? "light" : "dark");
   document.documentElement.dataset.theme = state.theme;
   addActivity(state.theme === "dark" ? "Koyu tema seçildi." : "Açık tema seçildi.", "info");
+  render();
+}
+
+function toggleTokenVisibility() {
+  state.tokenVisible = !state.tokenVisible;
   render();
 }
 
@@ -1401,7 +1407,10 @@ function renderOnboarding() {
             </label>
             <label class="full">
               GitHub Token
-              <input name="token" type="password" placeholder="Fine-grained token, Contents read/write" value="${escapeHtml(state.config.token || "")}" />
+              <span class="secret-field">
+                <input name="token" type="${state.tokenVisible ? "text" : "password"}" placeholder="Fine-grained token, Contents read/write" value="${escapeHtml(state.config.token || "")}" />
+                <button type="button" data-action="toggle-token-visibility">${state.tokenVisible ? "Tokeni gizle" : "Tokeni göster"}</button>
+              </span>
             </label>
             <div class="toolbar-actions full">
               <button class="primary" type="submit">Bağlantıyı Kaydet</button>
@@ -1985,7 +1994,10 @@ function renderSettings() {
         </label>
         <label class="full">
           GitHub Token
-          <input name="token" type="password" placeholder="Fine-grained token, Contents read/write" value="${escapeHtml(state.config.token || "")}" />
+          <span class="secret-field">
+            <input name="token" type="${state.tokenVisible ? "text" : "password"}" placeholder="Fine-grained token, Contents read/write" value="${escapeHtml(state.config.token || "")}" />
+            <button type="button" data-action="toggle-token-visibility">${state.tokenVisible ? "Tokeni gizle" : "Tokeni göster"}</button>
+          </span>
         </label>
         <div class="toolbar-actions full">
           <button class="primary" type="submit">Bağlantıyı Kaydet</button>
@@ -2668,6 +2680,7 @@ function handleAction(action, payload) {
 
   if (action === "sync") guarded(syncFromGitHub);
   if (action === "toggle-theme") toggleTheme();
+  if (action === "toggle-token-visibility") toggleTokenVisibility();
   if (action === "open-command-palette") openCommandPalette();
   if (action === "open-shortcuts") openCommandPalette("shortcuts");
   if (action === "close-command-palette") closeCommandPalette();

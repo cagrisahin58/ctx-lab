@@ -65,6 +65,7 @@ for (const expected of [
   "Run sonucunu secili is hattina bagla",
   "Akilli eslesme",
   "Onerilen Ise Bagla",
+  "Tokeni goster",
   "Proje Koku",
   "Oturum Kapanis"
 ]) {

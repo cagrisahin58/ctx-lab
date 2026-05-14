@@ -1651,7 +1651,7 @@ kbd {
   }
 }
 
-@media (max-width: 1420px) {
+@media (max-width: 1600px) {
   .board-layout {
     grid-template-columns: 1fr;
   }

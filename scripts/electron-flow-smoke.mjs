@@ -38,15 +38,20 @@ async function expectVisibleText(page, text) {
 async function moveWorkCardToColumn(page, workId, status) {
   const workCard = page.locator(`[data-drag-work-id="${workId}"]`);
   const targetColumn = page.locator(`[data-board-column="${status}"]`);
+  const movedCard = page.locator(`[data-board-column="${status}"] [data-drag-work-id="${workId}"]`);
   await workCard.scrollIntoViewIfNeeded();
   await targetColumn.scrollIntoViewIfNeeded();
 
-  try {
-    await workCard.dragTo(targetColumn, {
-      targetPosition: { x: 24, y: 48 },
-      timeout: 5_000
-    });
-  } catch {
+  async function waitForMoved(timeout = 2_500) {
+    try {
+      await movedCard.waitFor({ state: "visible", timeout });
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  async function dispatchDragFallback() {
     const dataTransfer = await page.evaluateHandle(() => new DataTransfer());
     await workCard.dispatchEvent("dragstart", { dataTransfer });
     await targetColumn.dispatchEvent("dragenter", { dataTransfer });
@@ -55,7 +60,20 @@ async function moveWorkCardToColumn(page, workId, status) {
     await workCard.dispatchEvent("dragend", { dataTransfer });
   }
 
-  await page.locator(`[data-board-column="${status}"] [data-drag-work-id="${workId}"]`).waitFor({
+  try {
+    await workCard.dragTo(targetColumn, {
+      targetPosition: { x: 24, y: 48 },
+      timeout: 5_000
+    });
+  } catch {
+    await dispatchDragFallback();
+  }
+
+  if (!(await waitForMoved())) {
+    await dispatchDragFallback();
+  }
+
+  await movedCard.waitFor({
     state: "visible",
     timeout: 15_000
   });

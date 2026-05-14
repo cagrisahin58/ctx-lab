@@ -100,7 +100,7 @@ test("ensureMemoryRepo eksik config ve klasör tutucularını oluşturur", async
     const body = JSON.parse(options.body);
     existing.add(path);
     assert.equal(body.branch, "main");
-    assert.match(body.message, /ctx-lab memory repo|klasörünü hazırla/);
+    assert.match(body.message, /ctx-lab hafıza reposu|klasörünü hazırla/);
     return { json: { content: { path, sha: `new-${path}` } } };
   });
 

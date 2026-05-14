@@ -1875,7 +1875,7 @@ function renderNewWork() {
       <form class="connection-form" id="work-form">
         <label>
           Başlık
-          <input name="title" required placeholder="AI Work Memory v1" />
+          <input name="title" required placeholder="AI Çalışma Hafızası v1" />
         </label>
         <label>
           Proje

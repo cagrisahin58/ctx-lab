@@ -55,7 +55,7 @@ Yeni uygulama yönünü netleştirmek.
 - Oturum Akışı fikri tartışıldı.
 
 ## Kararlar
-- GitHub source-of-truth olacak.
+- GitHub kaynak gerçeklik olacak.
 
 ## Sonraki Adımlar
 - Parser yaz.
@@ -96,7 +96,7 @@ test("work item içeriği üretir", () => {
 test("manuel iş hattı içeriği üretir", () => {
   const work = buildManualWorkItem(
     {
-      title: "AI Work Memory v1",
+      title: "AI Çalışma Hafızası v1",
       project: "ctx-lab",
       repo: "cagrisahin58/ctx-lab",
       branch: "main",
@@ -109,7 +109,7 @@ test("manuel iş hattı içeriği üretir", () => {
   );
   const parsed = parseMemoryFile(work.path, work.content, "sha-work");
 
-  assert.equal(work.id, "work_ai-work-memory-v1");
+  assert.equal(work.id, "work_ai-calisma-hafizasi-v1");
   assert.equal(parsed.frontmatter.status, "active");
   assert.equal(parsed.frontmatter.repo, "cagrisahin58/ctx-lab");
   assert.equal(getSection(parsed.sections, "objective"), "Kanban üzerinden bağımsız iş hattı başlatmak.");
@@ -120,7 +120,7 @@ test("decision içeriği üretir", () => {
   const record = parseMemoryFile("inbox/test.md", sample, "sha");
   const decision = buildDecisionFromSession(record);
   assert.ok(decision);
-  assert.match(decision.content, /GitHub source-of-truth olacak/);
+  assert.match(decision.content, /GitHub kaynak gerçeklik olacak/);
 });
 
 test("varsayılan boş karar metninden karar kaydı üretmez", () => {
@@ -143,10 +143,10 @@ test("varsayılan boş karar metninden karar kaydı üretmez", () => {
 test("manuel karar kaydı üretir ve iş hattı kaynağını taşır", () => {
   const decision = buildManualDecision(
     {
-      title: "Memory repo kaynak olacak",
+      title: "Hafıza reposu kaynak olacak",
       project: "ctx-lab",
       workItemId: "work_ctx-lab",
-      decision: "GitHub memory repo kalıcı kaynak olarak kullanılacak.",
+      decision: "GitHub hafıza reposu kalıcı kaynak olarak kullanılacak.",
       rationale: "Claude ve Codex arasında taşınabilirlik gerekiyor.",
       impact: "Tüm handoff kayıtları repodan okunacak.",
       source: "Plan oturumu",
@@ -156,11 +156,11 @@ test("manuel karar kaydı üretir ve iş hattı kaynağını taşır", () => {
   );
   const parsed = parseMemoryFile(decision.path, decision.content, "sha-decision");
 
-  assert.equal(decision.id, "dec_2026-05-13T12-00-00-000Z_memory-repo-kaynak-olacak");
+  assert.equal(decision.id, "dec_2026-05-13T12-00-00-000Z_hafiza-reposu-kaynak-olacak");
   assert.equal(parsed.frontmatter.source, "manual");
   assert.equal(parsed.frontmatter.source_work_item, "work_ctx-lab");
   assert.deepEqual(parsed.frontmatter.tags, ["github", "karar"]);
-  assert.equal(getSection(parsed.sections, "decisions"), "GitHub memory repo kalıcı kaynak olarak kullanılacak.");
+  assert.equal(getSection(parsed.sections, "decisions"), "GitHub hafıza reposu kalıcı kaynak olarak kullanılacak.");
   assert.equal(getSection(parsed.sections, "rationale"), "Claude ve Codex arasında taşınabilirlik gerekiyor.");
 });
 
@@ -341,14 +341,14 @@ test("iş kartından bağlı oturum ve kararlarla devam brifi üretir", () => {
     "decisions/dec_test.md",
     `---
 id: dec_test
-title: GitHub memory repo seçimi
+title: GitHub hafıza reposu seçimi
 project: ctx-lab
 source_session: sess_test
 created_at: 2026-05-13T12:00:00.000Z
 ---
 
 ## Karar
-GitHub memory repo kalıcı kaynak olacak.
+GitHub hafıza reposu kalıcı kaynak olacak.
 `,
     "sha-decision"
   );
@@ -359,7 +359,7 @@ GitHub memory repo kalıcı kaynak olacak.
   assert.equal(context.decisions.length, 1);
   assert.match(pack, /Codex için ctx-lab devam brifi/);
   assert.match(pack, /sess_test/);
-  assert.match(pack, /GitHub memory repo kalıcı kaynak olacak/);
+  assert.match(pack, /GitHub hafıza reposu kalıcı kaynak olacak/);
   assert.match(pack, /Çalışma kuralı/);
 });
 

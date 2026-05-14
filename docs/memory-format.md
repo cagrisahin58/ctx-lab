@@ -1,6 +1,6 @@
-# Memory Repo Formatı
+# Hafıza Reposu Formatı
 
-ctx-lab kalıcı gerçeklik olarak GitHub'daki memory repo dosyalarını kullanır. Tarayıcıdaki durum yalnızca çalışma zamanı görünümüdür.
+ctx-lab kalıcı gerçeklik olarak GitHub'daki hafıza reposu dosyalarını kullanır. Tarayıcıdaki durum yalnızca çalışma zamanı görünümüdür.
 
 ## Klasörler
 
@@ -8,7 +8,7 @@ ctx-lab kalıcı gerçeklik olarak GitHub'daki memory repo dosyalarını kullan�
 inbox/       İşlenmemiş veya yeni bağlanacak oturum özetleri
 work_items/  Aktif iş hatları
 decisions/   Kaynaklı karar kayıtları
-handoffs/    Codex/Claude devam prompt'ları
+handoffs/    Codex/Claude devam brifleri
 archive/     Tamamlanan veya kapatılan kayıtlar
 config.yaml  Repo seviyesi kısa ayar dosyası
 ```
@@ -17,7 +17,7 @@ Repo tanılaması bu klasörleri, `config.yaml` dosyasını, seçili branch'i ve
 
 ## Yerel önbellek
 
-ctx-lab, son başarılı GitHub senkronizasyonundan gelen kayıt snapshot'ını tarayıcı localStorage alanında saklar. Önbellek `owner/repo@branch` kapsamıyla ayrılır; farklı memory repo veya branch seçildiğinde eski kayıtlar yeni ekranda gösterilmez. Bu önbellek yalnızca hızlı açılış ve geçici çevrimdışı görünürlük içindir. Kalıcı kaynak gerçeklik GitHub memory repo'dur. Son görülen branch HEAD değeri de önbellek metadata içinde tutulur; yazma öncesinde HEAD değişmişse kullanıcıya repo dışarıdan güncellendi uyarısı gösterilir ve yenileme istenir.
+ctx-lab, son başarılı GitHub senkronizasyonundan gelen kayıt anlık görüntüsünü tarayıcı localStorage alanında saklar. Önbellek `owner/repo@branch` kapsamıyla ayrılır; farklı hafıza reposu veya branch seçildiğinde eski kayıtlar yeni ekranda gösterilmez. Bu önbellek yalnızca hızlı açılış ve geçici çevrimdışı görünürlük içindir. Kalıcı kaynak gerçeklik GitHub hafıza reposudur. Son görülen branch HEAD değeri de önbellek metadata içinde tutulur; yazma öncesinde HEAD değişmişse kullanıcıya repo dışarıdan güncellendi uyarısı gösterilir ve yenileme istenir.
 
 Geçerli kayıt tipleri: `inbox`, `work_items`, `decisions`, `handoffs`, `archive`.
 Geçerli durumlar: `needs_triage`, `linked`, `active`, `waiting`, `blocked`, `done`, `archived`.
@@ -27,7 +27,7 @@ Geçerli durumlar: `needs_triage`, `linked`, `active`, `waiting`, `blocked`, `do
 
 v2 arayüzü mevcut markdown/frontmatter formatını bozmadan kayıtlardan türetilmiş bir timeline katmanı oluşturur. Bu katman kalıcı şemayı değiştirmez; `inbox` oturumları, `work_items` iş hattı güncellemeleri, `decisions` kararlar, `handoffs` devam brifleri, `archive` kayıtları, yerel proje kökleri ve Codex çalıştırma günlükleri tek sıralı olay listesine dönüştürülür. Eski kayıtlar timeline içinde görünmeye devam eder.
 
-Yerel masaüstü aynası bu kayıtları `%APPDATA%/ctx-lab/memory/git` altında Git clone olarak, özet indeksi de `%APPDATA%/ctx-lab/memory/index/<owner>__<repo>__<branch>.json` altında tutar. İndeks türetilmiş veridir; GitHub memory repo kaynak gerçeklik olmaya devam eder.
+Yerel masaüstü aynası bu kayıtları `%APPDATA%/ctx-lab/memory/git` altında Git clone olarak, özet indeksi de `%APPDATA%/ctx-lab/memory/index/<owner>__<repo>__<branch>.json` altında tutar. İndeks türetilmiş veridir; GitHub hafıza reposu kaynak gerçeklik olmaya devam eder.
 
 ## Oturum özeti
 
@@ -137,7 +137,7 @@ Manuel karar kayıtları `Karar Defteri > Yeni Karar` akışıyla oluşturulur. 
 ```markdown
 ---
 id: dec_2026-05-13T12-00-00-000Z_memory-repo-kaynak-olacak
-title: Memory repo kaynak olacak
+title: Hafıza reposu kaynak olacak
 project: ctx-lab
 source: manual
 source_work_item: work_ctx-lab
@@ -147,7 +147,7 @@ tags:
 ---
 
 ## Karar
-GitHub memory repo kalıcı kaynak olarak kullanılacak.
+GitHub hafıza reposu kalıcı kaynak olarak kullanılacak.
 
 ## Gerekçe
 Claude ve Codex arasında taşınabilirlik gerekiyor.

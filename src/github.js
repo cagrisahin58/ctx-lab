@@ -119,10 +119,10 @@ export async function ensureMemoryRepo(config) {
       "schema_version: 1",
       "language: tr",
       "product: ctx-lab",
-      "description: GitHub-backed AI work memory",
+      "description: GitHub destekli AI çalışma hafızası",
       ""
     ].join("\n"),
-    "chore: ctx-lab memory repo config"
+    "chore: ctx-lab hafıza reposu config"
   ).then((result) => result && created.push("config.yaml"));
 
   for (const dir of MEMORY_DIRS) {
@@ -130,7 +130,7 @@ export async function ensureMemoryRepo(config) {
       config,
       `${dir}/.gitkeep`,
       "",
-      `chore: ctx-lab memory repo ${dir} klasörünü hazırla`
+      `chore: ctx-lab hafıza reposu ${dir} klasörünü hazırla`
     ).then((result) => result && created.push(`${dir}/.gitkeep`));
   }
 

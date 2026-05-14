@@ -20,24 +20,24 @@ linked_work_item:
 # Oturum Özeti
 
 ## Amaç
-ctx-lab projesini GitHub-backed AI Work Memory sistemine dönüştürme yönünü netleştirmek.
+ctx-lab projesini GitHub destekli AI çalışma hafızası sistemine dönüştürme yönünü netleştirmek.
 
 ## Yapılanlar
-- Eski prototip mimarisinin hook-heavy ve kırılgan olduğu değerlendirildi.
-- Memory repo source-of-truth yaklaşımı benimsendi.
+- Eski prototip mimarisinin hook ağırlıklı ve kırılgan olduğu değerlendirildi.
+- Hafıza reposunu kaynak gerçeklik kabul eden yaklaşım benimsendi.
 - Oturum Akışı, İş Akışı, Karar Defteri ve Devam Brifi ekranları ana yapı olarak seçildi.
 
 ## Kararlar
 - V1 tamamen Türkçe olacak.
 - Hook entegrasyonları v2'ye bırakılacak.
-- GitHub memory repo tek zorunlu entegrasyon olacak.
+- GitHub hafıza reposu tek zorunlu entegrasyon olacak.
 
 ## Açık Sorular
-- Memory repo adı ve private repo konumu netleşecek.
+- Hafıza reposu adı ve özel repo konumu netleşecek.
 
 ## Sonraki Adımlar
 - Yeni uygulama iskeletini kur.
-- Memory markdown parser ve Oturum Akışı ekranını çalışır hale getir.
+- Hafıza markdown ayrıştırıcısı ve Oturum Akışı ekranını çalışır hale getir.
 
 ## Kanıtlar
 - cagrisahin58/ctx-lab main branch
@@ -58,7 +58,7 @@ decisions: []
 ---
 
 ## Objective
-AI sohbetleri kaybolsa bile insan çalışma bağlamını koruyan GitHub-backed uygulamayı geliştirmek.
+AI sohbetleri kaybolsa bile insan çalışma bağlamını koruyan GitHub destekli uygulamayı geliştirmek.
 
 ## Current State
 Ürün yönü seçildi; uygulama sıfırdan kuruluyor.
@@ -74,14 +74,14 @@ GitHub token deneyimi sade olmalı.
     path: "decisions/dec_20260513_github_sot.md",
     content: `---
 id: dec_20260513_github_sot
-title: GitHub memory repo source-of-truth olacak
+title: GitHub hafıza reposu kaynak gerçeklik olacak
 project: ctx-lab
 source_session: sess_20260513_ctx_lab_redesign_codex
 created_at: ${now}
 ---
 
 ## Karar
-Kalıcı çalışma hafızası için GitHub memory repo ana gerçeklik olacak. Uygulama cache tutabilir ama kalıcı veri repo dosyalarından okunacak.
+Kalıcı çalışma hafızası için GitHub hafıza reposu ana gerçeklik olacak. Uygulama önbellek tutabilir ama kalıcı veri repo dosyalarından okunacak.
 
 ## Kaynak
 - inbox/2026-05-13-ctx-lab-redesign-codex.md

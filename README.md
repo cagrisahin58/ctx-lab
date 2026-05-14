@@ -1,10 +1,10 @@
 # ctx-lab
 
-ctx-lab, Claude Code ve Codex gibi AI araçlarıyla çalışırken insan bağlamının kopmasını azaltmak için tasarlanan GitHub-backed çalışma hafızası uygulamasıdır.
+ctx-lab, Claude Code ve Codex gibi AI araçlarıyla çalışırken insan bağlamının kopmasını azaltmak için tasarlanan GitHub destekli çalışma hafızası uygulamasıdır.
 
 ## Ana fikir
 
-AI sohbet geçmişine güvenmek yerine, her önemli oturumdan sonra kısa ve insan-onaylı bir özet özel bir GitHub memory repo'ya yazılır. ctx-lab bu repo'yu okuyarak:
+AI sohbet geçmişine güvenmek yerine, her önemli oturumdan sonra kısa ve insan-onaylı bir özet özel bir GitHub hafıza reposuna yazılır. ctx-lab bu repo'yu okuyarak:
 
 - Oturum Akışı'nda yeni oturum özetlerini toplar,
 - Oturum Akışı'nda proje, repo, etiket ve güncellik sinyallerine göre mevcut iş hattı önerir,
@@ -89,15 +89,15 @@ npm run verify
 
 Bu komut unit testleri, production build'i ve `dist/` smoke kontrolünü çalıştırır. Aynı kapı GitHub Actions üzerinde `main` push'ları ve pull request'ler için de çalışır.
 
-## GitHub memory repo kurulumu
+## GitHub hafıza reposu kurulumu
 
-Private memory repo için fine-grained GitHub token önerilir:
+Özel hafıza reposu için fine-grained GitHub token önerilir:
 
-- Repository access: sadece memory repo
+- Repository access: sadece hafıza reposu
 - Permissions: Contents read/write
 
 Uygulamada `Hafıza Bağlantısı` ekranından owner/repo, branch ve token girilir. `Repo Yapısını Hazırla` düğmesi şu yapıyı otomatik oluşturur:
-`Bağlantıyı Tanıla` düğmesi repo erişimi, branch, `config.yaml`, memory klasörleri ve gerçek Contents yazma iznini kontrol eder. Yazma testi geçici `archive/.ctxlab-write-test` dosyası oluşturup siler. 403/404 gibi GitHub hataları owner/repo, branch, private repo erişimi ve Contents read/write izni açısından Türkçe açıklanır.
+`Bağlantıyı Tanıla` düğmesi repo erişimi, branch, `config.yaml`, hafıza klasörleri ve gerçek Contents yazma iznini kontrol eder. Yazma testi geçici `archive/.ctxlab-write-test` dosyası oluşturup siler. 403/404 gibi GitHub hataları owner/repo, branch, özel repo erişimi ve Contents read/write izni açısından Türkçe açıklanır.
 Token alanı varsayılan olarak maskelenir; kullanıcı gerektiğinde aynı alandan geçici olarak görünür hale getirebilir. Onboarding ve Hafıza Bağlantısı ekranlarında fine-grained token üretimi için kısa rehber ve GitHub token ekranı bağlantısı bulunur.
 
 ```text
@@ -110,7 +110,7 @@ work-memory/
   config.yaml
 ```
 
-Token ve son başarılı memory snapshot'ı yalnızca tarayıcı localStorage alanında saklanır. Sunucu tarafı yoktur. Yerel önbellek owner/repo/branch kapsamıyla ayrılır; uygulama açıldığında son kayıtları hızlı gösterir, GitHub ise kaynak gerçeklik olarak kalır. Son görülen branch HEAD değeri de önbellekte tutulur; yazmadan önce GitHub branch'i dışarıdan güncellendiyse ctx-lab yazımı durdurur ve `GitHub'dan Yenile` çağrısı gösterir.
+Token ve son başarılı hafıza anlık görüntüsü yalnızca tarayıcı localStorage alanında saklanır. Sunucu tarafı yoktur. Yerel önbellek owner/repo/branch kapsamıyla ayrılır; uygulama açıldığında son kayıtları hızlı gösterir, GitHub ise kaynak gerçeklik olarak kalır. Son görülen branch HEAD değeri de önbellekte tutulur; yazmadan önce GitHub branch'i dışarıdan güncellendiyse ctx-lab yazımı durdurur ve `GitHub'dan Yenile` çağrısı gösterir.
 
 ## Yerel Codex Runner
 

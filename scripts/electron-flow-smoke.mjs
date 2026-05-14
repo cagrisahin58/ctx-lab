@@ -266,8 +266,8 @@ try {
   await page.locator("[data-command-search]").fill("karar defteri");
   await page.locator('[data-command-id="view:decisions"]').click();
   await expectVisibleText(page, "Karar Detayı");
-  await expectVisibleText(page, "GitHub memory repo source-of-truth olacak");
-  await expectVisibleText(page, "Kalıcı çalışma hafızası için GitHub memory repo ana gerçeklik olacak.");
+  await expectVisibleText(page, "GitHub hafıza reposu kaynak gerçeklik olacak");
+  await expectVisibleText(page, "Kalıcı çalışma hafızası için GitHub hafıza reposu ana gerçeklik olacak.");
   await page.keyboard.press("Control+K");
   await page.locator("[data-command-search]").fill("görünüm");
   await page.locator('[data-command-id="view:appearance"]').click();

@@ -4,7 +4,7 @@ Bu belge, ctx-lab'in ikinci faz hedefini repo icinde kalici hale getirir. Resmi 
 
 ## Ana hedef
 
-ctx-lab v2, GitHub-backed hafiza katmanini koruyarak proje timeline merkezli, Turkce, workflow odakli ve yerel Codex Runner ile tam otonom calisabilen bir uygulama olacak.
+ctx-lab v2, GitHub destekli hafiza katmanini koruyarak proje timeline merkezli, Turkce, workflow odakli ve yerel Codex Runner ile tam otonom calisabilen bir uygulama olacak.
 
 ## Kararlar
 
@@ -46,7 +46,7 @@ ctx-lab v2, GitHub-backed hafiza katmanini koruyarak proje timeline merkezli, Tu
 - Runner gorevleri:
   - health check
   - proje kayitlarini yonetme
-  - memory repo clone/pull/push
+  - hafiza reposu clone/pull/push
   - app-data indeks yenileme
   - `codex.cmd exec --json` calistirma
   - Codex sonucunu calistirma kaydina ve work-memory dosyalarina yazma

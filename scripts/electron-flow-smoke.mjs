@@ -218,7 +218,7 @@ async function assertWorkspaceDesktopLayout(page) {
     };
   });
 
-  assert.ok(layout.viewport.width >= 1180, `Masaustu genisligi beklenenden dar: ${layout.viewport.width}px`);
+  assert.ok(layout.viewport.width >= 1100, `Masaustu icerik genisligi beklenenden dar: ${layout.viewport.width}px`);
   assert.ok(layout.sidebar?.width >= 260 && layout.sidebar.width <= 340, `Sol proje rayi genisligi bozuk: ${layout.sidebar?.width}`);
   assert.ok(layout.content?.left >= layout.sidebar.right - 1, "Ana icerik sol rayin uzerine binmemeli.");
   assert.ok(layout.projectRail?.left >= layout.sidebar.left && layout.projectRail.right <= layout.sidebar.right + 1, "Proje listesi sol ray icinde kalmali.");

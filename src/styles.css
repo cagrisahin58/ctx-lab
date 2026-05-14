@@ -1488,6 +1488,43 @@ kbd {
   color: var(--text);
 }
 
+.automation-guide {
+  display: grid;
+  gap: 8px;
+  padding: 11px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+}
+
+.automation-guide h4 {
+  margin: 0;
+}
+
+.automation-guide-row {
+  display: grid;
+  grid-template-columns: minmax(98px, 0.34fr) minmax(0, 1fr) minmax(80px, auto);
+  gap: 8px;
+  align-items: center;
+  min-width: 0;
+  font-size: 13px;
+}
+
+.automation-guide-row strong,
+.automation-guide-row span {
+  min-width: 0;
+}
+
+.automation-guide-row span {
+  color: var(--muted);
+}
+
+.automation-guide-row code {
+  justify-self: end;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
 .run-list {
   display: grid;
   gap: 8px;
@@ -1963,6 +2000,7 @@ kbd {
   .secret-field,
   .repo-conflict-banner,
   .diagnostic-item,
+  .automation-guide-row,
   .connection-form,
   .connection-steps,
   .setting-row,

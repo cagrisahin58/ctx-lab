@@ -421,6 +421,8 @@ try {
   await expectVisibleText(page, "Bağlı oturumlar");
   await expectVisibleText(page, "Kararlar");
   await expectVisibleText(page, "Codex'e Devret");
+  await expectVisibleText(page, "Otomasyon sınırları");
+  await expectVisibleText(page, "workspace-write");
   await expectVisibleText(page, "Çalışma Günlüğü");
   await expectVisibleText(page, "Tek tıkla devam brifi");
   await page.locator('[data-action="toggle-activity-log"]').click();

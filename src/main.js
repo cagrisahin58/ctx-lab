@@ -1481,6 +1481,7 @@ function renderCodexRunPanel() {
           </select>
         </label>
       </div>
+      ${renderAutomationGuide()}
       <label>Prompt
         <textarea name="prompt" required placeholder="Codex'e verilecek kontrollü görev...">${escapeHtml(workItemPromptSeed())}</textarea>
       </label>
@@ -1491,6 +1492,32 @@ function renderCodexRunPanel() {
       ${state.runner.runs.length ? `<div class="run-list">${state.runner.runs.slice(0, 4).map(renderRunMini).join("")}</div>` : ""}
       ${renderRunEvidence(evidenceRun)}
     </form>
+  `;
+}
+
+function renderAutomationGuide() {
+  const rows = [
+    ["Sadece brif hazırla", "Codex çalıştırılmaz; prompt ve kapsam deneme kaydı olarak tutulur.", "deneme"],
+    ["Öneri üret", "Codex read-only sandbox ile çalışır; dosya değişikliği beklenmez.", "read-only"],
+    ["Dosya değiştir", "Workspace-write sandbox kullanır; commit atılmaz.", "workspace-write"],
+    ["Test çalıştır", "Test çıktısı run kanıtına yazılır; commit atılmaz.", "workspace-write"],
+    ["Commit hazırla", "Başarılı test ve Git snapshot kanıtı olmadan commit uygulanmaz.", "workspace-write"],
+    ["Commit + push", "Ayrı commit ve push onayı olmadan uygulanmaz.", "workspace-write"]
+  ];
+  return `
+    <div class="automation-guide" aria-label="Otomasyon sınırları">
+      <div class="run-events-head">
+        <h4>Otomasyon sınırları</h4>
+        <span>Kontrollü çalışma</span>
+      </div>
+      ${rows.map(([label, detail, mode]) => `
+        <div class="automation-guide-row">
+          <strong>${escapeHtml(label)}</strong>
+          <span>${escapeHtml(detail)}</span>
+          <code>${escapeHtml(mode)}</code>
+        </div>
+      `).join("")}
+    </div>
   `;
 }
 

@@ -1529,7 +1529,7 @@ function gitSnapshotLabel(snapshot) {
   if (!snapshot.available) return snapshot.error || "git çalışma ağacı değil";
   const head = snapshot.head ? snapshot.head.slice(0, 8) : "head yok";
   const dirty = snapshot.dirty ? `${snapshot.changedCount || 0} değişiklik` : "temiz";
-  return `${snapshot.branch || "branch yok"} @ ${head} · ${dirty}`;
+  return `${snapshot.branch || "dal yok"} @ ${head} · ${dirty}`;
 }
 
 function compactOutput(value) {
@@ -2328,7 +2328,7 @@ function renderConnectionSteps() {
     {
       number: "1",
       title: "Hafızayı bağla",
-      text: "Owner/repo, branch ve fine-grained token bilgisini kaydet.",
+      text: "Owner/repo, dal ve fine-grained token bilgisini kaydet.",
       done: hasConfig
     },
     {
@@ -2460,7 +2460,7 @@ function renderDiagnosticSuccessActions() {
     <div class="diagnostic-success">
       <div>
         <strong>Hafıza bağlantısı hazır.</strong>
-        <span>Repo erişimi, branch, klasör yapısı ve yazma testi temiz görünüyor.</span>
+        <span>Hafıza reposu erişimi, dal, klasör yapısı ve yazma testi temiz görünüyor.</span>
       </div>
       <div class="toolbar-actions">
         <button data-view="inbox">Oturum Akışına Git</button>
@@ -2484,7 +2484,7 @@ function renderDiagnosticItem(item) {
 function diagnosticDetail(detail = {}) {
   if ("private" in detail) {
     const write = detail.writeHint === null ? "yazma izni belirsiz" : detail.writeHint ? "yazma izni görünüyor" : "yazma izni görünmüyor";
-    return `${detail.private ? "private" : "public"}, varsayılan branch: ${detail.defaultBranch || "belirsiz"}, ${write}`;
+    return `${detail.private ? "özel" : "açık"}, varsayılan dal: ${detail.defaultBranch || "belirsiz"}, ${write}`;
   }
   if ("files" in detail) return `${detail.files} dosya`;
   if (detail.path) return detail.path;

@@ -55,6 +55,7 @@ for (const expected of [
   "GitHub hafiza reposu",
   "Hafizayi bagla",
   "Zaman akisi",
+  "varsayilan dal",
   "Yapiyi hazirla",
   "Dogrula",
   "Codex CLI Kontrolu",

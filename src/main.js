@@ -233,8 +233,27 @@ function recordsByType(type) {
   return state.records.filter((record) => record.type === type);
 }
 
+function recordProjectName(record) {
+  return record?.project || "genel";
+}
+
+function activeProjectScope() {
+  if (!state.selectedProject) return "";
+  return projectSummaries().some((project) => project.name === state.selectedProject) ? state.selectedProject : "";
+}
+
+function projectScopedRecords(records) {
+  const project = activeProjectScope();
+  return project ? records.filter((record) => recordProjectName(record) === project) : records;
+}
+
+function projectScopedRuns() {
+  const project = activeProjectScope();
+  return project ? state.runner.runs.filter((run) => (run.project?.name || "genel") === project) : state.runner.runs;
+}
+
 function filteredRecords(type) {
-  let records = recordsByType(type);
+  let records = projectScopedRecords(recordsByType(type));
   if (type === "work_items" && WORK_STATUSES.includes(state.quickFilter)) {
     records = records.filter((record) => record.status === state.quickFilter);
   }
@@ -415,7 +434,7 @@ function contextRecord() {
 }
 
 function handoffRecords() {
-  return state.records.filter((record) => record.type === "work_items" || record.type === "inbox");
+  return projectScopedRecords(state.records.filter((record) => record.type === "work_items" || record.type === "inbox"));
 }
 
 function handoffAnchorRecord() {
@@ -426,7 +445,7 @@ function handoffAnchorRecord() {
 function projectSummaries() {
   const map = new Map();
   for (const record of state.records) {
-    const name = record.project || "genel";
+    const name = recordProjectName(record);
     const current = map.get(name) || {
       name,
       repo: record.repo || "",
@@ -471,7 +490,7 @@ function selectedProjectName() {
 
 function selectedProjectRecords() {
   const name = selectedProjectName();
-  return name ? state.records.filter((record) => (record.project || "genel") === name) : state.records;
+  return name ? state.records.filter((record) => recordProjectName(record) === name) : state.records;
 }
 
 function selectedProjectRuns() {
@@ -1275,15 +1294,18 @@ ${dailyBriefText("codex")}
 }
 
 function render() {
+  const scopedRecords = projectScopedRecords(state.records);
+  const scopedByType = (type) => scopedRecords.filter((record) => record.type === type);
   const counts = {
-    inbox: recordsByType("inbox").length,
-    triage: recordsByType("inbox").filter((record) => record.status === "needs_triage").length,
-    work: recordsByType("work_items").length,
-    decisions: recordsByType("decisions").length,
-    archive: recordsByType("archive").length,
-    active: recordsByType("work_items").filter((record) => record.status === "active").length,
-    waiting: recordsByType("work_items").filter((record) => record.status === "waiting").length,
-    blocked: recordsByType("work_items").filter((record) => record.status === "blocked").length
+    inbox: scopedByType("inbox").length,
+    triage: scopedByType("inbox").filter((record) => record.status === "needs_triage").length,
+    work: scopedByType("work_items").length,
+    decisions: scopedByType("decisions").length,
+    archive: scopedByType("archive").length,
+    active: scopedByType("work_items").filter((record) => record.status === "active").length,
+    waiting: scopedByType("work_items").filter((record) => record.status === "waiting").length,
+    blocked: scopedByType("work_items").filter((record) => record.status === "blocked").length,
+    runner: projectScopedRuns().length
   };
 
   app.innerHTML = `
@@ -1362,11 +1384,16 @@ function renderProjectRail() {
   if (!projects.length) {
     return `<div class="project-rail empty-rail">Henüz proje kaydı yok.</div>`;
   }
-  const selected = selectedProjectName();
+  const selected = activeProjectScope();
   return `
     <div class="project-rail">
       <div class="rail-title">Projeler</div>
       <div class="project-list">
+        <button class="project-pill all-projects ${selected ? "" : "active"}" data-action="clear-project-scope">
+          <strong>Tüm projeler</strong>
+          <span>Kapsam filtresi yok</span>
+          <small>${state.records.length} kayıt</small>
+        </button>
         ${projects.map((project) => `
           <button class="project-pill ${project.name === selected ? "active" : ""}" data-action="select-project" data-project="${escapeHtml(project.name)}">
             <strong>${escapeHtml(project.name)}</strong>
@@ -1385,7 +1412,7 @@ function renderQuickFilters(counts) {
     { id: "active", label: "Aktif hatlar", count: counts.active, detail: "iş hattı" },
     { id: "waiting", label: "Bekleyen hatlar", count: counts.waiting, detail: "iş hattı" },
     { id: "blocked", label: "Engelli hatlar", count: counts.blocked, detail: "iş hattı" },
-    { id: "runner", label: "Codex kayıtları", count: state.runner.runs.length, detail: "çalıştırma" }
+    { id: "runner", label: "Codex kayıtları", count: counts.runner, detail: "çalıştırma" }
   ];
   return `
     <div class="quick-filters" aria-label="Hızlı filtreler">
@@ -2269,6 +2296,7 @@ function renderInbox(counts) {
         <option value="all" ${state.inboxStatus === "all" ? "selected" : ""}>Tümü</option>
       </select>
     </div>
+    ${renderProjectScopeChip()}
     ${state.warnings.length ? renderWarnings() : ""}
     <div class="inbox-summary-bar" aria-label="Oturum Akışı özeti">
       <span><strong>${inbox.length}</strong> görünür oturum</span>
@@ -2381,6 +2409,7 @@ function renderBoard() {
     )}
     ${renderActiveQuickFilter()}
     ${renderSearchBar("İş hattı, proje veya durum ara")}
+    ${renderProjectScopeChip()}
     <div class="board-layout">
       <div class="board">
         ${columns.map(([status, title]) => `
@@ -2406,6 +2435,17 @@ function renderActiveQuickFilter() {
     <div class="filter-chip">
       <span>Hızlı filtre: ${escapeHtml(statusLabel(state.quickFilter))}</span>
       <button class="ghost compact" data-action="clear-quick-filter">Filtreyi temizle</button>
+    </div>
+  `;
+}
+
+function renderProjectScopeChip() {
+  const project = activeProjectScope();
+  if (!project) return "";
+  return `
+    <div class="project-scope-chip" role="status" aria-label="Proje kapsamı">
+      <span>Proje kapsamı: <strong>${escapeHtml(project)}</strong></span>
+      <button class="ghost compact" data-action="clear-project-scope">Tüm projeleri göster</button>
     </div>
   `;
 }
@@ -2474,6 +2514,7 @@ function renderDecisions() {
       `<button class="primary" data-view="new-decision">Yeni Karar</button>`
     )}
     ${renderSearchBar("Karar kayıtlarında ara")}
+    ${renderProjectScopeChip()}
     <div class="grid two">
       <section class="record-list">
         ${decisions.length ? decisions.map(renderRecordCard).join("") : `<div class="empty">Henüz karar kaydı yok.</div>`}
@@ -3908,6 +3949,12 @@ function handleAction(action, payload) {
     state.selectedProject = payload?.project || "";
     state.view = "workspace";
     state.timelineFilter = "all";
+    render();
+  }
+  if (action === "clear-project-scope") {
+    state.selectedProject = "";
+    state.timelineFilter = "all";
+    keepSelectionVisible();
     render();
   }
   if (action === "demo") loadDemo();

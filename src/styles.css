@@ -337,6 +337,10 @@ kbd {
   gap: 4px;
 }
 
+.project-pill.all-projects {
+  background: rgba(148, 163, 184, 0.06);
+}
+
 .project-pill strong,
 .project-pill span,
 .project-pill small {
@@ -1055,6 +1059,22 @@ kbd {
   border-radius: 12px;
   padding: 16px;
   background: rgba(45, 212, 191, 0.1);
+}
+
+.project-scope-chip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  border: 1px solid rgba(59, 130, 246, 0.28);
+  border-radius: 8px;
+  padding: 8px 10px;
+  background: rgba(59, 130, 246, 0.1);
+  color: var(--muted);
+}
+
+.project-scope-chip strong {
+  color: var(--text);
 }
 
 .handoff-studio.target-claude .handoff-hero {

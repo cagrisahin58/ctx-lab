@@ -144,6 +144,13 @@ async function expectVisibleText(page, text) {
   });
 }
 
+async function expectNoVisibleText(page, text) {
+  await page.getByText(text, { exact: false }).first().waitFor({
+    state: "hidden",
+    timeout: 15_000
+  });
+}
+
 function validationFixtureRecords() {
   const updatedAt = "2026-05-14T08:00:00.000Z";
   return [
@@ -508,6 +515,20 @@ try {
   await expectVisibleText(page, "workspace-write");
   await expectVisibleText(page, "Çalışma Günlüğü");
   await expectVisibleText(page, "Tek tıkla devam brifi");
+
+  markPhase("Proje kapsam filtresini dogrulama");
+  await page.locator('button[data-view="decisions"]').click();
+  await expectVisibleText(page, "Yan proje keşif kararı");
+  await page.locator('[data-action="select-project"][data-project="ctx-lab"]').click();
+  await expectVisibleText(page, "Proje Çalışma Merkezi");
+  await page.locator('button[data-view="decisions"]').click();
+  await expectVisibleText(page, "Proje kapsamı: ctx-lab");
+  await expectNoVisibleText(page, "Yan proje keşif kararı");
+  await page.getByRole("button", { name: "Tüm projeleri göster" }).click();
+  await expectVisibleText(page, "Yan proje keşif kararı");
+  await page.locator('button[data-view="workspace"]').click();
+  await expectVisibleText(page, "Codex'e Devret");
+
   await expectVisibleText(page, "Hızlı filtreler");
   await page.getByRole("button", { name: /Aktif hatlar/ }).click();
   await expectVisibleText(page, "İş Akışı");

@@ -86,6 +86,22 @@ Kalıcı çalışma hafızası için GitHub hafıza reposu ana gerçeklik olacak
 ## Kaynak
 - inbox/2026-05-13-ctx-lab-redesign-codex.md
 `
+  },
+  {
+    path: "decisions/dec_20260513_side_project.md",
+    content: `---
+id: dec_20260513_side_project
+title: Yan proje keşif kararı
+project: yan-proje
+created_at: ${now}
+---
+
+## Karar
+Yan proje kayıtları demo ortamında proje kapsam filtresinin davranışını göstermek için ayrı tutulacak.
+
+## Kaynak
+- demo/yan-proje
+`
   }
 ];
 

@@ -101,6 +101,15 @@ export async function loadMemoryRepo(config) {
   return records.sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)));
 }
 
+export async function getBranchHead(config) {
+  const branchName = config.branch || "main";
+  const payload = await githubRequest(
+    config,
+    `/repos/${config.owner}/${config.repo}/branches/${encodeURIComponent(branchName)}`
+  );
+  return payload?.commit?.sha || "";
+}
+
 export async function ensureMemoryRepo(config) {
   const created = [];
   await ensureFile(

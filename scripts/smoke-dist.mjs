@@ -66,6 +66,7 @@ for (const expected of [
   "Akilli eslesme",
   "Onerilen Ise Bagla",
   "Tokeni goster",
+  "GitHub hafiza reposu disaridan guncellendi",
   "Proje Koku",
   "Oturum Kapanis"
 ]) {

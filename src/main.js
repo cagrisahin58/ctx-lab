@@ -32,7 +32,7 @@ import {
   WORK_STATUSES,
   validateMemoryRecords
 } from "./domain.js";
-import { deleteFile, diagnoseMemoryRepo, ensureMemoryRepo, loadMemoryRepo, putFile } from "./github.js";
+import { deleteFile, diagnoseMemoryRepo, ensureMemoryRepo, getBranchHead, loadMemoryRepo, putFile } from "./github.js";
 import { demoRecords } from "./fixtures.js";
 import {
   fetchRunnerHealth,
@@ -79,6 +79,7 @@ const state = {
   tokenVisible: false,
   diagnostics: null,
   diagnosticsLoading: false,
+  repoConflict: null,
   runner: {
     loading: false,
     health: null,
@@ -90,7 +91,8 @@ const state = {
   },
   cacheMeta: {
     scope: initialCache.scope,
-    syncedAt: initialCache.syncedAt
+    syncedAt: initialCache.syncedAt,
+    remoteHead: initialCache.remoteHead
   }
 };
 
@@ -103,22 +105,27 @@ function saveConfig(config) {
   state.records = cache.records;
   state.cacheMeta = {
     scope: cache.scope,
-    syncedAt: cache.syncedAt
+    syncedAt: cache.syncedAt,
+    remoteHead: cache.remoteHead
   };
   state.selectedId = state.records[0]?.id || "";
   state.selectedProject = "";
   state.demo = false;
   state.diagnostics = null;
+  state.repoConflict = null;
   refreshWarnings();
 }
 
 function persistRecordCache() {
   if (state.demo) return;
   try {
-    const cache = saveRecordCache(state.config, state.records);
+    const cache = saveRecordCache(state.config, state.records, localStorage, new Date(), {
+      remoteHead: state.cacheMeta.remoteHead
+    });
     state.cacheMeta = {
       scope: cache.scope,
-      syncedAt: cache.syncedAt
+      syncedAt: cache.syncedAt,
+      remoteHead: cache.remoteHead
     };
   } catch {
     state.cacheMeta = {
@@ -231,14 +238,39 @@ async function saveMemoryRecord(path, content, message) {
   const existing = state.records.find((record) => record.path === path);
   let sha = existing?.sha || `local-${Date.now()}`;
   if (!state.demo) {
+    await assertRemoteHeadFresh();
     const result = await putFile(state.config, path, content, message, existing?.sha);
     sha = result?.content?.sha || sha;
+    rememberRemoteHead(result?.commit?.sha || state.cacheMeta.remoteHead || "");
   }
   const parsed = parseMemoryFile(path, content, sha);
   state.records = upsertRecord(state.records, parsed);
   refreshWarnings();
   persistRecordCache();
   return parsed;
+}
+
+async function assertRemoteHeadFresh() {
+  if (state.demo || !state.config.owner || !state.config.repo || !state.cacheMeta.remoteHead) return;
+  const latestHead = await getBranchHead(state.config);
+  if (!latestHead || latestHead === state.cacheMeta.remoteHead) return;
+  state.repoConflict = {
+    previous: state.cacheMeta.remoteHead,
+    current: latestHead,
+    detectedAt: new Date().toISOString()
+  };
+  addActivity("GitHub hafıza reposu dışarıdan güncellendi.", "warning", "Yazmadan önce GitHub'dan Yenile.");
+  render();
+  throw new Error("GitHub hafıza reposu dışarıdan güncellendi. Yazmadan önce GitHub'dan Yenile.");
+}
+
+function rememberRemoteHead(remoteHead) {
+  if (!remoteHead) return;
+  state.cacheMeta = {
+    ...state.cacheMeta,
+    remoteHead
+  };
+  state.repoConflict = null;
 }
 
 async function syncFromGitHub() {
@@ -251,6 +283,7 @@ async function syncFromGitHub() {
   try {
     state.demo = false;
     state.records = await loadMemoryRepo(state.config);
+    rememberRemoteHead(await getBranchHead(state.config));
     refreshWarnings();
     persistRecordCache();
     state.selectedId = state.records[0]?.id || "";
@@ -416,7 +449,8 @@ async function archiveSelected() {
   const archivedContent = buildArchivedRecordContent(record);
   const parsed = await saveMemoryRecord(archivePath, archivedContent, `archive: ${record.id}`);
   if (!state.demo) {
-    await deleteFile(state.config, record.path, record.sha, `archive: ${record.id} kaynak inbox kaydını sil`);
+    const result = await deleteFile(state.config, record.path, record.sha, `archive: ${record.id} kaynak inbox kaydını sil`);
+    rememberRemoteHead(result?.commit?.sha || state.cacheMeta.remoteHead || "");
   }
 
   state.selectedId = parsed.id;
@@ -894,6 +928,7 @@ function render() {
       </aside>
       <main class="content">
         ${renderStatusBar()}
+        ${renderRepoConflictBanner()}
         ${renderCurrentView(counts)}
       </main>
       ${renderCommandPalette()}
@@ -964,6 +999,21 @@ function renderStatusBar() {
       <span class="status-dot ${codex?.available ? "ok" : "warn"}"></span><span>${escapeHtml(codexStatus)}</span>
       <button class="ghost compact" data-action="refresh-runner">Runner</button>
     </div>
+  `;
+}
+
+function renderRepoConflictBanner() {
+  if (!state.repoConflict) return "";
+  const previous = state.repoConflict.previous ? state.repoConflict.previous.slice(0, 7) : "bilinmiyor";
+  const current = state.repoConflict.current ? state.repoConflict.current.slice(0, 7) : "bilinmiyor";
+  return `
+    <section class="repo-conflict-banner">
+      <div>
+        <strong>GitHub hafıza reposu dışarıdan güncellendi.</strong>
+        <p>Yerel kayıtlar eski olabilir. Yazmadan önce yenile: ${escapeHtml(previous)} → ${escapeHtml(current)}</p>
+      </div>
+      <button class="primary" data-action="sync">GitHub'dan Yenile</button>
+    </section>
   `;
 }
 

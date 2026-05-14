@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { deleteFile, diagnoseMemoryRepo, ensureMemoryRepo, loadMemoryRepo, putFile } from "../src/github.js";
+import { deleteFile, diagnoseMemoryRepo, ensureMemoryRepo, getBranchHead, loadMemoryRepo, putFile } from "../src/github.js";
 
 const config = {
   owner: "cagrisahin58",
@@ -253,6 +253,21 @@ test("diagnoseMemoryRepo 404 hatasını owner repo branch kontrolüyle açıklar
     assert.equal(result.repo.ok, false);
     assert.match(result.repo.message, /GitHub 404: Repo, branch veya dosya bulunamadı/);
     assert.match(result.repo.message, /owner\/repo ve branch/);
+  } finally {
+    mock.restore();
+  }
+});
+
+test("getBranchHead seçili branch commit sha değerini okur", async () => {
+  const mock = installFetchMock((url) => {
+    if (url.endsWith("/repos/cagrisahin58/work-memory/branches/main")) {
+      return { json: { commit: { sha: "head-sha" } } };
+    }
+    throw new Error(`Beklenmeyen URL: ${url}`);
+  });
+
+  try {
+    assert.equal(await getBranchHead(config), "head-sha");
   } finally {
     mock.restore();
   }

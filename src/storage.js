@@ -51,6 +51,7 @@ export function loadRecordCache(config, storage = localStorage) {
     return {
       scope,
       syncedAt: payload.syncedAt || "",
+      remoteHead: payload.remoteHead || "",
       records: payload.records
     };
   } catch {
@@ -58,13 +59,14 @@ export function loadRecordCache(config, storage = localStorage) {
   }
 }
 
-export function saveRecordCache(config, records, storage = localStorage, now = new Date()) {
+export function saveRecordCache(config, records, storage = localStorage, now = new Date(), meta = {}) {
   const scope = memoryCacheScope(config);
   if (!scope) return emptyCache(scope);
 
   const payload = {
     scope,
     syncedAt: now.toISOString(),
+    remoteHead: meta.remoteHead || "",
     records: Array.isArray(records) ? records : []
   };
   storage.setItem(RECORD_CACHE_STORAGE_KEY, JSON.stringify(payload));
@@ -75,6 +77,7 @@ function emptyCache(scope = "") {
   return {
     scope,
     syncedAt: "",
+    remoteHead: "",
     records: []
   };
 }

@@ -17,7 +17,7 @@ Repo tanılaması bu klasörleri, `config.yaml` dosyasını, seçili branch'i ve
 
 ## Yerel önbellek
 
-ctx-lab, son başarılı GitHub senkronizasyonundan gelen kayıt snapshot'ını tarayıcı localStorage alanında saklar. Önbellek `owner/repo@branch` kapsamıyla ayrılır; farklı memory repo veya branch seçildiğinde eski kayıtlar yeni ekranda gösterilmez. Bu önbellek yalnızca hızlı açılış ve geçici çevrimdışı görünürlük içindir. Kalıcı kaynak gerçeklik GitHub memory repo'dur.
+ctx-lab, son başarılı GitHub senkronizasyonundan gelen kayıt snapshot'ını tarayıcı localStorage alanında saklar. Önbellek `owner/repo@branch` kapsamıyla ayrılır; farklı memory repo veya branch seçildiğinde eski kayıtlar yeni ekranda gösterilmez. Bu önbellek yalnızca hızlı açılış ve geçici çevrimdışı görünürlük içindir. Kalıcı kaynak gerçeklik GitHub memory repo'dur. Son görülen branch HEAD değeri de cache metadata içinde tutulur; yazma öncesinde HEAD değişmişse kullanıcıya repo dışarıdan güncellendi uyarısı gösterilir ve yenileme istenir.
 
 Geçerli kayıt tipleri: `inbox`, `work_items`, `decisions`, `handoffs`, `archive`.
 Geçerli durumlar: `needs_triage`, `linked`, `active`, `waiting`, `blocked`, `done`, `archived`.

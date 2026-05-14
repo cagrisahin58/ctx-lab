@@ -377,6 +377,23 @@ kbd {
   animation: statusPulse 900ms ease-in-out infinite;
 }
 
+.repo-conflict-banner {
+  display: grid;
+  grid-template-columns: minmax(260px, 1fr) auto;
+  gap: 14px;
+  align-items: center;
+  padding: 14px;
+  border: 1px solid rgba(245, 158, 11, 0.48);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--warning) 13%, var(--panel));
+}
+
+.repo-conflict-banner p {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
 .toolbar {
   display: flex;
   gap: 12px;
@@ -1309,6 +1326,7 @@ kbd {
   .triage-linker,
   .triage-suggestion,
   .secret-field,
+  .repo-conflict-banner,
   .diagnostic-item,
   .connection-form {
     grid-template-columns: 1fr;

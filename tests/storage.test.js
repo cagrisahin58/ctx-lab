@@ -49,11 +49,15 @@ test("memory önbelleği owner repo ve branch kapsamıyla ayrılır", () => {
   assert.equal(memoryCacheScope({}), "");
 
   const storage = new MemoryStorage();
-  const saved = saveRecordCache(config, [{ id: "sess_1", type: "inbox" }], storage, new Date("2026-05-13T12:00:00.000Z"));
+  const saved = saveRecordCache(config, [{ id: "sess_1", type: "inbox" }], storage, new Date("2026-05-13T12:00:00.000Z"), {
+    remoteHead: "abc123"
+  });
 
   assert.equal(saved.syncedAt, "2026-05-13T12:00:00.000Z");
+  assert.equal(saved.remoteHead, "abc123");
   assert.equal(JSON.parse(storage.getItem(RECORD_CACHE_STORAGE_KEY)).records.length, 1);
   assert.equal(loadRecordCache(config, storage).records[0].id, "sess_1");
+  assert.equal(loadRecordCache(config, storage).remoteHead, "abc123");
   assert.deepEqual(loadRecordCache(otherConfig, storage).records, []);
 });
 

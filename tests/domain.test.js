@@ -276,7 +276,7 @@ test("onboarding checklist kurulum ilerlemesini somut sinyallerden hesaplar", ()
   assert.equal(isOnboardingComplete(ready), true);
 });
 
-test("var olan iş kartına yeni session id ekler", () => {
+test("var olan iş hattına yeni session id ekler", () => {
   const record = parseMemoryFile("inbox/test.md", sample, "sha");
   const work = buildWorkItemFromSession(record);
   const workRecord = parseMemoryFile(work.path, work.content, "work-sha");
@@ -330,7 +330,7 @@ test("oturum kapanış prompt'u ctx-lab formatını ister", () => {
   assert.match(prompt, /## Sonraki Adımlar/);
 });
 
-test("iş kartından bağlı oturum ve kararlarla devam brifi üretir", () => {
+test("iş hattından bağlı oturum ve kararlarla devam brifi üretir", () => {
   const session = parseMemoryFile("inbox/test.md", sample, "sha-session");
   const work = parseMemoryFile(
     "work_items/work_ctx-lab.md",
@@ -524,7 +524,7 @@ Farklı bir kayıt.
   assert.equal(filterRecords([session, decision], "").length, 2);
 });
 
-test("iş kartı durumunu frontmatter içinde günceller", () => {
+test("iş hattı durumunu frontmatter içinde günceller", () => {
   const session = parseMemoryFile("inbox/test.md", sample, "sha-session");
   const work = parseMemoryFile(
     "work_items/work_ctx-lab.md",
@@ -551,10 +551,10 @@ test("iş kartı durumunu frontmatter içinde günceller", () => {
   assert.equal(statusEvents[0].label, "Durum değişimi");
   assert.equal(statusEvents[0].title, "Engelli → Tamamlandı");
   assert.match(statusEvents[0].summary, /tamamlandı durumuna taşındı/);
-  assert.throws(() => updateWorkItemStatusContent(work, "needs_triage"), /Geçersiz iş kartı durumu/);
+  assert.throws(() => updateWorkItemStatusContent(work, "needs_triage"), /Geçersiz iş hattı durumu/);
 });
 
-test("iş kartı sonraki adım bölümünü günceller ve alias ile okur", () => {
+test("iş hattı sonraki adım bölümünü günceller ve alias ile okur", () => {
   const session = parseMemoryFile("inbox/test.md", sample, "sha-session");
   const work = parseMemoryFile(
     "work_items/work_ctx-lab.md",
@@ -601,7 +601,7 @@ Başka kayıt.
   assert.deepEqual(records.map((record) => record.id), ["sess_test", "dec_other"]);
 });
 
-test("session kaydına bağlı iş kartını bulur ve karar id'sini ekler", () => {
+test("session kaydına bağlı iş hattını bulur ve karar id'sini ekler", () => {
   const session = parseMemoryFile("inbox/test.md", sample, "sha-session");
   const work = parseMemoryFile(
     "work_items/work_ctx-lab.md",

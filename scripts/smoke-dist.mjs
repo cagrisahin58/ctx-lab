@@ -28,6 +28,7 @@ const assets = Object.fromEntries(
 );
 const bundleText = Object.values(assets).join("\n");
 const sourceText = readFileSync(join(root, "src/main.js"), "utf8");
+const normalizedBundleText = normalizeTurkish(bundleText);
 
 for (const expected of [
   "Oturum Akisi",
@@ -75,6 +76,7 @@ for (const expected of [
   "Gunluk Devam Brifi",
   "Yerel onbellek",
   "Yeni Is Hatti",
+  "Is hatti, proje veya durum ara",
   "Yeni Karar",
   "Devam brifi hedefi",
   "Devam Brifini Kopyala",
@@ -128,11 +130,12 @@ for (const expected of [
   "Proje Koku",
   "Oturum Kapanis"
 ]) {
-  assert.ok(normalizeTurkish(bundleText).includes(expected), `UI metni eksik: ${expected}`);
+  assert.ok(normalizedBundleText.includes(expected), `UI metni eksik: ${expected}`);
 }
 
 assert.ok(bundleText.includes("github.com") || bundleText.includes("api.github.com"), "GitHub istemci izi bulunamadi.");
 assert.ok(!/Seslog|seslog/i.test(bundleText), "Legacy Seslog metni build icinde kalmamali.");
+assert.ok(!/Is Karti|is karti/.test(normalizedBundleText), "Gorunur UI is karti terimini tasimamali; Is Hatti kullanilmali.");
 assert.ok(bundleText.includes("timelineIn"), "Timeline giris animasyonu bundle icinde olmali.");
 assert.ok(bundleText.includes("activityPulse"), "Run/activity hareket sinyali bundle icinde olmali.");
 assert.ok(bundleText.includes("prefers-reduced-motion"), "Dusuk hareket tercihi CSS icinde desteklenmeli.");

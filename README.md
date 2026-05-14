@@ -9,8 +9,8 @@ AI sohbet geçmişine güvenmek yerine, her önemli oturumdan sonra kısa ve ins
 - Oturum Akışı'nda yeni oturum özetlerini toplar,
 - Oturum Akışı'nda proje, repo, etiket ve güncellik sinyallerine göre mevcut iş hattı önerir,
 - İş Akışı'nda aktif işleri gösterir,
-- İş Akışı kartlarını sürükle-bırak ile durumlar arasında taşır,
-- aynı proje için gelen yeni oturumları mevcut iş kartına bağlar,
+- İş Akışı hatlarını sürükle-bırak ile durumlar arasında taşır,
+- aynı proje için gelen yeni oturumları mevcut iş hattına bağlar,
 - karar defterini kaynaklı tutar,
 - Codex veya Claude için iş hattı merkezli, içerik metrikleri görünen devam brifi üretir.
 - `Ctrl+K` komut paletiyle görünüm, proje, GitHub yenileme ve Codex çalıştırıcı aksiyonlarına hızlı erişim sağlar.
@@ -129,18 +129,18 @@ Yerel hafıza aynası `%APPDATA%/ctx-lab/memory/git` altında, türetilmiş inde
 
 `Yeni Oturum Özeti` ekranı, Codex veya Claude oturumundan sonra temiz bir kayıt üretir. Ekrandaki `Oturum Kapanış Prompt'u` AI sohbetine yapıştırıldığında ctx-lab formatında markdown özet alınır. Bu markdown `Hazır Markdown` alanına yapıştırılıp doğrudan `inbox/` altına kaydedilebilir.
 
-Kayıtlar timestamp içeren benzersiz dosya adıyla yazılır. Oturum Akışı'ndan `İş Kartına Bağla` seçildiğinde aynı proje için var olan iş kartı varsa yeni session id o karta eklenir; yoksa yeni kart oluşturulur.
-Gerekirse oturum detayındaki seçiciden mevcut bir iş hattı bilinçli olarak hedeflenebilir; bu durumda oturum özeti seçili iş kartının `sessions` listesine eklenir.
+Kayıtlar timestamp içeren benzersiz dosya adıyla yazılır. Oturum Akışı'ndan `İş Hattına Bağla` seçildiğinde aynı proje için var olan iş hattı varsa yeni session id o hatta eklenir; yoksa yeni hat oluşturulur.
+Gerekirse oturum detayındaki seçiciden mevcut bir iş hattı bilinçli olarak hedeflenebilir; bu durumda oturum özeti seçili iş hattının `sessions` listesine eklenir.
 Oturum Akışı varsayılan olarak yalnızca işleme bekleyen kayıtları gösterir; bağlı, arşivlenmiş veya tüm kayıtlar durum filtresiyle açılabilir.
 Arşivlenen kayıtlar archive klasörüne `archived` statüsüyle taşınır, böylece yeniden senkronizasyonda işleme bekleyen kayıt listesine geri düşmez.
 
 ## Devam brifi akışı
 
-`İş Akışı` ekranında seçili iş kartı için bağlı oturumlar, karar kayıtları, güncel durum, sıradaki adım ve çalışma kuralları tek bir devam brifinde birleştirilir. `Devam Brifi`, kaynak iş hattını veya oturum kaydını ve hedef aracı (`Codex` ya da `Claude Code`) açıkça seçtirir. Bu metin doğrudan kopyalanabilir veya `handoffs/` altına kaydedilebilir. Amaç, temiz bir Codex/Claude oturumunda sohbet geçmişi kaybolsa bile insan çalışma bağlamını hızlı geri yüklemektir.
+`İş Akışı` ekranında seçili iş hattı için bağlı oturumlar, karar kayıtları, güncel durum, sıradaki adım ve çalışma kuralları tek bir devam brifinde birleştirilir. `Devam Brifi`, kaynak iş hattını veya oturum kaydını ve hedef aracı (`Codex` ya da `Claude Code`) açıkça seçtirir. Bu metin doğrudan kopyalanabilir veya `handoffs/` altına kaydedilebilir. Amaç, temiz bir Codex/Claude oturumunda sohbet geçmişi kaybolsa bile insan çalışma bağlamını hızlı geri yüklemektir.
 `Günlük Devam Brifi` ekranı tüm açık iş hatlarını, engelli/bekleyen işleri ve işleme bekleyen kayıtları tek metinde toplar; bu brif kopyalanabilir veya devam brifi olarak kaydedilebilir.
 
-İş kartları `Aktif`, `Beklemede`, `Engelli` ve `Tamamlandı` durumları arasında doğrudan panodan taşınabilir. Panodaki `Yeni İş Hattı` akışı, oturum akışını beklemeden bağımsız bir çalışma hattı açar. Arama alanı Oturum Akışı, İş Akışı ve Karar Defteri içinde proje, başlık, repo, durum, kaynak ve etiket bilgilerine göre hızlı süzme yapar.
-İş kartının `Sonraki Adım` alanı panodan güncellenebilir; devam brifi bu güncel değeri kullanır.
+İş hatları `Aktif`, `Beklemede`, `Engelli` ve `Tamamlandı` durumları arasında doğrudan panodan taşınabilir. Panodaki `Yeni İş Hattı` akışı, oturum akışını beklemeden bağımsız bir çalışma hattı açar. Arama alanı Oturum Akışı, İş Akışı ve Karar Defteri içinde proje, başlık, repo, durum, kaynak ve etiket bilgilerine göre hızlı süzme yapar.
+İş hattının `Sonraki Adım` alanı panodan güncellenebilir; devam brifi bu güncel değeri kullanır.
 `Karar Defteri` ekranındaki `Yeni Karar` akışı, oturum geçmişinden bağımsız kaynaklı karar kaydı oluşturur ve seçili iş hattına bağlayabilir.
 Karar ve devam brifi kayıtları tekrar kaydedildiğinde mevcut dosya güncellenir; aynı kayıt için gereksiz kopyalar üretilmez.
 Oturum kaydından karar çıkarıldığında veya manuel karar bir iş hattına bağlandığında karar id'si o iş hattına otomatik eklenir.

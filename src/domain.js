@@ -211,7 +211,7 @@ export function validateMemoryRecords(records, now = new Date()) {
       warnings.push(`${record.path}: inbox kaydı için source alanı eksik`);
     }
     if (record.type === "work_items" && !record.frontmatter.title) {
-      warnings.push(`${record.path}: iş kartı için title alanı eksik`);
+      warnings.push(`${record.path}: iş hattı için title alanı eksik`);
     }
     if (record.type === "work_items") {
       warnings.push(...workItemLifecycleWarnings(record, nowTime));
@@ -592,7 +592,7 @@ export function buildWorkItemFromSession(session) {
 ${getSection(session.sections, "goal") || session.summary || "Bu işin amacı netleştirilecek."}
 
 ## Current State
-${getSection(session.sections, "happened") || "İlk oturum özeti iş kartına bağlandı."}
+${getSection(session.sections, "happened") || "İlk oturum özeti iş hattına bağlandı."}
 
 ## Next Action
 ${getSection(session.sections, "next") || "Bir sonraki somut adım belirlenecek."}
@@ -761,7 +761,7 @@ export function appendCodexRunToWorkItem(workItem, runRecord, now = new Date()) 
 
 export function updateWorkItemStatusContent(workItem, status, now = new Date()) {
   if (!WORK_STATUSES.includes(status)) {
-    throw new Error(`Geçersiz iş kartı durumu: ${status}`);
+    throw new Error(`Geçersiz iş hattı durumu: ${status}`);
   }
   const updatedAt = now.toISOString();
   const previousStatus = workItem.status || workItem.frontmatter?.status || "";

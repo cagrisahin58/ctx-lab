@@ -21,7 +21,7 @@ ctx-lab, son başarılı GitHub senkronizasyonundan gelen kayıt anlık görünt
 
 Geçerli kayıt tipleri: `inbox`, `work_items`, `decisions`, `handoffs`, `archive`.
 Geçerli durumlar: `needs_triage`, `linked`, `active`, `waiting`, `blocked`, `done`, `archived`.
-İş kartı panosunda yönetilen durumlar: `active`, `waiting`, `blocked`, `done`.
+İş hattı panosunda yönetilen durumlar: `active`, `waiting`, `blocked`, `done`.
 
 ## Zaman akışı event katmanı
 
@@ -84,7 +84,7 @@ ctx-lab'ın `Yeni Oturum Özeti` ekranı, Codex veya Claude sohbetinin sonuna ya
 - `created_at` yoksa kayıt anı kullanılır,
 - `linked_work_item` boş bırakılır.
 
-## Work item
+## İş hattı
 
 ```markdown
 ---
@@ -121,20 +121,20 @@ Riskler ve engeller.
 Codex veya Claude'a verilecek kısa devam prompt'u.
 ```
 
-Yeni bir oturum kaydı aynı `work_<project>` id'sine denk gelirse ctx-lab yeni dosya açmak yerine mevcut iş kartının `sessions` listesini günceller.
-`Yeni İş Hattı` ekranından açılan manuel iş kartları da aynı `work_items/` formatını kullanır; başlangıçta `sessions` ve `decisions` listeleri boştur.
-Oturum Akışı ekranında kullanıcı farklı bir mevcut iş kartını seçerse aynı güncelleme seçilen kart için yapılır ve oturum kaydındaki `linked_work_item` bu iş kartının id'sine çekilir.
+Yeni bir oturum kaydı aynı `work_<project>` id'sine denk gelirse ctx-lab yeni dosya açmak yerine mevcut iş hattının `sessions` listesini günceller.
+`Yeni İş Hattı` ekranından açılan manuel iş hatları da aynı `work_items/` formatını kullanır; başlangıçta `sessions` ve `decisions` listeleri boştur.
+Oturum Akışı ekranında kullanıcı farklı bir mevcut iş hattını seçerse aynı güncelleme seçilen hat için yapılır ve oturum kaydındaki `linked_work_item` bu iş hattının id'sine çekilir.
 Oturum Akışı, `project`, `repo`, ortak `tags` ve son güncellenme tarihine göre mevcut iş hattı önerisi gösterebilir. Kullanıcı öneriyi reddederse inbox frontmatter alanına `triage_suggestion_dismissed` listesi yazılır ve aynı iş hattı tekrar önerilmez.
 Oturum Akışı varsayılan olarak `needs_triage` kayıtlarını gösterir; `linked`, `archived` ve tüm kayıtlar UI filtresiyle görülebilir.
-Pano üzerinden durum değiştirildiğinde iş kartının frontmatter alanındaki `status` ve `updated_at` değerleri güncellenir, ayrıca geriye uyumlu `status_history` listesine `ISO_ZAMAN|eski_durum->yeni_durum` biçiminde bir olay eklenir; gövde korunur. Eski kayıtlarda `status_history` alanı yoksa iş kartı yine tek güncel durum olayı olarak gösterilir.
+Pano üzerinden durum değiştirildiğinde iş hattının frontmatter alanındaki `status` ve `updated_at` değerleri güncellenir, ayrıca geriye uyumlu `status_history` listesine `ISO_ZAMAN|eski_durum->yeni_durum` biçiminde bir olay eklenir; gövde korunur. Eski kayıtlarda `status_history` alanı yoksa iş hattı yine tek güncel durum olayı olarak gösterilir.
 Pano üzerinden `Next Action` bölümü güncellendiğinde ilgili markdown section değiştirilir ve `updated_at` yenilenir.
-Oturum kaydından karar çıkarıldığında ilgili iş kartı bulunabiliyorsa karar id'si iş kartının `decisions` listesine otomatik eklenir.
+Oturum kaydından karar çıkarıldığında ilgili iş hattı bulunabiliyorsa karar id'si iş hattının `decisions` listesine otomatik eklenir.
 Oturum kaydı arşive taşındığında archive dosyasına `status: archived` ve `archived_at` yazılır; ardından kaynak inbox dosyası silinir.
 Tamamlanan (`status: done`) iş hatları da aynı güvenli iki adımlı onayla `archive/` altına taşınabilir. Aktif, bekleyen veya engelli iş hatları arşivlenmez; önce durumun `done` yapılması gerekir.
 
 ## Decision record
 
-Manuel karar kayıtları `Karar Defteri > Yeni Karar` akışıyla oluşturulur. Bir iş hattı seçilirse `source_work_item` alanı doldurulur ve karar id'si ilgili iş kartının `decisions` listesine eklenir.
+Manuel karar kayıtları `Karar Defteri > Yeni Karar` akışıyla oluşturulur. Bir iş hattı seçilirse `source_work_item` alanı doldurulur ve karar id'si ilgili iş hattının `decisions` listesine eklenir.
 
 ```markdown
 ---
@@ -163,9 +163,9 @@ Plan oturumu.
 
 ## Devam brifi
 
-`handoffs/` altındaki kayıtlar artık yalnızca tek oturum özeti değildir. Seçili iş kartı için:
+`handoffs/` altındaki kayıtlar artık yalnızca tek oturum özeti değildir. Seçili iş hattı için:
 
-- iş kartındaki amaç, güncel durum, sonraki adım ve riskler,
+- iş hattındaki amaç, güncel durum, sonraki adım ve riskler,
 - `sessions` listesindeki bağlı oturum özetleri,
 - `decisions` listesi veya bağlı oturumlardan türeyen kararlar,
 - Codex/Claude için çalışma kuralı

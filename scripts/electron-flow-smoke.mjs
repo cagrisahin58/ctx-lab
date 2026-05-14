@@ -414,7 +414,7 @@ try {
   await page.keyboard.press("a");
   await expectVisibleText(page, "Arşivi Onayla");
   await page.keyboard.press("l");
-  await expectVisibleText(page, "Oturum seçili iş kartına bağlandı.");
+  await expectVisibleText(page, "Oturum seçili iş hattına bağlandı.");
   await expectVisibleText(page, "Kalıcı gerçeklik burada tutulur");
   await page.locator('button[data-view="workspace"]').click();
   await expectVisibleText(page, "Güncel Bağlam");

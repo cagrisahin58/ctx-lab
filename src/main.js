@@ -485,7 +485,7 @@ async function createWorkFromSelected(targetWorkId = "") {
     ? state.records.find((item) => item.type === "work_items" && item.id === targetWorkId)
     : null;
   if (targetWorkId && !targetWork) {
-    setToast("Bağlanacak iş kartı bulunamadı.");
+    setToast("Bağlanacak iş hattı bulunamadı.");
     return;
   }
   const existingWork = targetWork || state.records.find((item) => item.type === "work_items" && item.id === work.id);
@@ -496,16 +496,16 @@ async function createWorkFromSelected(targetWorkId = "") {
   const parsed = await saveMemoryRecord(
     workPath,
     workContent,
-    existingWork ? `work: ${linkedWorkId} oturum bağlantısını güncelle` : `work: ${linkedWorkId} iş kartını oluştur`
+    existingWork ? `work: ${linkedWorkId} oturum bağlantısını güncelle` : `work: ${linkedWorkId} iş hattını oluştur`
   );
   const updatedInbox = replaceFrontmatter(record.raw, {
     status: "linked",
     linked_work_item: linkedWorkId
   });
-  await saveMemoryRecord(record.path, updatedInbox, `inbox: ${record.id} iş kartına bağlandı`);
+  await saveMemoryRecord(record.path, updatedInbox, `inbox: ${record.id} iş hattına bağlandı`);
   state.view = "board";
   state.selectedId = parsed.id;
-  setToast(existingWork ? "Oturum seçili iş kartına bağlandı." : "İş kartı oluşturuldu.");
+  setToast(existingWork ? "Oturum seçili iş hattına bağlandı." : "İş hattı oluşturuldu.");
 }
 
 async function dismissTriageSuggestion(workItemId) {
@@ -622,20 +622,20 @@ async function updateSelectedWorkStatus(payload) {
     ? state.records.find((item) => item.id === payload.id)
     : contextRecord();
   if (!record || record.type !== "work_items") {
-    setToast("Durum değiştirmek için iş kartı seç.");
+    setToast("Durum değiştirmek için iş hattı seç.");
     return;
   }
 
   const content = updateWorkItemStatusContent(record, status);
   const parsed = await saveMemoryRecord(record.path, content, `work: ${record.id} durumunu ${status} yap`);
   state.selectedId = parsed.id;
-  setToast("İş kartı durumu güncellendi.");
+  setToast("İş hattı durumu güncellendi.");
 }
 
 async function moveWorkItemToStatus(workItemId, status) {
   const record = state.records.find((item) => item.id === workItemId);
   if (!record || record.type !== "work_items") {
-    setToast("Taşınacak iş kartı bulunamadı.");
+    setToast("Taşınacak iş hattı bulunamadı.");
     return;
   }
   if (record.status === status) {
@@ -649,7 +649,7 @@ async function moveWorkItemToStatus(workItemId, status) {
 async function updateSelectedWorkNextAction(payload) {
   const record = state.records.find((item) => item.id === payload?.id);
   if (!record || record.type !== "work_items") {
-    setToast("Sonraki adımı güncellemek için iş kartı seç.");
+    setToast("Sonraki adımı güncellemek için iş hattı seç.");
     return;
   }
 
@@ -2065,7 +2065,7 @@ function renderBoard() {
       "Kalıcı gerçeklik burada tutulur; oturum akışı sadece işleme bekleyen kayıt alanıdır.",
       `<button class="primary" data-view="new-work">Yeni İş Hattı</button>`
     )}
-    ${renderSearchBar("İş kartı, proje veya durum ara")}
+    ${renderSearchBar("İş hattı, proje veya durum ara")}
     <div class="board-layout">
       <div class="board">
         ${columns.map(([status, title]) => `
@@ -2079,7 +2079,7 @@ function renderBoard() {
         `).join("")}
       </div>
       <section class="panel detail">
-        ${selected ? renderWorkContext(selected) : `<div class="empty">İş kartı seçin.</div>`}
+        ${selected ? renderWorkContext(selected) : `<div class="empty">İş hattı seçin.</div>`}
       </section>
     </div>
   `;
@@ -2358,7 +2358,7 @@ function renderWorkContext(workItem) {
     <div class="toolbar-actions">
       <button class="primary" data-action="copy-context-pack">Devam Brifini Kopyala</button>
       <button data-action="save-handoff-codex">Devam Brifini Kaydet</button>
-      <select class="status-select" data-status-select data-work-id="${escapeHtml(workItem.id)}" aria-label="İş kartı durumu">
+      <select class="status-select" data-status-select data-work-id="${escapeHtml(workItem.id)}" aria-label="İş hattı durumu">
         ${WORK_STATUSES.map((status) => `<option value="${status}" ${workItem.status === status ? "selected" : ""}>${statusLabel(status)}</option>`).join("")}
       </select>
       ${workItem.status === "done" ? `<button class="${state.pendingArchiveId === workItem.id ? "danger" : ""}" data-action="archive">${archiveLabel}</button>` : ""}
@@ -3052,14 +3052,14 @@ function renderRecordDetail(record, withActions) {
     </div>
     ${withActions ? `
       <div class="toolbar-actions">
-        <button class="primary" data-action="create-work">Yeni/Proje İş Kartına Bağla</button>
+        <button class="primary" data-action="create-work">Yeni/Proje İş Hattına Bağla</button>
         ${canExtractDecision ? `<button data-action="save-decision">Karar Çıkar</button>` : ""}
         <button class="${state.pendingArchiveId === record.id ? "danger" : ""}" data-action="archive">${archiveLabel}</button>
       </div>
       ${suggestion ? renderTriageSuggestion(suggestion) : ""}
       ${workItems.length ? `
         <div class="triage-linker">
-          <select data-link-work-target aria-label="Mevcut iş kartı">
+          <select data-link-work-target aria-label="Mevcut iş hattı">
             ${workItems.map((item) => `<option value="${escapeHtml(item.id)}">${escapeHtml(item.title)}</option>`).join("")}
           </select>
           <button data-action="link-existing-work">Seçili İşe Bağla</button>

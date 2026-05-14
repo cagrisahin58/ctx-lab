@@ -16,6 +16,9 @@ const SECTION_ALIASES = {
 export const VALID_TYPES = ["inbox", "work_items", "decisions", "handoffs", "archive"];
 export const VALID_STATUSES = ["needs_triage", "linked", "active", "waiting", "blocked", "done", "archived"];
 export const WORK_STATUSES = ["active", "waiting", "blocked", "done"];
+const DAY_MS = 24 * 60 * 60 * 1000;
+const DONE_ARCHIVE_SUGGESTION_DAYS = 14;
+const STALE_WORK_ITEM_DAYS = 30;
 
 export function parseRepoInput(input) {
   const trimmed = input.trim().replace(/^https:\/\/github\.com\//, "").replace(/\.git$/, "");
@@ -174,9 +177,10 @@ export function parseMemoryFile(path, content, sha = "") {
   };
 }
 
-export function validateMemoryRecords(records) {
+export function validateMemoryRecords(records, now = new Date()) {
   const warnings = [];
   const seen = new Map();
+  const nowTime = coerceTime(now);
 
   for (const record of records) {
     if (!VALID_TYPES.includes(record.type)) {
@@ -199,9 +203,32 @@ export function validateMemoryRecords(records) {
     if (record.type === "work_items" && !record.frontmatter.title) {
       warnings.push(`${record.path}: iş kartı için title alanı eksik`);
     }
+    if (record.type === "work_items") {
+      warnings.push(...workItemLifecycleWarnings(record, nowTime));
+    }
   }
 
   return warnings;
+}
+
+function workItemLifecycleWarnings(record, nowTime) {
+  if (!Number.isFinite(nowTime)) return [];
+  const touchedAt = coerceTime(record.frontmatter.updated_at || record.frontmatter.created_at || "");
+  if (!Number.isFinite(touchedAt) || touchedAt > nowTime) return [];
+  const ageDays = Math.floor((nowTime - touchedAt) / DAY_MS);
+
+  if (record.status === "done" && ageDays >= DONE_ARCHIVE_SUGGESTION_DAYS) {
+    return [`${record.path}: tamamlanan iş hattı ${ageDays} gündür arşiv bekliyor`];
+  }
+  if (WORK_STATUSES.includes(record.status) && record.status !== "done" && ageDays >= STALE_WORK_ITEM_DAYS) {
+    return [`${record.path}: iş hattı ${ageDays} gündür güncellenmedi, sonraki adım gözden geçirilmeli`];
+  }
+  return [];
+}
+
+function coerceTime(value) {
+  const time = value instanceof Date ? value.getTime() : new Date(value || "").getTime();
+  return Number.isNaN(time) ? NaN : time;
 }
 
 export function buildOnboardingChecklist(input = {}) {

@@ -1643,7 +1643,7 @@ function renderInbox(counts) {
 function renderWarnings() {
   return `
     <section class="panel">
-      <h3>Format Uyarıları</h3>
+      <h3>Hafıza Uyarıları</h3>
       <div class="record-list">
         ${state.warnings.map((warning) => `<span class="badge blocked">${escapeHtml(warning)}</span>`).join("")}
       </div>
@@ -1658,7 +1658,7 @@ function renderMemoryHealthPanel() {
       <div class="panel-heading">
         <div>
           <h3>Hafıza Sağlığı</h3>
-          <p>Duplicate id, eksik alan ve bilinmeyen status uyarıları burada izlenir.</p>
+          <p>Format, yaşam döngüsü ve arşiv önerileri burada izlenir.</p>
         </div>
         <span class="badge ${state.warnings.length ? "blocked" : "active"}">${state.warnings.length ? `${state.warnings.length} uyarı` : "Temiz"}</span>
       </div>

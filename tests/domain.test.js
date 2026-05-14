@@ -204,6 +204,38 @@ test("memory kayıtlarındaki duplicate id ve durum sorunlarını uyarır", () =
   assert.ok(warnings.some((warning) => warning.includes("bilinmeyen durum (stale)")));
 });
 
+test("iş hattı yaşam döngüsü ve arşiv önerilerini uyarır", () => {
+  const session = parseMemoryFile(
+    "inbox/lifecycle.md",
+    sample.replace("id: sess_test", "id: sess_lifecycle"),
+    "sha-session"
+  );
+  const done = parseMemoryFile(
+    "work_items/done.md",
+    buildWorkItemFromSession({ ...session, id: "sess_done_lifecycle", project: "done lifecycle" }).content
+      .replace("status: active", "status: done")
+      .replace(/updated_at: .+/, "updated_at: 2026-04-20T00:00:00.000Z"),
+    "sha-done"
+  );
+  const stale = parseMemoryFile(
+    "work_items/stale.md",
+    buildWorkItemFromSession({ ...session, id: "sess_stale_lifecycle", project: "stale lifecycle" }).content
+      .replace(/updated_at: .+/, "updated_at: 2026-04-01T00:00:00.000Z"),
+    "sha-stale"
+  );
+  const recent = parseMemoryFile(
+    "work_items/recent.md",
+    buildWorkItemFromSession({ ...session, id: "sess_recent_lifecycle", project: "recent lifecycle" }).content
+      .replace(/updated_at: .+/, "updated_at: 2026-05-10T00:00:00.000Z"),
+    "sha-recent"
+  );
+  const warnings = validateMemoryRecords([done, stale, recent], new Date("2026-05-14T00:00:00.000Z"));
+
+  assert.ok(warnings.some((warning) => warning.includes("done.md") && warning.includes("arşiv bekliyor")));
+  assert.ok(warnings.some((warning) => warning.includes("stale.md") && warning.includes("güncellenmedi")));
+  assert.equal(warnings.some((warning) => warning.includes("recent.md")), false);
+});
+
 test("onboarding checklist kurulum ilerlemesini somut sinyallerden hesaplar", () => {
   const empty = buildOnboardingChecklist();
   const ready = buildOnboardingChecklist({

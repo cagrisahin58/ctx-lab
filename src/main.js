@@ -908,11 +908,13 @@ function renderStatusBar() {
   const codexStatus = codex?.available ? `Codex ${codex.version}` : (state.runner.error || "Codex kontrol bekliyor");
   const mirror = state.runner.memory;
   const mirrorStatus = mirror?.indexed ? `Mirror index: ${mirror.recordCount} kayıt` : (mirror?.error || "Mirror bekliyor");
+  const healthStatus = state.warnings.length ? `Hafıza sağlığı: ${state.warnings.length} uyarı` : "Hafıza sağlığı temiz";
   return `
     <div class="status-bar">
       <span class="status-dot ok"></span><span>${escapeHtml(githubStatus)}</span>
       <span class="status-dot ${state.cacheMeta.syncedAt || state.demo ? "ok" : "warn"}"></span><span>${escapeHtml(memoryStatus)}</span>
       <span class="status-dot ${mirror?.indexed ? "ok" : "warn"}"></span><span>${escapeHtml(mirrorStatus)}</span>
+      <span class="status-dot ${state.warnings.length ? "warn" : "ok"}"></span><span>${escapeHtml(healthStatus)}</span>
       <span class="status-dot ${codex?.available ? "ok" : "warn"}"></span><span>${escapeHtml(codexStatus)}</span>
       <button class="ghost compact" data-action="refresh-runner">Runner</button>
     </div>
@@ -1003,6 +1005,7 @@ function commandItems() {
     { id: "view:daily", title: "Günlük Devam Brifi", subtitle: "Açık işlerden günlük çalışma metni", keywords: "gunluk brif", run: () => setView("daily") },
     { id: "view:runner", title: "Yerel Codex Runner", subtitle: "CLI, proje kökleri ve run kayıtları", keywords: "codex runner otomasyon", run: () => setView("runner") },
     { id: "view:settings", title: "Hafıza Bağlantısı", subtitle: "GitHub work-memory repo ayarları", keywords: "repo baglanti github hafiza", run: () => setView("settings") },
+    { id: "view:health", title: "Hafıza Sağlığı", subtitle: state.warnings.length ? `${state.warnings.length} format uyarısı` : "Format uyarısı yok", keywords: "hafiza saglik validation uyarı duplicate status", run: () => setView("settings") },
     { id: "new:summary", title: "Yeni Oturum Özeti", subtitle: "Yeni kapanan AI oturumunu kaydet", shortcut: "n s", keywords: "yeni ozet session", run: () => setView("new-summary") },
     { id: "new:work", title: "Yeni İş Hattı", subtitle: "Bağımsız iş hattı oluştur", shortcut: "n w", keywords: "yeni is hatti work", run: () => setView("new-work") },
     { id: "new:decision", title: "Yeni Karar", subtitle: "Kaynaklı karar kaydı oluştur", shortcut: "n d", keywords: "yeni karar decision", run: () => setView("new-decision") },
@@ -1431,6 +1434,44 @@ function renderWarnings() {
   `;
 }
 
+function renderMemoryHealthPanel() {
+  const grouped = groupWarningsByRecord();
+  return `
+    <section class="panel memory-health" id="memory-health">
+      <div class="panel-heading">
+        <div>
+          <h3>Hafıza Sağlığı</h3>
+          <p>Duplicate id, eksik alan ve bilinmeyen status uyarıları burada izlenir.</p>
+        </div>
+        <span class="badge ${state.warnings.length ? "blocked" : "active"}">${state.warnings.length ? `${state.warnings.length} uyarı` : "Temiz"}</span>
+      </div>
+      ${state.warnings.length ? `
+        <div class="health-list">
+          ${grouped.map((item) => `
+            <div class="health-item">
+              <strong>${escapeHtml(item.path)}</strong>
+              <ul>
+                ${item.messages.map((message) => `<li>${escapeHtml(message)}</li>`).join("")}
+              </ul>
+            </div>
+          `).join("")}
+        </div>
+      ` : `<div class="empty">Aktif memory kayıtlarında format uyarısı yok.</div>`}
+    </section>
+  `;
+}
+
+function groupWarningsByRecord() {
+  const map = new Map();
+  for (const warning of state.warnings) {
+    const [path, ...rest] = warning.split(":");
+    const message = rest.join(":").trim() || warning;
+    if (!map.has(path)) map.set(path, []);
+    map.get(path).push(message);
+  }
+  return [...map.entries()].map(([path, messages]) => ({ path, messages }));
+}
+
 function renderBoard() {
   const workItems = filteredRecords("work_items");
   const groups = groupByStatus(workItems);
@@ -1832,6 +1873,7 @@ function renderSettings() {
       </form>
     </section>
     ${renderDiagnostics()}
+    ${renderMemoryHealthPanel()}
   `;
 }
 

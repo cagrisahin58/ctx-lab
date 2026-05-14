@@ -100,6 +100,11 @@ try {
   await expectVisibleText(page, "Paket İçeriği");
   await page.getByRole("button", { name: "Claude Code" }).click();
   await page.locator(".target-switch .claude.active").waitFor({ state: "visible", timeout: 15_000 });
+  await page.keyboard.press("Control+K");
+  await page.locator("[data-command-search]").fill("hafıza sağlığı");
+  await page.locator('[data-command-id="view:health"]').click();
+  await expectVisibleText(page, "Hafıza Sağlığı");
+  await expectVisibleText(page, "Duplicate id, eksik alan ve bilinmeyen status uyarıları burada izlenir.");
 
   const title = await electronApp.evaluate(({ BrowserWindow }) => {
     return BrowserWindow.getAllWindows()[0]?.getTitle();

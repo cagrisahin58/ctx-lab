@@ -33,6 +33,7 @@ for (const expected of [
   "Proje Calisma Merkezi",
   "Komut Paleti",
   "Kisayollar",
+  "Hafiza Sagligi",
   "Kisa Kurulum",
   "GitHub hafiza reposu",
   "Codex CLI Kontrolu",

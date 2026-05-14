@@ -11,6 +11,7 @@ files:
   - scripts/ctxlab-runner.mjs
   - src/domain.js
 win:
+  icon: electron/assets/icon.ico
   signAndEditExecutable: false
   target:
     - target: portable

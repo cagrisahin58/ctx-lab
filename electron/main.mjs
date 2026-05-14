@@ -7,6 +7,8 @@ import { createDesktopRuntime, registerDesktopIpcHandlers } from "./runtime.mjs"
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const isDev = Boolean(process.env.VITE_DEV_SERVER_URL);
 const isSmoke = process.argv.includes("--smoke");
+const appIconPath = join(__dirname, "assets", "icon.ico");
+const trayIconPath = join(__dirname, "assets", "icon-placeholder.svg");
 
 let mainWindow;
 let tray;
@@ -44,10 +46,10 @@ function createMenu() {
 }
 
 function createTrayPlaceholder() {
-  const iconPath = join(__dirname, "assets", "icon-placeholder.svg");
-  const image = nativeImage.createFromPath(iconPath);
-  if (image.isEmpty()) return;
-  tray = new Tray(image.resize({ width: 16, height: 16 }));
+  const image = nativeImage.createFromPath(appIconPath);
+  const fallback = image.isEmpty() ? nativeImage.createFromPath(trayIconPath) : image;
+  if (fallback.isEmpty()) return;
+  tray = new Tray(fallback.resize({ width: 16, height: 16 }));
   tray.setToolTip("ctx-lab");
   tray.setContextMenu(Menu.buildFromTemplate([
     { label: "ctx-lab'i Ac", click: () => mainWindow?.show() },
@@ -64,6 +66,7 @@ async function createMainWindow() {
     minHeight: 760,
     title: "ctx-lab",
     backgroundColor: "#0b1020",
+    icon: appIconPath,
     show: false,
     webPreferences: {
       preload: join(__dirname, "preload.cjs"),

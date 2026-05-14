@@ -1505,6 +1505,7 @@ function renderRunEvidence(run) {
         ${runFact("Olay günlüğü", run.eventLogPath || "olay günlüğü yok")}
       </div>
       ${run.summary ? `<p class="run-summary">${escapeHtml(run.summary)}</p>` : ""}
+      ${renderCommitReadiness(run.commitReadiness)}
       ${run.commitGate ? `<p class="run-gate">${escapeHtml(run.commitGate)}</p>` : ""}
       ${renderChangedFiles(run)}
       ${renderRunEventPreview(run)}
@@ -1515,6 +1516,26 @@ function renderRunEvidence(run) {
 
 function runFact(label, value) {
   return `<span><strong>${escapeHtml(label)}</strong>${escapeHtml(value)}</span>`;
+}
+
+function renderCommitReadiness(readiness) {
+  if (!readiness) return "";
+  const checks = Array.isArray(readiness.checks) ? readiness.checks : [];
+  return `
+    <div class="run-commit-readiness ${readiness.ready ? "ready" : "not-ready"}">
+      <div class="run-events-head">
+        <h5>Commit Hazırlığı</h5>
+        <span>${escapeHtml(readiness.ready ? "Gözden geçirmeye hazır" : "Hazır değil")}</span>
+      </div>
+      <p>${escapeHtml(readiness.summary || "")}</p>
+      ${checks.map((check) => `
+        <div class="readiness-check ${check.ok ? "ok" : "fail"}">
+          <strong>${escapeHtml(check.label || check.id || "Kontrol")}</strong>
+          <span>${escapeHtml(check.detail || "")}</span>
+        </div>
+      `).join("")}
+    </div>
+  `;
 }
 
 function renderChangedFiles(run) {

@@ -667,6 +667,14 @@ test("codex run sonucunu memory kaydina cevirir ve is hattina baglar", () => {
       changedCount: 2,
       changedFiles: ["M src/main.js", "A tests/runner.test.js"]
     },
+    commitReadiness: {
+      ready: false,
+      summary: "Commit/push için eksik kanıt var.",
+      checks: [
+        { id: "run", label: "Codex sonucu", ok: true, detail: "Codex komutu tamamlandı." },
+        { id: "test", label: "Test sinyali", ok: false, detail: "Test çalıştırılmadı." }
+      ]
+    },
     summary: "Deneme prompt kaydedildi."
   };
   const memory = buildCodexRunMemoryRecord(run, work, new Date("2026-05-14T12:01:00.000Z"));
@@ -682,6 +690,9 @@ test("codex run sonucunu memory kaydina cevirir ve is hattina baglar", () => {
   assert.match(parsedRun.raw, /Olay günlüğü: C:\\runs\\run\.events\.jsonl/);
   assert.match(parsedRun.raw, /## Değişiklik Özeti/);
   assert.match(parsedRun.raw, /- M src\/main\.js/);
+  assert.match(parsedRun.raw, /## Commit Hazırlığı/);
+  assert.match(parsedRun.raw, /Durum: Hazır değil/);
+  assert.match(parsedRun.raw, /Eksik: Test sinyali - Test çalıştırılmadı\./);
   assert.deepEqual(parsedWork.frontmatter.codex_runs, [parsedRun.id]);
   assert.equal(events[0].kind, "codex_run");
 });

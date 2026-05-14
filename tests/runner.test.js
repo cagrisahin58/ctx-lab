@@ -426,6 +426,7 @@ test("codex run test sonucunu ve commit kapisini loglar", async () => {
   const dir = await mkdtemp(join(tmpdir(), "ctxlab-runner-"));
   const projectDir = await mkdtemp(join(tmpdir(), "ctxlab-project-"));
   const paths = buildRunnerPaths(dir);
+  let statusCalls = 0;
 
   try {
     const project = await registerProject(paths, {
@@ -445,6 +446,16 @@ test("codex run test sonucunu ve commit kapisini loglar", async () => {
       runCommand: async (_command, args) => {
         if (args.includes("--version")) return { ok: true, stdout: "codex-cli test\n", stderr: "", code: 0 };
         return { ok: true, stdout: "npm test\n69 tests passed\n", stderr: "", code: 0 };
+      },
+      gitCommand: async (_command, args) => {
+        if (args.includes("--is-inside-work-tree")) return { ok: true, stdout: "true\n", stderr: "", code: 0 };
+        if (args.includes("--abbrev-ref")) return { ok: true, stdout: "main\n", stderr: "", code: 0 };
+        if (args.includes("HEAD")) return { ok: true, stdout: "abcdef1234567890\n", stderr: "", code: 0 };
+        if (args.includes("status")) {
+          statusCalls += 1;
+          return { ok: true, stdout: statusCalls === 1 ? "" : " M src/main.js\n", stderr: "", code: 0 };
+        }
+        return { ok: false, stdout: "", stderr: "beklenmeyen git komutu", code: 1 };
       }
     });
     const log = JSON.parse(await readFile(run.logPath, "utf8"));
@@ -452,7 +463,10 @@ test("codex run test sonucunu ve commit kapisini loglar", async () => {
     assert.equal(run.testResult, "passed");
     assert.match(run.summary, /test çıktısı başarılı/);
     assert.match(run.commitGate, /Commit\/push/);
+    assert.equal(run.commitReadiness.ready, true);
+    assert.equal(run.commitReadiness.status, "ready_for_review");
     assert.equal(log.testResult, "passed");
+    assert.equal(log.commitReadiness.ready, true);
   } finally {
     await rm(dir, { recursive: true, force: true });
     await rm(projectDir, { recursive: true, force: true });
@@ -534,6 +548,7 @@ test("codex commit push gercek calisma icin ayrica onay ister", async () => {
 
     assert.equal(run.status, "blocked");
     assert.equal(run.testResult, "not_run");
+    assert.equal(run.commitReadiness.ready, false);
     assert.match(run.error, /onayı verilmedi/);
     assert.equal(log.status, "blocked");
     assert.deepEqual(calls, []);

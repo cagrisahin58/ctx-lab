@@ -398,6 +398,7 @@ export async function startCodexRun(paths = buildRunnerPaths(), input = {}, opti
       testResult: "not_run",
       commitGate: commitGateForAutomationLevel(automationLevel)
     };
+    record.commitReadiness = buildCommitReadiness(record);
     await writeRunLog(logPath, record);
     return record;
   }
@@ -411,6 +412,7 @@ export async function startCodexRun(paths = buildRunnerPaths(), input = {}, opti
       testResult: "not_run",
       commitGate: commitGateForAutomationLevel(automationLevel)
     };
+    record.commitReadiness = buildCommitReadiness(record);
     await writeRunLog(logPath, record);
     return record;
   }
@@ -425,6 +427,7 @@ export async function startCodexRun(paths = buildRunnerPaths(), input = {}, opti
       gitBefore,
       error: codex.error || "Codex CLI bulunamadi."
     };
+    record.commitReadiness = buildCommitReadiness(record);
     await writeRunLog(logPath, record);
     return record;
   }
@@ -482,6 +485,7 @@ export async function startCodexRun(paths = buildRunnerPaths(), input = {}, opti
     stderr: result.stderr || "",
     exitCode: result.code ?? (result.ok ? 0 : 1)
   };
+  record.commitReadiness = buildCommitReadiness(record);
   await appendRunEvent(eventLogPath, {
     event: "finish",
     at: finishedAt,
@@ -778,6 +782,55 @@ function commitGateForAutomationLevel(level) {
     return "Commit/push kullanıcı onayı, görünür özet ve test sonucu olmadan uygulanmaz.";
   }
   return "";
+}
+
+function buildCommitReadiness(record = {}) {
+  if (!["commit_prepare", "commit_push"].includes(record.automationLevel)) return null;
+  const changedFiles = Array.isArray(record.gitAfter?.changedFiles) ? record.gitAfter.changedFiles : [];
+  const checks = [
+    {
+      id: "run",
+      label: "Codex sonucu",
+      ok: record.status === "succeeded",
+      detail: record.status === "succeeded" ? "Codex komutu tamamlandı." : "Codex komutu başarılı tamamlanmadı."
+    },
+    {
+      id: "summary",
+      label: "Görünür özet",
+      ok: Boolean(record.summary || record.error),
+      detail: record.summary || record.error || "Çalıştırma özeti yok."
+    },
+    {
+      id: "test",
+      label: "Test sinyali",
+      ok: record.testResult === "passed",
+      detail: commitReadinessTestDetail(record.testResult)
+    },
+    {
+      id: "changes",
+      label: "Dosya değişikliği",
+      ok: Boolean(record.gitAfter?.available && changedFiles.length),
+      detail: record.gitAfter?.available
+        ? (changedFiles.length ? `${changedFiles.length} dosya değişikliği görünüyor.` : "Git değişikliği yok.")
+        : "Git sonucu okunamadı."
+    }
+  ];
+  const ready = checks.every((check) => check.ok);
+  return {
+    ready,
+    status: ready ? "ready_for_review" : "not_ready",
+    summary: ready
+      ? "Commit/push için kullanıcı incelemesine hazır."
+      : "Commit/push için eksik kanıt var.",
+    checks
+  };
+}
+
+function commitReadinessTestDetail(result) {
+  if (result === "passed") return "Test çıktısı başarılı sinyal veriyor.";
+  if (result === "failed") return "Test çıktısında hata sinyali var.";
+  if (result === "not_run") return "Test çalıştırılmadı.";
+  return "Test sonucu net tespit edilemedi.";
 }
 
 async function writeRunLog(logPath, record) {

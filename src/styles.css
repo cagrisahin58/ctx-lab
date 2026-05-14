@@ -1513,6 +1513,55 @@ kbd {
   color: var(--text);
 }
 
+.run-commit-readiness {
+  display: grid;
+  gap: 7px;
+  padding: 10px;
+  border: 1px solid rgba(245, 158, 11, 0.34);
+  border-radius: 8px;
+  background: rgba(245, 158, 11, 0.08);
+}
+
+.run-commit-readiness.ready {
+  border-color: rgba(52, 211, 153, 0.34);
+  background: rgba(52, 211, 153, 0.08);
+}
+
+.run-commit-readiness h5,
+.run-commit-readiness p {
+  margin: 0;
+}
+
+.readiness-check {
+  display: grid;
+  grid-template-columns: minmax(110px, 0.32fr) minmax(0, 1fr);
+  gap: 8px;
+  align-items: center;
+  padding: 7px 8px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: var(--surface);
+}
+
+.readiness-check strong {
+  font-size: 12px;
+}
+
+.readiness-check span {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.readiness-check.ok {
+  border-color: rgba(52, 211, 153, 0.32);
+}
+
+.readiness-check.fail {
+  border-color: rgba(248, 113, 113, 0.34);
+}
+
 .run-change-list {
   display: grid;
   gap: 6px;

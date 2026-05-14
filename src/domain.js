@@ -835,6 +835,7 @@ export function buildCodexRunMemoryRecord(run, sourceRecord = null, now = new Da
   const changeSummary = changedFiles.length
     ? changedFiles.map((file) => `- ${file}`).join("\n")
     : "Git değişikliği tespit edilmedi veya snapshot yok.";
+  const commitReadiness = formatCommitReadiness(run.commitReadiness);
   const content = `${serializeFrontmatter({
     id: memoryId,
     kind: "codex_run",
@@ -865,7 +866,10 @@ ${formatSectionText(resultText)}
 ## Değişiklik Özeti
 ${changeSummary}
 
-## Kaynak
+${commitReadiness ? `## Commit Hazırlığı
+${commitReadiness}
+
+` : ""}## Kaynak
 - Çalıştırma id: ${run.id}
 - Kaynak kayıt: ${sourceRecordId || "yok"}
 - İş hattı: ${sourceWorkItem || "yok"}
@@ -1120,6 +1124,18 @@ function formatSectionText(value) {
   if (!text) return "";
   if (text.includes("\n") || text.startsWith("- ")) return text;
   return text;
+}
+
+function formatCommitReadiness(readiness) {
+  if (!readiness) return "";
+  const lines = [
+    `Durum: ${readiness.ready ? "Gözden geçirmeye hazır" : "Hazır değil"}`,
+    readiness.summary ? `Özet: ${readiness.summary}` : ""
+  ].filter(Boolean);
+  for (const check of readiness.checks || []) {
+    lines.push(`- ${check.ok ? "OK" : "Eksik"}: ${check.label || check.id || "Kontrol"} - ${check.detail || ""}`.trim());
+  }
+  return lines.join("\n");
 }
 
 export function generateHandoffPrompt(record, target = "codex") {

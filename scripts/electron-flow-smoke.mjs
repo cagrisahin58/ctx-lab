@@ -492,6 +492,8 @@ try {
   await expectVisibleText(page, "Engellendi");
   await expectVisibleText(page, "Commit/push kullanıcı onayı, görünür özet ve test sonucu olmadan uygulanmaz.");
   await expectVisibleText(page, "Commit/push onayı verilmedi.");
+  await expectVisibleText(page, "Commit Hazırlığı");
+  await expectVisibleText(page, "Hazır değil");
 
   markPhase("Is akisi surukle birak durumunu dogrulama");
   await page.keyboard.press("Control+K");

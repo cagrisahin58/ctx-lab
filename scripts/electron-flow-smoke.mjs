@@ -217,7 +217,7 @@ try {
   await projectForm.locator('input[name="branch"]').fill("main");
   await projectForm.locator('input[name="path"]').fill(root);
   await projectForm.getByRole("button", { name: "Proje Kökünü Kaydet" }).click();
-  await expectVisibleText(page, "Proje kökü yerel runner'a kaydedildi.");
+  await expectVisibleText(page, "Proje kökü yerel çalıştırıcıya kaydedildi.");
   await expectVisibleText(page, "1 kayıtlı kök");
 
   await page.getByRole("button", { name: "Örnek Devam Brifi Üret" }).click();
@@ -252,9 +252,9 @@ try {
 
   await page.keyboard.press("Control+K");
   await expectVisibleText(page, "Komut Paleti");
-  await page.locator("[data-command-search]").fill("runner");
-  await page.locator("[data-command-dialog]").getByRole("button", { name: /Yerel Codex Runner/ }).click();
-  await expectVisibleText(page, "Yerel Codex Runner");
+  await page.locator("[data-command-search]").fill("çalıştırıcı");
+  await page.locator("[data-command-dialog]").getByRole("button", { name: /Yerel Codex Çalıştırıcı/ }).click();
+  await expectVisibleText(page, "Yerel Codex Çalıştırıcı");
   await expectVisibleText(page, "Hafıza Senkron Durumu");
   await expectVisibleText(page, "Yerel Hafıza Aynası");
   await expectVisibleText(page, "Aynayı Yenile");

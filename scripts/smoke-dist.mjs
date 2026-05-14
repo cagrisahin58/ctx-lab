@@ -73,7 +73,7 @@ for (const expected of [
   "Yeni Karar",
   "Devam brifi hedefi",
   "Devam Brifini Kopyala",
-  "Yerel Codex Runner",
+  "Yerel Codex Calistirici",
   "Yerel Hafiza Aynasi",
   "Aynayi Yenile",
   "Calisma Gunlugu",

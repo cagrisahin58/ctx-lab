@@ -31,7 +31,7 @@ $runnerUrl = "http://127.0.0.1:$RunnerPort"
 
 if ($Web) {
   Write-Host "ctx-lab web hazir: $url"
-  Write-Host "ctx-lab runner: $runnerUrl"
+  Write-Host "ctx-lab calistirici: $runnerUrl"
 } else {
   Write-Host "ctx-lab masaustu kabugu baslatilacak."
   Write-Host "Vite dev server: $url"

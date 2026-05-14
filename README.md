@@ -13,7 +13,7 @@ AI sohbet geçmişine güvenmek yerine, her önemli oturumdan sonra kısa ve ins
 - aynı proje için gelen yeni oturumları mevcut iş kartına bağlar,
 - karar defterini kaynaklı tutar,
 - Codex veya Claude için iş hattı merkezli, içerik metrikleri görünen devam brifi üretir.
-- `Ctrl+K` komut paletiyle görünüm, proje, GitHub yenileme ve Codex Runner aksiyonlarına hızlı erişim sağlar.
+- `Ctrl+K` komut paletiyle görünüm, proje, GitHub yenileme ve Codex çalıştırıcı aksiyonlarına hızlı erişim sağlar.
 - Açık/koyu tema tercihini yerelde saklar.
 - Hafıza Sağlığı panelinde duplicate id, eksik alan ve bilinmeyen status uyarılarını gösterir.
 - Hafıza Senkron Durumu panelinde GitHub önbelleği, yerel ayna ve indeks farkını açıkça gösterir.
@@ -37,7 +37,7 @@ Windows için tek komut:
 
 Bu komut gerekiyorsa bağımlılıkları kurar, `127.0.0.1:5173` üzerinde Vite dev server başlatır ve Electron masaüstü kabuğunu açar. Alternatif port için `.\scripts\start-windows.cmd -Port 5175` kullanılabilir.
 
-Varsayılan Windows launcher artık Electron masaüstü kabuğunu açar; runner işlemleri Electron main process IPC yüzeyinden yürür. Hızlı kontrol için `.\scripts\start-windows.cmd -DryRun` runner health ve masaüstü smoke kapısını çalıştırır. Eski tarayıcı + localhost runner akışı gerektiğinde `.\scripts\start-windows.cmd -Web` kullanılabilir.
+Varsayılan Windows launcher artık Electron masaüstü kabuğunu açar; çalıştırıcı işlemleri Electron main process IPC yüzeyinden yürür. Hızlı kontrol için `.\scripts\start-windows.cmd -DryRun` çalıştırıcı sağlığı ve masaüstü smoke kapısını çalıştırır. Eski tarayıcı + localhost çalıştırıcı akışı gerektiğinde `.\scripts\start-windows.cmd -Web` kullanılabilir.
 
 Masaüstü geliştirme kabuğu:
 
@@ -51,7 +51,7 @@ Bu komut Vite dev server'ını başlatır ve Electron kabuğunu güvenli preload
 npm run desktop:smoke
 ```
 
-Electron kabuğu renderer tarafında Node entegrasyonunu kapalı tutar; proje klasörü seçimi, runner sağlığı, proje registry ve Codex çalıştırma kayıtları yalnızca izinli IPC kanallarından geçer.
+Electron kabuğu renderer tarafında Node entegrasyonunu kapalı tutar; proje klasörü seçimi, çalıştırıcı sağlığı, proje registry ve Codex çalıştırma kayıtları yalnızca izinli IPC kanallarından geçer.
 
 Windows paketleme hazırlığı:
 
@@ -112,17 +112,17 @@ work-memory/
 
 Token ve son başarılı hafıza anlık görüntüsü yalnızca tarayıcı localStorage alanında saklanır. Sunucu tarafı yoktur. Yerel önbellek owner/repo/branch kapsamıyla ayrılır; uygulama açıldığında son kayıtları hızlı gösterir, GitHub ise kaynak gerçeklik olarak kalır. Son görülen branch HEAD değeri de önbellekte tutulur; yazmadan önce GitHub branch'i dışarıdan güncellendiyse ctx-lab yazımı durdurur ve `GitHub'dan Yenile` çağrısı gösterir.
 
-## Yerel Codex Runner
+## Yerel Codex Çalıştırıcı
 
-v2 ile `start-windows` komutu ayrıca `scripts/ctxlab-runner.mjs` servislerini başlatır. Runner yalnızca `127.0.0.1` üzerinde çalışır; Codex CLI durumunu denetler, `%APPDATA%/ctx-lab` altında yerel hafıza klasörlerini hazırlar ve otomasyon kapsamına alınacak proje köklerini `projects.json` dosyasında tutar.
+v2 ile `start-windows` komutu ayrıca `scripts/ctxlab-runner.mjs` servislerini başlatır. Çalıştırıcı yalnızca `127.0.0.1` üzerinde çalışır; Codex CLI durumunu denetler, `%APPDATA%/ctx-lab` altında yerel hafıza klasörlerini hazırlar ve otomasyon kapsamına alınacak proje köklerini `projects.json` dosyasında tutar.
 
-`Yerel Codex Runner` ekranında runner sağlığı, Codex CLI sürümü ve kayıtlı proje kökleri görülür. Bir proje kökü kaydedilmeden Codex otomasyonu o klasörde dosya değiştirmeyecek şekilde tasarlanır.
+`Yerel Codex Çalıştırıcı` ekranında çalıştırıcı sağlığı, Codex CLI sürümü ve kayıtlı proje kökleri görülür. Bir proje kökü kaydedilmeden Codex otomasyonu o klasörde dosya değiştirmeyecek şekilde tasarlanır.
 
-Codex çalıştırma kayıtları `%APPDATA%/ctx-lab/runs` altında JSON günlük olarak tutulur. İlk masaüstü akışta deneme kaydı varsayılandır; prompt, otomasyon seviyesi, proje allowlist bilgisi, stdout/stderr, çıkış kodu, test sonucu sinyali, Git başlangıç/sonuç snapshot'ı ve çalışma özeti aynı çalıştırma kaydına yazılır. Desteklenen seviyeler: sadece brif hazırla, öneri üret, dosya değiştir ama commit atma, test çalıştır, commit hazırla, commit + push. Destructive git komutları runner tarafında reddedilir. `commit + push` gerçek çalışmada ayrıca açık onay verilmezse runner Codex'i başlatmaz ve çalıştırma kaydını `blocked` olarak yazar. UI'daki `Çalıştırma Kanıtı` alanı günlük yolunu, test sonucunu, Git durumunu, çıktı özetini ve commit/push öncesi kapıyı görünür tutar.
+Codex çalıştırma kayıtları `%APPDATA%/ctx-lab/runs` altında JSON günlük olarak tutulur. İlk masaüstü akışta deneme kaydı varsayılandır; prompt, otomasyon seviyesi, proje allowlist bilgisi, stdout/stderr, çıkış kodu, test sonucu sinyali, Git başlangıç/sonuç snapshot'ı ve çalışma özeti aynı çalıştırma kaydına yazılır. Desteklenen seviyeler: sadece brif hazırla, öneri üret, dosya değiştir ama commit atma, test çalıştır, commit hazırla, commit + push. Destructive git komutları çalıştırıcı tarafında reddedilir. `commit + push` gerçek çalışmada ayrıca açık onay verilmezse çalıştırıcı Codex'i başlatmaz ve çalıştırma kaydını `blocked` olarak yazar. UI'daki `Çalıştırma Kanıtı` alanı günlük yolunu, test sonucunu, Git durumunu, çıktı özetini ve commit/push öncesi kapıyı görünür tutar.
 
 Çalıştırma sonucu seçili iş hattına bağlanabilir. Bu durumda ctx-lab `handoffs/` altında `kind: codex_run` içeren kaynaklı bir kayıt oluşturur ve ilgili iş hattının `codex_runs` frontmatter listesini günceller. Böylece Codex otomasyonu yalnızca yerel günlükte kalmaz, GitHub work-memory timeline içinde de görünür hale gelir.
 
-Yerel hafıza aynası `%APPDATA%/ctx-lab/memory/git` altında, türetilmiş indeks ise `%APPDATA%/ctx-lab/memory/index` altında tutulur. Ayna akışı GitHub token'ını runner'a taşımaz; `git clone/fetch/pull` yerel Git/Git Credential Manager yetkileriyle çalışır. İndeks, mevcut markdown/frontmatter kayıtlarını okuyup masaüstü timeline ve sağlık görünürlüğü için özet JSON üretir.
+Yerel hafıza aynası `%APPDATA%/ctx-lab/memory/git` altında, türetilmiş indeks ise `%APPDATA%/ctx-lab/memory/index` altında tutulur. Ayna akışı GitHub token'ını çalıştırıcıya taşımaz; `git clone/fetch/pull` yerel Git/Git Credential Manager yetkileriyle çalışır. İndeks, mevcut markdown/frontmatter kayıtlarını okuyup masaüstü timeline ve sağlık görünürlüğü için özet JSON üretir.
 
 ## Manuel oturum özeti akışı
 

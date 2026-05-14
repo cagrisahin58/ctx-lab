@@ -4,13 +4,13 @@ Bu belge, ctx-lab'in ikinci faz hedefini repo icinde kalici hale getirir. Resmi 
 
 ## Ana hedef
 
-ctx-lab v2, GitHub destekli hafiza katmanini koruyarak proje timeline merkezli, Turkce, workflow odakli ve yerel Codex Runner ile tam otonom calisabilen bir uygulama olacak.
+ctx-lab v2, GitHub destekli hafiza katmanini koruyarak proje timeline merkezli, Turkce, workflow odakli ve yerel Codex calistirici ile tam otonom calisabilen bir uygulama olacak.
 
 ## Kararlar
 
 - Ana gorunum: Proje Timeline.
 - Otonomi: Codex dosya degistirebilir, test calistirabilir, commit atabilir ve push yapabilir.
-- Runner: Electron main process IPC yuzeyi ve geriye uyumluluk icin `127.0.0.1` Node localhost servisi.
+- Calistirici: Electron main process IPC yuzeyi ve geriye uyumluluk icin `127.0.0.1` Node localhost servisi.
 - Yerel hafiza: hem app-data indeks hem yerel git clone aynasi.
 - API: ilk v2 icin OpenAI API sart degil; Codex CLI (`codex.cmd exec`) kullanilacak.
 - Dil: gorunur tum metinler Turkce olacak; dahili field ve klasor adlari geriye uyumluluk icin Ingilizce kalabilir.
@@ -35,7 +35,7 @@ ctx-lab v2, GitHub destekli hafiza katmanini koruyarak proje timeline merkezli, 
 
 ## Teknik kapsam
 
-- Runner app-data dizini:
+- Calistirici app-data dizini:
   - Windows: `%APPDATA%/ctx-lab`
   - diger platformlar: `~/.ctx-lab`
 - Yerel ayna:
@@ -43,7 +43,7 @@ ctx-lab v2, GitHub destekli hafiza katmanini koruyarak proje timeline merkezli, 
   - `memory/index/`
   - `runs/`
   - `projects.json`
-- Runner gorevleri:
+- Calistirici gorevleri:
   - health check
   - proje kayitlarini yonetme
   - hafiza reposu clone/pull/push
@@ -54,15 +54,15 @@ ctx-lab v2, GitHub destekli hafiza katmanini koruyarak proje timeline merkezli, 
 - Guvenlik sinirlari:
   - sadece `127.0.0.1`
   - kayitli proje kokleri allowlist
-  - runner token
+  - calistirici token
   - destructive git ve credential dosyalarina erisim yasak
   - dogrulama komutlari ve calistirma gunlugu zorunlu
 
 ## Uygulama asamalari
 
-1. Runner temeli: health, app-data dizinleri, Codex CLI tespiti, proje registry.
+1. Calistirici temeli: health, app-data dizinleri, Codex CLI tespiti, proje registry.
 2. Electron kabugu: guvenli preload/IPC, app-data path, klasor secimi, desktop smoke.
-3. Memory ayna: work-memory clone/pull/indeks. Ilk kesitte token runner'a tasinmadan Git/GCM uzerinden clone/fetch/pull ve JSON indeks uretimi yapilir.
+3. Memory ayna: work-memory clone/pull/indeks. Ilk kesitte token calistiriciya tasinmadan Git/GCM uzerinden clone/fetch/pull ve JSON indeks uretimi yapilir.
 4. Proje Timeline veri modeli: legacy kayitlardan timeline event uretimi.
 5. UI yenileme: Turkce terminoloji, timeline, command rail, durum cubugu.
 6. Codex calistirma kaydi: hazir promptlar, deneme kaydi, JSONL stdout/stderr gunlugu, commit/push oncesi gorunur ozet.
@@ -75,8 +75,8 @@ ctx-lab v2, GitHub destekli hafiza katmanini koruyarak proje timeline merkezli, 
 - `npm run build`
 - `npm run smoke`
 - `npm run verify`
-- runner unit testleri
-- runner deneme saglik kontrolu
+- calistirici unit testleri
+- calistirici deneme saglik kontrolu
 - Windows launcher deneme kontrolu
 - Electron desktop smoke ve kullanici seviyesi desktop flow
 - GitHub Actions web verify ve Windows desktop verify

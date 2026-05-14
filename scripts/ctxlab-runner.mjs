@@ -843,6 +843,6 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
 
   const server = createRunnerServer({ paths, host: args.host });
   server.listen(args.port, args.host, () => {
-    console.log(`ctx-lab runner hazır: http://${args.host}:${args.port}`);
+    console.log(`ctx-lab çalıştırıcı hazır: http://${args.host}:${args.port}`);
   });
 }

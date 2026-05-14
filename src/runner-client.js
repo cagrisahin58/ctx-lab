@@ -75,7 +75,7 @@ async function runnerRequest(path, requestOptions = {}, options = {}) {
   });
   const payload = await response.json().catch(() => ({}));
   if (!response.ok) {
-    throw new Error(payload.error || `Yerel runner HTTP ${response.status}`);
+    throw new Error(payload.error || `Yerel çalıştırıcı HTTP ${response.status}`);
   }
   return payload;
 }

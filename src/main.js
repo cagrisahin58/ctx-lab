@@ -703,14 +703,14 @@ async function refreshRunnerStatus(options = {}) {
       memoryIndex,
       error: ""
     };
-    if (!options.silent) setToast("Yerel runner durumu güncellendi.");
+    if (!options.silent) setToast("Yerel çalıştırıcı durumu güncellendi.");
   } catch (error) {
     state.runner = {
       ...state.runner,
       loading: false,
-      error: error.message || "Yerel runner'a bağlanılamadı."
+      error: error.message || "Yerel çalıştırıcıya bağlanılamadı."
     };
-    if (!options.silent) setToast(`Yerel runner hatası: ${state.runner.error}`);
+    if (!options.silent) setToast(`Yerel çalıştırıcı hatası: ${state.runner.error}`);
   } finally {
     render();
   }
@@ -727,7 +727,7 @@ async function registerProjectFromForm(form) {
   if (Array.isArray(result.registry?.projects)) {
     state.runner.projects = result.registry.projects;
   }
-  setToast("Proje kökü yerel runner'a kaydedildi.");
+  setToast("Proje kökü yerel çalıştırıcıya kaydedildi.");
   form.reset();
   refreshRunnerStatus({ silent: true });
 }
@@ -1035,7 +1035,7 @@ function render() {
           ${navButton("decisions", `Karar Defteri (${counts.decisions})`)}
           ${navButton("handoff", "Devam Brifi")}
           ${navButton("daily", "Günlük Devam Brifi")}
-          ${navButton("runner", "Yerel Codex Runner")}
+          ${navButton("runner", "Yerel Codex Çalıştırıcı")}
           ${navButton("settings", "Hafıza Bağlantısı")}
         </nav>
         ${renderProjectRail()}
@@ -1121,7 +1121,7 @@ function renderStatusBar() {
       <span class="status-dot ${state.warnings.length ? "warn" : "ok"}"></span><span>${escapeHtml(healthStatus)}</span>
       <span class="status-dot ${codex?.available ? "ok" : "warn"}"></span><span>${escapeHtml(codexStatus)}</span>
       <button class="ghost compact ${state.activityOpen ? "active" : ""}" data-action="toggle-activity-log">Günlük ${state.activityLog.length}</button>
-      <button class="ghost compact" data-action="refresh-runner">Runner</button>
+      <button class="ghost compact" data-action="refresh-runner">Çalıştırıcı</button>
     </div>
   `;
 }
@@ -1152,7 +1152,7 @@ function renderCommandPalette() {
         <div class="command-head">
           <div>
             <strong>${mode === "shortcuts" ? "Kısayollar" : "Komut Paleti"}</strong>
-            <span>${mode === "shortcuts" ? "Hızlı gezinme ve üretim aksiyonları" : "Görünümler, kayıtlar ve runner aksiyonları"}</span>
+            <span>${mode === "shortcuts" ? "Hızlı gezinme ve üretim aksiyonları" : "Görünümler, kayıtlar ve çalıştırıcı aksiyonları"}</span>
           </div>
           <button class="ghost compact" data-action="close-command-palette">Esc</button>
         </div>
@@ -1227,7 +1227,7 @@ function commandItems() {
     { id: "view:decisions", title: "Karar Defteri", subtitle: "Kaynaklı karar kayıtları", shortcut: "g d", keywords: "karar decision", run: () => setView("decisions") },
     { id: "view:handoff", title: "Devam Brifi", subtitle: "Codex veya Claude için bağlam paketi", shortcut: "g h", keywords: "handoff baglam paketi devam brifi", run: () => setView("handoff") },
     { id: "view:daily", title: "Günlük Devam Brifi", subtitle: "Açık işlerden günlük çalışma metni", keywords: "gunluk brif", run: () => setView("daily") },
-    { id: "view:runner", title: "Yerel Codex Runner", subtitle: "CLI, proje kökleri ve çalıştırma kayıtları", keywords: "codex runner otomasyon", run: () => setView("runner") },
+    { id: "view:runner", title: "Yerel Codex Çalıştırıcı", subtitle: "CLI, proje kökleri ve çalıştırma kayıtları", keywords: "codex runner çalıştırıcı otomasyon", run: () => setView("runner") },
     { id: "view:settings", title: "Hafıza Bağlantısı", subtitle: "GitHub hafıza reposu ayarları", keywords: "repo baglanti github hafiza", run: () => setSettingsTab("connection") },
     { id: "view:appearance", title: "Görünüm", subtitle: "Tema ve klavye akışı", keywords: "gorunum tema kisayol shortcut", run: () => setSettingsTab("appearance") },
     { id: "view:health", title: "Hafıza Sağlığı", subtitle: state.warnings.length ? `${state.warnings.length} format uyarısı` : "Format uyarısı yok", keywords: "hafiza saglik validation uyarı duplicate status", run: () => setSettingsTab("connection") },
@@ -1235,7 +1235,7 @@ function commandItems() {
     { id: "new:work", title: "Yeni İş Hattı", subtitle: "Bağımsız iş hattı oluştur", shortcut: "n w", keywords: "yeni is hatti work", run: () => setView("new-work") },
     { id: "new:decision", title: "Yeni Karar", subtitle: "Kaynaklı karar kaydı oluştur", shortcut: "n d", keywords: "yeni karar decision", run: () => setView("new-decision") },
     { id: "action:sync", title: "GitHub'dan Yenile", subtitle: repoLabel(), shortcut: "s", keywords: "sync yenile github", run: () => handleAction("sync") },
-    { id: "action:refresh-runner", title: "Runner Durumunu Yenile", subtitle: "Codex CLI ve proje kökleri", keywords: "runner refresh codex", run: () => handleAction("refresh-runner") },
+    { id: "action:refresh-runner", title: "Çalıştırıcı Durumunu Yenile", subtitle: "Codex CLI ve proje kökleri", keywords: "runner çalıştırıcı refresh codex", run: () => handleAction("refresh-runner") },
     { id: "action:theme", title: "Temayı Değiştir", subtitle: state.theme === "dark" ? "Açık temaya geç" : "Koyu temaya geç", keywords: "tema dark light acik koyu", run: () => handleAction("toggle-theme") },
     { id: "action:demo", title: "Örnek Verilerle Dene", subtitle: "Demo çalışma hafızası yükle", keywords: "demo ornek veri", run: () => handleAction("demo") },
     { id: "action:copy-context", title: "Devam Brifini Kopyala", subtitle: selectedProjectName() || "Seçili kayıt", keywords: "kopyala devam brifi context", run: () => handleAction("copy-context-pack") },
@@ -1533,7 +1533,7 @@ function renderActivityLog() {
       <div class="panel-heading">
         <div>
           <h3>Çalışma Günlüğü</h3>
-          <p>Son kullanıcı aksiyonları ve runner olayları.</p>
+          <p>Son kullanıcı aksiyonları ve çalıştırıcı olayları.</p>
         </div>
       </div>
       <div class="activity-items">
@@ -2454,13 +2454,13 @@ function renderRunner() {
   const codex = health?.codex || {};
   return `
     ${renderHeader(
-      "Yerel Codex Runner",
+      "Yerel Codex Çalıştırıcı",
       "Codex CLI, yerel hafıza aynası ve kayıtlı proje kökleri buradan yönetilir.",
       `<button data-action="refresh-runner" ${loading ? "disabled" : ""}>${loading ? "Yenileniyor" : "Durumu Yenile"}</button>`
     )}
     <div class="runner-grid">
       <section class="panel">
-        <h3>Runner Durumu</h3>
+        <h3>Çalıştırıcı Durumu</h3>
         <div class="diagnostic-list">
           <div class="diagnostic-item ${health ? "ok" : "fail"}">
             <span class="badge ${health ? "active" : "blocked"}">${health ? "Çevrim İçi" : "Kapalı"}</span>

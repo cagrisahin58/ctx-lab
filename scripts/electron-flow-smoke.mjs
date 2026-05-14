@@ -96,21 +96,46 @@ created_at: ${updatedAt}
   ];
 }
 
-async function seedValidationCache(page) {
-  const config = {
+function memoryFixtureConfig() {
+  return {
     owner: "cagrisahin58",
     repo: "ctx-lab",
     branch: "main",
     token: "test-token"
   };
-  const records = validationFixtureRecords();
+}
+
+function localChangeFixtureRecords() {
+  return [
+    ...validationFixtureRecords(),
+    parseMemoryFile("inbox/local-only.md", `---
+id: sess_local_only
+source: codex
+project: ctx-lab
+repo: cagrisahin58/ctx-lab
+status: needs_triage
+created_at: 2026-05-14T08:10:00.000Z
+---
+
+# Yerel Değişiklik
+
+## Amaç
+Yerel önbellekte olup ayna indeksinde olmayan kaydın senkron panelinde görünmesini doğrula.
+`, "fixture-local-only")
+  ];
+}
+
+async function seedValidationCache(page, options = {}) {
+  const config = memoryFixtureConfig();
+  const indexRecords = validationFixtureRecords();
+  const records = options.localChange ? localChangeFixtureRecords() : indexRecords;
   const cache = {
     scope: "cagrisahin58/ctx-lab@main",
-    syncedAt: "2026-05-14T08:05:00.000Z",
+    syncedAt: options.localChange ? "2026-05-14T08:10:00.000Z" : "2026-05-14T08:05:00.000Z",
     remoteHead: "validation-fixture-head",
     records
   };
-  await seedMemoryIndex(config, records);
+  await seedMemoryIndex(config, indexRecords);
   await page.evaluate(({ configKey, cacheKey, configValue, cacheValue }) => {
     localStorage.setItem(configKey, JSON.stringify(configValue));
     localStorage.setItem(cacheKey, JSON.stringify(cacheValue));
@@ -403,6 +428,18 @@ try {
   await expectVisibleText(page, "Yerel ayna");
   await expectVisibleText(page, "GitHub ile aynı");
   await expectVisibleText(page, "Kayıt yolları ve özet alanları eşleşiyor");
+
+  markPhase("Hafiza senkron fark durumunu kullanici seviyesinde dogrulama");
+  await seedValidationCache(page, { localChange: true });
+  await page.reload({ waitUntil: "domcontentloaded" });
+  await expectVisibleText(page, "Proje Çalışma Merkezi");
+  await page.keyboard.press("Control+K");
+  await page.locator("[data-command-search]").fill("çalıştırıcı");
+  await page.locator('[data-command-id="view:runner"]').click();
+  await expectVisibleText(page, "Hafıza Senkron Durumu");
+  await expectVisibleText(page, "Yerel değişiklik var");
+  await expectVisibleText(page, "1 kayıt ayna içinde yok");
+  await expectVisibleText(page, "Yerel önbellek ayna indeksinden daha yeni");
 
   const title = await electronApp.evaluate(({ BrowserWindow }) => {
     return BrowserWindow.getAllWindows()[0]?.getTitle();

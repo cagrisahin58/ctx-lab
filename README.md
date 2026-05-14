@@ -105,7 +105,7 @@ Uygulamada `Hafıza Bağlantısı` ekranından owner/repo, dal ve token girilir.
 `Bağlantıyı Tanıla` düğmesi repo erişimi, dal, `config.yaml`, hafıza klasörleri ve gerçek Contents yazma iznini kontrol eder. Yazma testi geçici `archive/.ctxlab-write-test` dosyası oluşturup siler. 403/404 gibi GitHub hataları owner/repo, dal, özel repo erişimi ve Contents read/write izni açısından Türkçe açıklanır.
 Token alanı varsayılan olarak maskelenir; kullanıcı gerektiğinde aynı alandan geçici olarak görünür hale getirebilir. Onboarding ve Hafıza Bağlantısı ekranlarında fine-grained token üretimi için kısa rehber ve GitHub token ekranı bağlantısı bulunur.
 
-Canlı GitHub tanı akışını CLI'dan doğrulamak için token ve repo bilgisi ortam değişkenleriyle verilebilir:
+Canlı GitHub tanı akışını komut satırından doğrulamak için token ve repo bilgisi ortam değişkenleriyle verilebilir:
 
 ```powershell
 $env:CTX_LAB_GITHUB_REPO="cagrisahin58/work-memory"

@@ -34,7 +34,7 @@ export function buildLiveDiagnosticsConfigFromEnv(env = process.env) {
   if (!repoInput) {
     missing.push("CTX_LAB_GITHUB_REPO");
   } else if (!repo) {
-    missing.push("gecerli owner/repo veya GitHub URL");
+    missing.push("geçerli owner/repo veya GitHub URL");
   }
   if (!token) missing.push("CTX_LAB_GITHUB_TOKEN");
 
@@ -47,14 +47,14 @@ export function buildLiveDiagnosticsConfigFromEnv(env = process.env) {
 
 export function formatSkipMessage(missing) {
   return [
-    "GitHub canli tani atlandi: gerekli ortam degiskenleri eksik.",
+    "GitHub canlı tanı atlandı: gerekli ortam değişkenleri eksik.",
     `Eksik: ${missing.join(", ")}`,
-    "Canli kontrol icin ornek:",
+    "Canlı kontrol için örnek:",
     "  $env:CTX_LAB_GITHUB_REPO='owner/work-memory'",
     "  $env:CTX_LAB_GITHUB_BRANCH='main'",
     "  $env:CTX_LAB_GITHUB_TOKEN='<fine-grained token>'",
     "  npm run github:diagnose",
-    "Token degeri ekrana yazdirilmaz. Token Contents read/write iznine sahip olmalidir."
+    "Token değeri ekrana yazdırılmaz. Token Contents read/write iznine sahip olmalıdır."
   ].join("\n");
 }
 
@@ -70,7 +70,7 @@ export function flattenDiagnosticsChecks(result) {
 
 export function formatDiagnosticsResult(result, config) {
   const lines = [
-    `GitHub canli tani sonucu: ${result.ok ? "BASARILI" : "BASARISIZ"}`,
+    `GitHub canlı tanı sonucu: ${result.ok ? "BAŞARILI" : "BAŞARISIZ"}`,
     `Hedef: ${config.owner}/${config.repo}#${config.branch || "main"}`
   ];
 
@@ -91,7 +91,7 @@ export async function runLiveDiagnostics(env = process.env, output = console) {
   }
 
   const { config } = prepared;
-  output.log(`GitHub canli tani calisiyor: ${config.owner}/${config.repo}#${config.branch}`);
+  output.log(`GitHub canlı tanı çalışıyor: ${config.owner}/${config.repo}#${config.branch}`);
   const result = await diagnoseMemoryRepo(config);
   output.log(formatDiagnosticsResult(result, config));
   return result.ok ? 0 : 1;
@@ -102,10 +102,10 @@ function summarizeDetail(detail) {
   if (detail.path) return detail.path;
   if (detail.name) return detail.name;
   if (detail.sha) return `sha ${String(detail.sha).slice(0, 12)}`;
-  if (Number.isFinite(detail.files)) return `${detail.files} oge`;
+  if (Number.isFinite(detail.files)) return `${detail.files} öğe`;
   const parts = [];
   if (typeof detail.private === "boolean") parts.push(detail.private ? "private" : "public");
-  if (detail.defaultBranch) parts.push(`varsayilan dal ${detail.defaultBranch}`);
+  if (detail.defaultBranch) parts.push(`varsayılan dal ${detail.defaultBranch}`);
   if (typeof detail.writeHint === "boolean") parts.push(detail.writeHint ? "write hint var" : "write hint yok");
   return parts.join(", ");
 }
@@ -118,7 +118,7 @@ if (isDirectRun()) {
   runLiveDiagnostics().then((code) => {
     process.exitCode = code;
   }).catch((error) => {
-    console.error(`GitHub canli tani hata verdi: ${error.message}`);
+    console.error(`GitHub canlı tanı hata verdi: ${error.message}`);
     process.exitCode = 1;
   });
 }

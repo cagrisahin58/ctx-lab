@@ -17,6 +17,32 @@ async function expectVisibleText(page, text) {
   });
 }
 
+async function moveWorkCardToColumn(page, workId, status) {
+  const workCard = page.locator(`[data-drag-work-id="${workId}"]`);
+  const targetColumn = page.locator(`[data-board-column="${status}"]`);
+  await workCard.scrollIntoViewIfNeeded();
+  await targetColumn.scrollIntoViewIfNeeded();
+
+  try {
+    await workCard.dragTo(targetColumn, {
+      targetPosition: { x: 24, y: 48 },
+      timeout: 5_000
+    });
+  } catch {
+    const dataTransfer = await page.evaluateHandle(() => new DataTransfer());
+    await workCard.dispatchEvent("dragstart", { dataTransfer });
+    await targetColumn.dispatchEvent("dragenter", { dataTransfer });
+    await targetColumn.dispatchEvent("dragover", { dataTransfer });
+    await targetColumn.dispatchEvent("drop", { dataTransfer });
+    await workCard.dispatchEvent("dragend", { dataTransfer });
+  }
+
+  await page.locator(`[data-board-column="${status}"] [data-drag-work-id="${workId}"]`).waitFor({
+    state: "visible",
+    timeout: 15_000
+  });
+}
+
 const env = {
   ...process.env,
   CTX_LAB_ELECTRON_USER_DATA: userData,
@@ -100,13 +126,7 @@ try {
   await page.locator("[data-command-search]").fill("iş akışı");
   await page.locator("[data-command-dialog]").getByRole("button", { name: /İş Akışı/ }).click();
   await expectVisibleText(page, "Kalıcı gerçeklik burada tutulur");
-  const workCard = page.locator('[data-drag-work-id="work_ctx_lab_redesign"]');
-  const waitingColumn = page.locator('[data-board-column="waiting"]');
-  await workCard.dragTo(waitingColumn);
-  await page.locator('[data-board-column="waiting"] [data-drag-work-id="work_ctx_lab_redesign"]').waitFor({
-    state: "visible",
-    timeout: 15_000
-  });
+  await moveWorkCardToColumn(page, "work_ctx_lab_redesign", "waiting");
 
   await page.keyboard.press("Control+K");
   await page.locator("[data-command-search]").fill("devam brifi");

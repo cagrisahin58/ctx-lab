@@ -828,8 +828,11 @@ test("codex run sonucunu memory kaydina cevirir ve is hattina baglar", () => {
 
   assert.match(memory.path, /^handoffs\/2026-05-14T12-01-00-000Z-codex_run_run-2026-05-14t12-00-00-000z-ctx-lab\.md$/);
   assert.equal(parsedRun.frontmatter.kind, "codex_run");
+  assert.equal(parsedRun.frontmatter.status, "active");
+  assert.equal(parsedRun.frontmatter.run_status, "dry_run");
   assert.equal(parsedRun.frontmatter.source_work_item, work.id);
   assert.equal(parsedRun.frontmatter.event_log_path, "C:\\runs\\run.events.jsonl");
+  assert.deepEqual(validateMemoryRecords([parsedRun]), []);
   assert.match(parsedRun.raw, /Olay günlüğü: C:\\runs\\run\.events\.jsonl/);
   assert.match(parsedRun.raw, /## Değişiklik Özeti/);
   assert.match(parsedRun.raw, /- M src\/main\.js/);
@@ -843,6 +846,7 @@ test("codex run sonucunu memory kaydina cevirir ve is hattina baglar", () => {
   assert.match(parsedRun.raw, /Commit SHA: commitsha123/);
   assert.deepEqual(parsedWork.frontmatter.codex_runs, [parsedRun.id]);
   assert.equal(events[0].kind, "codex_run");
+  assert.equal(events[0].status, "dry_run");
   assert.equal(runEvents[0].kind, "commit_application");
   assert.equal(runEvents[0].label, "Commit uygulaması");
   assert.equal(runEvents[0].title, "Commit tamamlandı");
@@ -919,4 +923,25 @@ status: needs_triage
   assert.ok(warnings.some((warning) => warning.includes("malformed.md") && warning.includes("bozuk frontmatter")));
   assert.ok(warnings.some((warning) => warning.includes("unclosed.md") && warning.includes("kapanış")));
   assert.ok(warnings.some((warning) => warning.includes("malformed-status-history.md") && warning.includes("status_history")));
+});
+
+test("eski codex run memory kayıtlarındaki run status değerlerini geriye uyumlu kabul eder", () => {
+  const legacyRun = parseMemoryFile(
+    "handoffs/legacy-codex-run.md",
+    `---
+id: codex_run_legacy
+kind: codex_run
+source_run: run_legacy
+project: ctx-lab
+repo: cagrisahin58/ctx-lab
+status: dry_run
+created_at: 2026-05-14T12:00:00.000Z
+---
+
+# Codex Çalıştırma Kaydı
+`,
+    "sha-legacy-run"
+  );
+
+  assert.deepEqual(validateMemoryRecords([legacyRun]), []);
 });

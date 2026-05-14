@@ -183,3 +183,4 @@ GitHub 409/422 yazma hatalarında dosyanın güncel `sha` değeri okunur ve yazm
 ## Codex çalıştırma kaydı
 
 Yerel Codex otomasyonu çalıştırıldığında sonuç `%APPDATA%/ctx-lab/runs` altında JSON günlük olarak kalır. Kullanıcı çalıştırma sonucunu hafıza reposuna bağlamayı seçerse ctx-lab ayrıca `handoffs/` altında `kind: codex_run` frontmatter alanına sahip bir kayıt üretir. Seçili iş hattı varsa bu iş hattının frontmatter alanına `codex_runs` listesi eklenir. Böylece çalıştırma geçmişi hem yerel günlükte hem de GitHub work-memory zaman akışı içinde izlenebilir.
+Yeni `codex_run` memory kayıtları genel memory sözleşmesiyle uyumlu kalmak için `status: active` taşır; gerçek koşu durumu `run_status` alanında (`dry_run`, `running`, `succeeded`, `failed`, `blocked`) tutulur. Eski `status: dry_run` gibi run-status değerleri geriye uyumlu okunur.

@@ -16,6 +16,7 @@ const SECTION_ALIASES = {
 export const VALID_TYPES = ["inbox", "work_items", "decisions", "handoffs", "archive"];
 export const VALID_STATUSES = ["needs_triage", "linked", "active", "waiting", "blocked", "done", "archived"];
 export const WORK_STATUSES = ["active", "waiting", "blocked", "done"];
+const CODEX_RUN_STATUSES = ["dry_run", "running", "succeeded", "failed", "blocked"];
 const DAY_MS = 24 * 60 * 60 * 1000;
 const DONE_ARCHIVE_SUGGESTION_DAYS = 14;
 const STALE_WORK_ITEM_DAYS = 30;
@@ -204,7 +205,7 @@ export function validateMemoryRecords(records, now = new Date()) {
     }
     if (!hasFrontmatterKey(record, "status")) {
       warnings.push(`${record.path}: status alanı eksik`);
-    } else if (!VALID_STATUSES.includes(record.status)) {
+    } else if (!isAllowedRecordStatus(record)) {
       warnings.push(`${record.path}: bilinmeyen durum (${record.status})`);
     }
     if (record.type === "inbox" && !record.source) {
@@ -224,6 +225,13 @@ export function validateMemoryRecords(records, now = new Date()) {
 
 function hasFrontmatterKey(record, key) {
   return Object.prototype.hasOwnProperty.call(record.frontmatter || {}, key);
+}
+
+function isAllowedRecordStatus(record) {
+  if (VALID_STATUSES.includes(record.status)) return true;
+  return record.type === "handoffs" &&
+    record.frontmatter?.kind === "codex_run" &&
+    CODEX_RUN_STATUSES.includes(record.status);
 }
 
 function workItemLifecycleWarnings(record, nowTime) {
@@ -377,10 +385,12 @@ export function buildTimelineEvents(records, runnerProjects = [], runs = [], syn
         at: record.frontmatter?.created_at || base.at
       });
     } else if (record.type === "handoffs") {
+      const isCodexRun = record.frontmatter?.kind === "codex_run";
       events.push({
         ...base,
-        kind: record.frontmatter?.kind === "codex_run" ? "codex_run" : "handoff",
-        label: record.frontmatter?.kind === "codex_run" ? "Codex çalıştırma" : "Devam brifi",
+        kind: isCodexRun ? "codex_run" : "handoff",
+        label: isCodexRun ? "Codex çalıştırma" : "Devam brifi",
+        status: isCodexRun ? (record.frontmatter?.run_status || record.status || "") : base.status,
         at: record.frontmatter?.created_at || base.at
       });
     } else if (record.type === "archive") {
@@ -1130,7 +1140,8 @@ export function buildCodexRunMemoryRecord(run, sourceRecord = null, now = new Da
     repo,
     branch,
     target: "codex",
-    status,
+    status: "active",
+    run_status: status,
     automation_level: run.automationLevel || "brief",
     template: run.template || "continue_work",
     created_at: run.createdAt || now.toISOString(),

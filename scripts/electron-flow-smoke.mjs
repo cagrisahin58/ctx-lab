@@ -87,6 +87,8 @@ try {
   await expectVisibleText(page, "dry_run");
   await expectVisibleText(page, "Run Kanıtı");
   await expectVisibleText(page, "Test sonucu");
+  await expectVisibleText(page, "Git başlangıç");
+  await expectVisibleText(page, "Git sonuç");
   await expectVisibleText(page, "Çalıştırılmadı");
   await expectVisibleText(page, "Commit + push için ayrı onay verdim");
 

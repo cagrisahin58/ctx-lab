@@ -59,6 +59,8 @@ for (const expected of [
   "Codex'e Devret",
   "Run Kaniti",
   "Test sonucu",
+  "Git baslangic",
+  "Git sonuc",
   "Commit + push icin ayri onay verdim",
   "Run sonucunu secili is hattina bagla",
   "Proje Koku",

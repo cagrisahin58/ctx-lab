@@ -390,19 +390,21 @@ export async function startCodexRun(paths = buildRunnerPaths(), input = {}, opti
     return record;
   }
 
+  const gitBefore = await readGitSnapshot(project.path, options.gitCommand);
   const codex = await detectCodex(options);
   if (!codex.available) {
     const record = {
       ...baseRecord,
       status: "failed",
       codex,
+      gitBefore,
       error: codex.error || "Codex CLI bulunamadi."
     };
     await writeRunLog(logPath, record);
     return record;
   }
 
-  await writeRunLog(logPath, { ...baseRecord, codex });
+  await writeRunLog(logPath, { ...baseRecord, codex, gitBefore });
   const sandbox = sandboxForAutomationLevel(automationLevel);
   const run = options.runCommand || runCommand;
   const result = await run(codex.command, [
@@ -416,6 +418,7 @@ export async function startCodexRun(paths = buildRunnerPaths(), input = {}, opti
   ], { cwd: project.path, input: prompt });
 
   const finishedAt = (options.finishedAt || new Date()).toISOString();
+  const gitAfter = await readGitSnapshot(project.path, options.gitCommand);
   const record = {
     ...baseRecord,
     updatedAt: finishedAt,
@@ -426,6 +429,8 @@ export async function startCodexRun(paths = buildRunnerPaths(), input = {}, opti
     summary: buildCodexResultSummary(result),
     testResult: detectTestResult(result.stdout, result.stderr),
     commitGate: commitGateForAutomationLevel(automationLevel),
+    gitBefore,
+    gitAfter,
     stdout: result.stdout || "",
     stderr: result.stderr || "",
     exitCode: result.code ?? (result.ok ? 0 : 1)
@@ -659,6 +664,32 @@ function assertSafeAutomationPrompt(prompt) {
 function sandboxForAutomationLevel(level) {
   if (level === "suggest") return "read-only";
   return "workspace-write";
+}
+
+async function readGitSnapshot(projectPath, gitCommand = runCommand) {
+  const inside = await gitCommand("git", ["-C", projectPath, "rev-parse", "--is-inside-work-tree"]);
+  if (!inside.ok || inside.stdout.trim() !== "true") {
+    return {
+      available: false,
+      error: inside.stderr || inside.stdout || "Git çalışma ağacı değil."
+    };
+  }
+  const [branch, head, status] = await Promise.all([
+    gitCommand("git", ["-C", projectPath, "rev-parse", "--abbrev-ref", "HEAD"]),
+    gitCommand("git", ["-C", projectPath, "rev-parse", "HEAD"]),
+    gitCommand("git", ["-C", projectPath, "status", "--short"])
+  ]);
+  const statusLines = status.ok
+    ? status.stdout.split(/\r?\n/).map((line) => line.trim()).filter(Boolean)
+    : [];
+  return {
+    available: true,
+    branch: branch.ok ? branch.stdout.trim() : "",
+    head: head.ok ? head.stdout.trim() : "",
+    dirty: statusLines.length > 0,
+    changedCount: statusLines.length,
+    changedFiles: statusLines.slice(0, 20)
+  };
 }
 
 function buildCodexResultSummary(result = {}) {

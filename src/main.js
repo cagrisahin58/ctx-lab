@@ -1268,6 +1268,8 @@ function renderRunEvidence(run) {
         ${runFact("Otomasyon", automationLevelLabel(run.automationLevel))}
         ${runFact("Test sonucu", testResultLabel(run.testResult))}
         ${runFact("Exit code", run.exitCode ?? (run.dryRun ? "dry-run" : "yok"))}
+        ${runFact("Git başlangıç", gitSnapshotLabel(run.gitBefore))}
+        ${runFact("Git sonuç", gitSnapshotLabel(run.gitAfter))}
         ${runFact("Log", run.logPath || "log yolu yok")}
       </div>
       ${run.summary ? `<p class="run-summary">${escapeHtml(run.summary)}</p>` : ""}
@@ -1299,6 +1301,14 @@ function testResultLabel(result) {
     not_run: "Çalıştırılmadı",
     not_detected: "Net tespit yok"
   }[result] || "Net tespit yok";
+}
+
+function gitSnapshotLabel(snapshot) {
+  if (!snapshot) return "kaydedilmedi";
+  if (!snapshot.available) return snapshot.error || "git çalışma ağacı değil";
+  const head = snapshot.head ? snapshot.head.slice(0, 8) : "head yok";
+  const dirty = snapshot.dirty ? `${snapshot.changedCount || 0} değişiklik` : "temiz";
+  return `${snapshot.branch || "branch yok"} @ ${head} · ${dirty}`;
 }
 
 function compactOutput(value) {

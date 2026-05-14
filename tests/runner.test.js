@@ -383,6 +383,54 @@ test("codex run test sonucunu ve commit kapisini loglar", async () => {
   }
 });
 
+test("codex run git baslangic ve sonuc snapshotlarini loglar", async () => {
+  const dir = await mkdtemp(join(tmpdir(), "ctxlab-runner-"));
+  const projectDir = await mkdtemp(join(tmpdir(), "ctxlab-project-"));
+  const paths = buildRunnerPaths(dir);
+  let statusCalls = 0;
+
+  try {
+    const project = await registerProject(paths, {
+      name: "ctx-lab",
+      path: projectDir
+    });
+    const run = await startCodexRun(paths, {
+      projectId: project.id,
+      automationLevel: "edit_no_commit",
+      prompt: "Kucuk bir dosya degisikligi hazirla.",
+      dryRun: false
+    }, {
+      now: new Date("2026-05-14T12:32:00.000Z"),
+      finishedAt: new Date("2026-05-14T12:33:00.000Z"),
+      candidates: ["codex.cmd"],
+      runCommand: async (_command, args) => {
+        if (args.includes("--version")) return { ok: true, stdout: "codex-cli test\n", stderr: "", code: 0 };
+        return { ok: true, stdout: "{\"event\":\"done\"}\n", stderr: "", code: 0 };
+      },
+      gitCommand: async (_command, args) => {
+        if (args.includes("--is-inside-work-tree")) return { ok: true, stdout: "true\n", stderr: "", code: 0 };
+        if (args.includes("--abbrev-ref")) return { ok: true, stdout: "main\n", stderr: "", code: 0 };
+        if (args.includes("HEAD")) return { ok: true, stdout: "abcdef1234567890\n", stderr: "", code: 0 };
+        if (args.includes("status")) {
+          statusCalls += 1;
+          return { ok: true, stdout: statusCalls === 1 ? "" : " M src/main.js\n", stderr: "", code: 0 };
+        }
+        return { ok: false, stdout: "", stderr: "beklenmeyen git komutu", code: 1 };
+      }
+    });
+    const log = JSON.parse(await readFile(run.logPath, "utf8"));
+
+    assert.equal(run.gitBefore.available, true);
+    assert.equal(run.gitBefore.dirty, false);
+    assert.equal(run.gitAfter.dirty, true);
+    assert.deepEqual(run.gitAfter.changedFiles, ["M src/main.js"]);
+    assert.equal(log.gitAfter.changedCount, 1);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+    await rm(projectDir, { recursive: true, force: true });
+  }
+});
+
 test("codex commit push gercek calisma icin ayrica onay ister", async () => {
   const dir = await mkdtemp(join(tmpdir(), "ctxlab-runner-"));
   const projectDir = await mkdtemp(join(tmpdir(), "ctxlab-project-"));

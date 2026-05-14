@@ -27,6 +27,7 @@ const assets = Object.fromEntries(
   assetMatches.map((asset) => [asset, readFileSync(join(dist, asset), "utf8")])
 );
 const bundleText = Object.values(assets).join("\n");
+const sourceText = readFileSync(join(root, "src/main.js"), "utf8");
 
 for (const expected of [
   "Oturum Akisi",
@@ -115,6 +116,7 @@ assert.ok(bundleText.includes("timelineIn"), "Timeline giris animasyonu bundle i
 assert.ok(bundleText.includes("activityPulse"), "Run/activity hareket sinyali bundle icinde olmali.");
 assert.ok(bundleText.includes("prefers-reduced-motion"), "Dusuk hareket tercihi CSS icinde desteklenmeli.");
 assert.ok(bundleText.includes("aria-live=\"polite\""), "Toast ve activity log ekran okuyucu icin aria-live desteklemeli.");
+assert.ok(sourceText.includes("trapCommandPaletteFocus"), "Komut paleti klavye odagini modal icinde tutmali.");
 
 console.log("dist smoke ok");
 

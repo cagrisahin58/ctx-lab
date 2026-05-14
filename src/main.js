@@ -2947,6 +2947,32 @@ function updateCommandQuery(query) {
   }
 }
 
+function trapCommandPaletteFocus(event) {
+  const dialog = document.querySelector("[data-command-dialog]");
+  if (!dialog) return false;
+  const focusable = Array.from(dialog.querySelectorAll("button, input, select, textarea, [href], [tabindex]:not([tabindex='-1'])"))
+    .filter((element) => !element.disabled && element.offsetParent !== null);
+  if (!focusable.length) return false;
+  const first = focusable[0];
+  const last = focusable[focusable.length - 1];
+  if (!dialog.contains(document.activeElement)) {
+    first.focus();
+    event.preventDefault();
+    return true;
+  }
+  if (event.shiftKey && document.activeElement === first) {
+    last.focus();
+    event.preventDefault();
+    return true;
+  }
+  if (!event.shiftKey && document.activeElement === last) {
+    first.focus();
+    event.preventDefault();
+    return true;
+  }
+  return false;
+}
+
 function runCommand(commandId) {
   const command = commandItems().find((item) => item.id === commandId);
   if (!command) return;
@@ -3281,6 +3307,10 @@ function handleGlobalKeydown(event) {
   }
 
   if (state.commandPalette.open) {
+    if (event.key === "Tab") {
+      trapCommandPaletteFocus(event);
+      return;
+    }
     if (event.key === "Escape") {
       event.preventDefault();
       closeCommandPalette();

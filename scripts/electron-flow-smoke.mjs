@@ -432,6 +432,10 @@ try {
 
   await page.keyboard.press("Control+K");
   await expectVisibleText(page, "Komut Paleti");
+  await page.keyboard.press("Shift+Tab");
+  assert.equal(await page.evaluate(() => Boolean(document.activeElement?.closest("[data-command-dialog]"))), true);
+  await page.keyboard.press("Tab");
+  assert.equal(await page.evaluate(() => Boolean(document.activeElement?.closest("[data-command-dialog]"))), true);
   await page.locator("[data-command-search]").fill("çalıştırıcı");
   await page.locator("[data-command-dialog]").getByRole("button", { name: /Yerel Codex Çalıştırıcı/ }).click();
   await expectVisibleText(page, "Yerel Codex Çalıştırıcı");

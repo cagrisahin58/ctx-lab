@@ -418,6 +418,9 @@ try {
   await expectVisibleText(page, "Kalıcı gerçeklik burada tutulur");
   await page.locator('button[data-view="workspace"]').click();
   await expectVisibleText(page, "Güncel Bağlam");
+  await expectVisibleText(page, "Oturumlar");
+  await expectVisibleText(page, "İş değişimleri");
+  await expectVisibleText(page, "Senkron");
   await expectVisibleText(page, "Bağlı oturumlar");
   await expectVisibleText(page, "Kararlar");
   await expectVisibleText(page, "Codex'e Devret");
@@ -491,6 +494,9 @@ try {
   await expectVisibleText(page, "Git sonuç");
   await expectVisibleText(page, "Çalıştırılmadı");
   await expectVisibleText(page, "Commit + push için ayrı onay verdim");
+  await page.locator('[data-action="set-timeline-filter"][data-filter="codex"]').click();
+  await expectVisibleText(page, "Codex çalıştırma");
+  await page.locator('[data-action="set-timeline-filter"][data-filter="all"]').click();
 
   markPhase("Commit push onay kapisini dogrulama");
   await runForm.locator('textarea[name="prompt"]').fill("Commit push kapisini onaysiz dene.");

@@ -636,6 +636,42 @@ kbd {
   gap: 10px;
 }
 
+.timeline-filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin: -2px 0 12px;
+}
+
+.timeline-filter {
+  min-width: 96px;
+  display: inline-grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 9px;
+  background: rgba(148, 163, 184, 0.06);
+  border-color: rgba(148, 163, 184, 0.14);
+  font-size: 12px;
+}
+
+.timeline-filter span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.timeline-filter strong {
+  color: var(--text);
+  font-size: 12px;
+}
+
+.timeline-filter.active {
+  background: rgba(96, 165, 250, 0.14);
+  border-color: rgba(96, 165, 250, 0.32);
+  color: var(--text);
+}
+
 .timeline-event {
   position: relative;
   display: grid;

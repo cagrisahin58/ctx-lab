@@ -72,6 +72,7 @@ const state = {
   warnings: [],
   query: "",
   quickFilter: "",
+  timelineFilter: "all",
   pendingArchiveId: "",
   settingsTab: "connection",
   commandPalette: {
@@ -169,6 +170,7 @@ function setToast(message, kind = "info") {
 function setView(view) {
   state.view = view;
   state.quickFilter = "";
+  if (view !== "workspace") state.timelineFilter = "all";
   state.pendingArchiveId = "";
   keepSelectionVisible();
   render();
@@ -458,6 +460,12 @@ function selectedProjectRuns() {
 }
 
 function selectedProjectEvents() {
+  const events = selectedProjectAllEvents();
+  if (state.timelineFilter === "all") return events;
+  return events.filter((event) => timelineEventGroup(event.kind) === state.timelineFilter);
+}
+
+function selectedProjectAllEvents() {
   const name = selectedProjectName();
   const projects = name ? state.runner.projects.filter((project) => (project.name || "proje") === name) : state.runner.projects;
   const records = selectedProjectRecords();
@@ -468,6 +476,14 @@ function selectedProjectEvents() {
     repo: state.config.owner && state.config.repo ? `${state.config.owner}/${state.config.repo}` : records[0]?.repo || "",
     recordCount: state.records.length
   });
+}
+
+function timelineEventGroup(kind) {
+  if (kind === "session") return "session";
+  if (kind === "decision") return "decision";
+  if (kind === "codex_run" || kind === "commit_application") return "codex";
+  if (kind === "github_sync" || kind === "mirror_sync") return "sync";
+  return "workflow";
 }
 
 function selectedProjectWorkItem() {
@@ -952,6 +968,12 @@ function clearQuickFilter() {
   render();
 }
 
+function setTimelineFilter(filter) {
+  const allowed = ["all", "session", "workflow", "decision", "codex", "sync"];
+  state.timelineFilter = allowed.includes(filter) ? filter : "all";
+  render();
+}
+
 async function createInboxSummaryFromForm(form) {
   if (!state.demo && (!state.config.owner || !state.config.repo)) {
     setToast("Önce GitHub hafıza bağlantısını kaydet.");
@@ -1400,6 +1422,7 @@ function renderWorkspace(counts) {
   const projectName = selectedProjectName();
   const records = selectedProjectRecords();
   const workItem = selectedProjectWorkItem();
+  const allEvents = selectedProjectAllEvents();
   const events = selectedProjectEvents();
   const activeRuns = selectedProjectRuns();
   const summary = projectSummaries().find((project) => project.name === projectName);
@@ -1430,8 +1453,9 @@ function renderWorkspace(counts) {
             </div>
             <span class="badge">${records.length} kayıt</span>
           </div>
+          ${renderTimelineFilters(allEvents)}
           <div class="timeline">
-            ${events.length ? events.map(renderTimelineEvent).join("") : `<div class="empty">Bu proje için zaman akışı olayı yok.</div>`}
+            ${events.length ? events.map(renderTimelineEvent).join("") : `<div class="empty">${state.timelineFilter === "all" ? "Bu proje için zaman akışı olayı yok." : "Bu filtrede zaman akışı olayı yok."}</div>`}
           </div>
         </div>
       </div>
@@ -1463,6 +1487,39 @@ function renderWorkspace(counts) {
 
 function metricCard(label, value) {
   return `<div class="metric"><strong>${value}</strong><span>${label}</span></div>`;
+}
+
+function renderTimelineFilters(events) {
+  const counts = {
+    all: events.length,
+    session: 0,
+    workflow: 0,
+    decision: 0,
+    codex: 0,
+    sync: 0
+  };
+  for (const event of events) {
+    const group = timelineEventGroup(event.kind);
+    counts[group] = (counts[group] || 0) + 1;
+  }
+  const filters = [
+    ["all", "Tümü"],
+    ["session", "Oturumlar"],
+    ["workflow", "İş değişimleri"],
+    ["decision", "Kararlar"],
+    ["codex", "Codex"],
+    ["sync", "Senkron"]
+  ];
+  return `
+    <div class="timeline-filter-row" aria-label="Zaman akışı filtresi">
+      ${filters.map(([id, label]) => `
+        <button class="timeline-filter ${state.timelineFilter === id ? "active" : ""}" data-action="set-timeline-filter" data-filter="${escapeHtml(id)}">
+          <span>${escapeHtml(label)}</span>
+          <strong>${counts[id] || 0}</strong>
+        </button>
+      `).join("")}
+    </div>
+  `;
 }
 
 function renderContextRecordLinks(title, records, emptyText) {
@@ -3494,6 +3551,7 @@ function handleAction(action, payload) {
   }
   if (action === "quick-filter") applyQuickFilter(payload?.filter || "");
   if (action === "clear-quick-filter") clearQuickFilter();
+  if (action === "set-timeline-filter") setTimelineFilter(payload?.filter || "all");
   if (action === "open-command-palette") openCommandPalette();
   if (action === "open-shortcuts") openCommandPalette("shortcuts");
   if (action === "close-command-palette") closeCommandPalette();
@@ -3519,6 +3577,7 @@ function handleAction(action, payload) {
   if (action === "select-project") {
     state.selectedProject = payload?.project || "";
     state.view = "workspace";
+    state.timelineFilter = "all";
     render();
   }
   if (action === "demo") loadDemo();

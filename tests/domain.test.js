@@ -17,6 +17,7 @@ import {
   buildSessionClosePrompt,
   buildTimelineEvents,
   buildWorkItemFromSession,
+  dismissTriageSuggestionContent,
   filterRecords,
   findWorkItemForSession,
   generateHandoffPrompt,
@@ -28,6 +29,7 @@ import {
   replaceFrontmatter,
   resolveWorkContext,
   slugify,
+  suggestWorkItemForSession,
   updateWorkItemNextActionContent,
   updateWorkItemStatusContent,
   upsertRecord,
@@ -84,7 +86,10 @@ test("Türkçe section aliaslarını okur", () => {
 test("work item içeriği üretir", () => {
   const record = parseMemoryFile("inbox/test.md", sample, "sha");
   const work = buildWorkItemFromSession(record);
+  const parsed = parseMemoryFile(work.path, work.content, "sha-work");
   assert.equal(work.path, "work_items/work_ctx-lab.md");
+  assert.equal(parsed.repo, "cagrisahin58/ctx-lab");
+  assert.deepEqual(parsed.tags, ["tasarim", "github"]);
   assert.match(work.content, /Yeni uygulama yönünü netleştirmek/);
 });
 
@@ -502,6 +507,58 @@ test("session kaydına bağlı iş kartını bulur ve karar id'sini ekler", () =
   assert.deepEqual(parsed.frontmatter.decisions, [decision.id]);
   assert.equal(parsed.frontmatter.updated_at, "2026-05-13T12:00:00.000Z");
   assert.match(parsed.body, /Current State/);
+});
+
+test("inbox kaydı için mevcut iş hattı önerir ve reddi kaydeder", () => {
+  const session = parseMemoryFile("inbox/test.md", sample, "sha-session");
+  const strongWork = parseMemoryFile(
+    "work_items/work_ctx-lab.md",
+    replaceFrontmatter(buildWorkItemFromSession(session).content, { updated_at: "2026-05-14T12:00:00.000Z" }),
+    "sha-work"
+  );
+  const weakWork = parseMemoryFile(
+    "work_items/work_other.md",
+    `---
+id: work_other
+title: Başka iş
+project: başka
+repo: cagrisahin58/other
+status: active
+updated_at: 2026-05-14T12:00:00.000Z
+sessions:
+decisions:
+---
+
+## Current State
+Başka kayıt.
+`,
+    "sha-other"
+  );
+
+  const suggestion = suggestWorkItemForSession([weakWork, strongWork, session], session, {
+    now: new Date("2026-05-14T12:05:00.000Z")
+  });
+  assert.equal(suggestion.workItem.id, "work_ctx-lab");
+  assert.equal(suggestion.score, 12);
+  assert.deepEqual(suggestion.reasons, ["proje eşleşmesi", "repo eşleşmesi", "2 ortak etiket", "son 7 günde güncellendi"]);
+
+  const dismissed = parseMemoryFile(
+    session.path,
+    dismissTriageSuggestionContent(session, strongWork.id, new Date("2026-05-14T12:10:00.000Z")),
+    "sha-dismissed"
+  );
+
+  assert.deepEqual(dismissed.frontmatter.triage_suggestion_dismissed, [strongWork.id]);
+  assert.equal(
+    suggestWorkItemForSession([strongWork, dismissed], dismissed, { now: new Date("2026-05-14T12:15:00.000Z") }),
+    null
+  );
+  const linked = parseMemoryFile(
+    session.path,
+    replaceFrontmatter(session.raw, { status: "linked", linked_work_item: strongWork.id }),
+    "sha-linked"
+  );
+  assert.equal(suggestWorkItemForSession([strongWork, linked], linked), null);
 });
 
 test("codex run sonucunu memory kaydina cevirir ve is hattina baglar", () => {

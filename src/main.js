@@ -16,6 +16,7 @@ import {
   buildSessionClosePrompt,
   buildTimelineEvents,
   buildWorkItemFromSession,
+  dismissTriageSuggestionContent,
   filterRecords,
   findWorkItemForSession,
   getSection,
@@ -24,6 +25,7 @@ import {
   isOnboardingComplete,
   parseMemoryFile,
   replaceFrontmatter,
+  suggestWorkItemForSession,
   updateWorkItemNextActionContent,
   updateWorkItemStatusContent,
   upsertRecord,
@@ -389,6 +391,15 @@ async function createWorkFromSelected(targetWorkId = "") {
   state.view = "board";
   state.selectedId = parsed.id;
   setToast(existingWork ? "Oturum seçili iş kartına bağlandı." : "İş kartı oluşturuldu.");
+}
+
+async function dismissTriageSuggestion(workItemId) {
+  const record = selectedRecord();
+  if (!record || record.type !== "inbox" || !workItemId) return;
+  const updated = dismissTriageSuggestionContent(record, workItemId);
+  const parsed = await saveMemoryRecord(record.path, updated, `inbox: ${record.id} akıllı eşleşme reddedildi`);
+  state.selectedId = parsed.id;
+  setToast("Akıllı eşleşme önerisi reddedildi.");
 }
 
 async function archiveSelected() {
@@ -2344,6 +2355,9 @@ function renderRecordCard(record) {
 
 function renderRecordDetail(record, withActions) {
   const workItems = recordsByType("work_items");
+  const suggestion = withActions && record.type === "inbox"
+    ? suggestWorkItemForSession(state.records, record)
+    : null;
   return `
     <h3>${escapeHtml(record.title)}</h3>
     <div class="meta">
@@ -2357,6 +2371,7 @@ function renderRecordDetail(record, withActions) {
         <button data-action="save-decision">Karar Çıkar</button>
         <button data-action="archive">Arşivle</button>
       </div>
+      ${suggestion ? renderTriageSuggestion(suggestion) : ""}
       ${workItems.length ? `
         <div class="triage-linker">
           <select data-link-work-target aria-label="Mevcut iş kartı">
@@ -2374,6 +2389,22 @@ function renderRecordDetail(record, withActions) {
     ${record.type === "decisions" ? detailSection("Kaynak", getSection(record.sections, "source_section")) : ""}
     ${detailSection("Açık Sorular / Riskler", getSection(record.sections, "questions") || getSection(record.sections, "risks"))}
     ${detailSection("Sonraki Adımlar", getSection(record.sections, "next"))}
+  `;
+}
+
+function renderTriageSuggestion(suggestion) {
+  return `
+    <div class="triage-suggestion">
+      <div>
+        <span class="badge active">Akıllı eşleşme</span>
+        <strong>${escapeHtml(suggestion.workItem.title)}</strong>
+        <p>Bu oturum muhtemelen bu iş hattına ait. Skor: ${suggestion.score}. ${escapeHtml(suggestion.reasons.join(", "))}</p>
+      </div>
+      <div class="toolbar-actions">
+        <button class="primary" data-action="link-suggested-work" data-suggested-work-id="${escapeHtml(suggestion.workItem.id)}">Önerilen İşe Bağla</button>
+        <button data-action="dismiss-triage-suggestion" data-suggested-work-id="${escapeHtml(suggestion.workItem.id)}">Reddet</button>
+      </div>
+    </div>
   `;
 }
 
@@ -2675,6 +2706,14 @@ function handleAction(action, payload) {
   if (action === "copy-daily-brief") guarded(copyDailyBrief);
   if (action === "save-daily-brief") guarded(saveDailyBrief);
   if (action === "create-work") guarded(createWorkFromSelected);
+  if (action === "link-suggested-work") {
+    const target = payload?.suggestedWorkId || "";
+    guarded(() => createWorkFromSelected(target));
+  }
+  if (action === "dismiss-triage-suggestion") {
+    const target = payload?.suggestedWorkId || "";
+    guarded(() => dismissTriageSuggestion(target));
+  }
   if (action === "link-existing-work") {
     const target = document.querySelector("[data-link-work-target]")?.value || "";
     guarded(() => createWorkFromSelected(target));

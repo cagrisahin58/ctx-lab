@@ -91,9 +91,13 @@ ctx-lab'ın `Yeni Oturum Özeti` ekranı, Codex veya Claude sohbetinin sonuna ya
 id: work_ctx-lab
 title: ctx-lab çalışma hattı
 project: ctx-lab
+repo: cagrisahin58/ctx-lab
+branch: main
 status: active
 priority: normal
 updated_at: 2026-05-13T12:40:00.000Z
+tags:
+  - tasarim
 sessions:
   - sess_2026-05-13T12-34-56-789Z_ctx-lab_codex
 decisions:
@@ -118,6 +122,7 @@ Codex veya Claude'a verilecek kısa devam prompt'u.
 Yeni bir oturum kaydı aynı `work_<project>` id'sine denk gelirse ctx-lab yeni dosya açmak yerine mevcut iş kartının `sessions` listesini günceller.
 `Yeni İş Hattı` ekranından açılan manuel iş kartları da aynı `work_items/` formatını kullanır; başlangıçta `sessions` ve `decisions` listeleri boştur.
 Oturum Akışı ekranında kullanıcı farklı bir mevcut iş kartını seçerse aynı güncelleme seçilen kart için yapılır ve oturum kaydındaki `linked_work_item` bu iş kartının id'sine çekilir.
+Oturum Akışı, `project`, `repo`, ortak `tags` ve son güncellenme tarihine göre mevcut iş hattı önerisi gösterebilir. Kullanıcı öneriyi reddederse inbox frontmatter alanına `triage_suggestion_dismissed` listesi yazılır ve aynı iş hattı tekrar önerilmez.
 Oturum Akışı varsayılan olarak `needs_triage` kayıtlarını gösterir; `linked`, `archived` ve tüm kayıtlar UI filtresiyle görülebilir.
 Pano üzerinden durum değiştirildiğinde yalnızca iş kartının frontmatter alanındaki `status` ve `updated_at` değerleri güncellenir; gövde korunur.
 Pano üzerinden `Next Action` bölümü güncellendiğinde ilgili markdown section değiştirilir ve `updated_at` yenilenir.

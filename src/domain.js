@@ -430,9 +430,12 @@ export function buildWorkItemFromSession(session) {
     id: workId,
     title,
     project: session.project || "",
+    repo: session.repo || "",
+    branch: session.branch || "main",
     status: "active",
     priority: "normal",
     updated_at: now,
+    tags: normalizeArray(session.tags),
     sessions: [session.id],
     decisions: []
   })}
@@ -519,6 +522,67 @@ export function findWorkItemForSession(records, session) {
     return record.id === session.linkedWorkItem ||
       normalizeArray(record.frontmatter.sessions).includes(session.id);
   }) || null;
+}
+
+export function suggestWorkItemForSession(records, session, options = {}) {
+  if (!session || session.type !== "inbox") return null;
+  if (session.status !== "needs_triage" || session.linkedWorkItem) return null;
+  const threshold = options.threshold || 5;
+  const now = options.now || new Date();
+  const dismissed = new Set(normalizeArray(session.frontmatter.triage_suggestion_dismissed));
+  const candidates = records
+    .filter((record) => record.type === "work_items")
+    .filter((record) => !["done", "archived"].includes(record.status))
+    .filter((record) => !dismissed.has(record.id))
+    .map((workItem) => scoreWorkItemForSession(workItem, session, now))
+    .filter((candidate) => candidate.score >= threshold)
+    .sort((a, b) => b.score - a.score || String(b.workItem.createdAt).localeCompare(String(a.workItem.createdAt)));
+
+  return candidates[0] || null;
+}
+
+export function dismissTriageSuggestionContent(session, workItemId, now = new Date()) {
+  const dismissed = normalizeArray(session.frontmatter.triage_suggestion_dismissed);
+  const triageSuggestionDismissed = dismissed.includes(workItemId)
+    ? dismissed
+    : [...dismissed, workItemId];
+
+  return replaceFrontmatter(session.raw, {
+    triage_suggestion_dismissed: triageSuggestionDismissed,
+    updated_at: now.toISOString()
+  });
+}
+
+function scoreWorkItemForSession(workItem, session, now) {
+  const reasons = [];
+  let score = 0;
+
+  if (sameText(workItem.project, session.project)) {
+    score += 5;
+    reasons.push("proje eşleşmesi");
+  }
+  if (sameText(workItem.repo, session.repo)) {
+    score += 3;
+    reasons.push("repo eşleşmesi");
+  }
+
+  const workTags = new Set(normalizeArray(workItem.tags).map(normalizeText).filter(Boolean));
+  const commonTags = normalizeArray(session.tags)
+    .map(normalizeText)
+    .filter((tag) => tag && workTags.has(tag));
+  if (commonTags.length) {
+    score += commonTags.length;
+    reasons.push(`${commonTags.length} ortak etiket`);
+  }
+
+  const touchedAt = new Date(workItem.frontmatter.updated_at || workItem.createdAt || "");
+  const sevenDaysMs = 7 * 24 * 60 * 60 * 1000;
+  if (!Number.isNaN(touchedAt.getTime()) && now.getTime() - touchedAt.getTime() <= sevenDaysMs) {
+    score += 2;
+    reasons.push("son 7 günde güncellendi");
+  }
+
+  return { workItem, score, reasons };
 }
 
 export function appendDecisionToWorkItem(workItem, decision, now = new Date()) {
@@ -759,6 +823,14 @@ function normalizeArray(value) {
   if (Array.isArray(value)) return value.filter(Boolean);
   if (!value) return [];
   return [value];
+}
+
+function normalizeText(value) {
+  return String(value || "").trim().toLowerCase();
+}
+
+function sameText(left, right) {
+  return normalizeText(left) === normalizeText(right) && normalizeText(left) !== "";
 }
 
 function sortRecords(records) {

@@ -7,6 +7,7 @@ ctx-lab, Claude Code ve Codex gibi AI araçlarıyla çalışırken insan bağlam
 AI sohbet geçmişine güvenmek yerine, her önemli oturumdan sonra kısa ve insan-onaylı bir özet özel bir GitHub memory repo'ya yazılır. ctx-lab bu repo'yu okuyarak:
 
 - Oturum Akışı'nda yeni oturum özetlerini toplar,
+- Oturum Akışı'nda proje, repo, etiket ve güncellik sinyallerine göre mevcut iş hattı önerir,
 - İş Akışı'nda aktif işleri gösterir,
 - İş Akışı kartlarını sürükle-bırak ile durumlar arasında taşır,
 - aynı proje için gelen yeni oturumları mevcut iş kartına bağlar,

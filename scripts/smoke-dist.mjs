@@ -63,6 +63,8 @@ for (const expected of [
   "Git sonuc",
   "Commit + push icin ayri onay verdim",
   "Run sonucunu secili is hattina bagla",
+  "Akilli eslesme",
+  "Onerilen Ise Bagla",
   "Proje Koku",
   "Oturum Kapanis"
 ]) {

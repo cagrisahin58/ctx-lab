@@ -893,6 +893,28 @@ kbd {
   min-width: 150px;
 }
 
+.triage-suggestion {
+  display: grid;
+  grid-template-columns: minmax(240px, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  padding: 12px;
+  border: 1px solid color-mix(in srgb, var(--accent) 38%, var(--line));
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--accent) 9%, var(--panel));
+}
+
+.triage-suggestion strong {
+  display: block;
+  margin-top: 6px;
+}
+
+.triage-suggestion p {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
 .diagnostic-item {
   display: grid;
   grid-template-columns: auto minmax(150px, 0.35fr) minmax(220px, 1fr);
@@ -1274,6 +1296,7 @@ kbd {
   .search-strip,
   .filter-row,
   .triage-linker,
+  .triage-suggestion,
   .diagnostic-item,
   .connection-form {
     grid-template-columns: 1fr;

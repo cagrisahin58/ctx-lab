@@ -208,6 +208,7 @@ export function validateMemoryRecords(records, now = new Date()) {
     } else if (!isAllowedRecordStatus(record)) {
       warnings.push(`${record.path}: bilinmeyen durum (${record.status})`);
     }
+    warnings.push(...codexRunStatusWarnings(record));
     if (record.type === "inbox" && !record.source) {
       warnings.push(`${record.path}: inbox kaydı için source alanı eksik`);
     }
@@ -229,9 +230,23 @@ function hasFrontmatterKey(record, key) {
 
 function isAllowedRecordStatus(record) {
   if (VALID_STATUSES.includes(record.status)) return true;
-  return record.type === "handoffs" &&
-    record.frontmatter?.kind === "codex_run" &&
-    CODEX_RUN_STATUSES.includes(record.status);
+  return isCodexRunRecord(record) && CODEX_RUN_STATUSES.includes(record.status);
+}
+
+function isCodexRunRecord(record) {
+  return record.type === "handoffs" && record.frontmatter?.kind === "codex_run";
+}
+
+function codexRunStatusWarnings(record) {
+  if (!isCodexRunRecord(record)) return [];
+  if (!hasFrontmatterKey(record, "run_status")) {
+    return CODEX_RUN_STATUSES.includes(record.status)
+      ? []
+      : [`${record.path}: codex_run kaydı için run_status alanı eksik`];
+  }
+  return CODEX_RUN_STATUSES.includes(record.frontmatter.run_status)
+    ? []
+    : [`${record.path}: bilinmeyen Codex çalıştırma durumu (${record.frontmatter.run_status})`];
 }
 
 function workItemLifecycleWarnings(record, nowTime) {

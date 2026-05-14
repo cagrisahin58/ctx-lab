@@ -945,3 +945,44 @@ created_at: 2026-05-14T12:00:00.000Z
 
   assert.deepEqual(validateMemoryRecords([legacyRun]), []);
 });
+
+test("codex run memory kayıtlarında run_status alanını doğrular", () => {
+  const missingRunStatus = parseMemoryFile(
+    "handoffs/missing-run-status.md",
+    `---
+id: codex_run_missing_status
+kind: codex_run
+source_run: run_missing_status
+project: ctx-lab
+repo: cagrisahin58/ctx-lab
+status: active
+created_at: 2026-05-14T12:00:00.000Z
+---
+
+# Codex Çalıştırma Kaydı
+`,
+    "sha-missing-run-status"
+  );
+  const invalidRunStatus = parseMemoryFile(
+    "handoffs/invalid-run-status.md",
+    `---
+id: codex_run_invalid_status
+kind: codex_run
+source_run: run_invalid_status
+project: ctx-lab
+repo: cagrisahin58/ctx-lab
+status: active
+run_status: paused
+created_at: 2026-05-14T12:00:00.000Z
+---
+
+# Codex Çalıştırma Kaydı
+`,
+    "sha-invalid-run-status"
+  );
+
+  const warnings = validateMemoryRecords([missingRunStatus, invalidRunStatus]);
+
+  assert.ok(warnings.some((warning) => warning.includes("missing-run-status.md") && warning.includes("run_status alanı eksik")));
+  assert.ok(warnings.some((warning) => warning.includes("invalid-run-status.md") && warning.includes("bilinmeyen Codex çalıştırma durumu")));
+});

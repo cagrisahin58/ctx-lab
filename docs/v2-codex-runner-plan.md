@@ -4,11 +4,11 @@ Bu belge, ctx-lab'in ikinci faz hedefini repo icinde kalici hale getirir. Resmi 
 
 ## Ana hedef
 
-ctx-lab v2, GitHub destekli hafiza katmanini koruyarak proje timeline merkezli, Turkce, workflow odakli ve yerel Codex calistirici ile tam otonom calisabilen bir uygulama olacak.
+ctx-lab v2, GitHub destekli hafiza katmanini koruyarak proje zaman akisi merkezli, Turkce, workflow odakli ve yerel Codex calistirici ile tam otonom calisabilen bir uygulama olacak.
 
 ## Kararlar
 
-- Ana gorunum: Proje Timeline.
+- Ana gorunum: Proje Zaman Akisi.
 - Otonomi: Codex dosya degistirebilir, test calistirabilir, commit atabilir ve push yapabilir.
 - Calistirici: Electron main process IPC yuzeyi ve geriye uyumluluk icin `127.0.0.1` Node localhost servisi.
 - Yerel hafiza: hem app-data indeks hem yerel git clone aynasi.
@@ -63,8 +63,8 @@ ctx-lab v2, GitHub destekli hafiza katmanini koruyarak proje timeline merkezli, 
 1. Calistirici temeli: health, app-data dizinleri, Codex CLI tespiti, proje registry.
 2. Electron kabugu: guvenli preload/IPC, app-data path, klasor secimi, desktop smoke.
 3. Memory ayna: work-memory clone/pull/indeks. Ilk kesitte token calistiriciya tasinmadan Git/GCM uzerinden clone/fetch/pull ve JSON indeks uretimi yapilir.
-4. Proje Timeline veri modeli: legacy kayitlardan timeline event uretimi.
-5. UI yenileme: Turkce terminoloji, timeline, command rail, durum cubugu.
+4. Proje zaman akisi veri modeli: legacy kayitlardan timeline event uretimi.
+5. UI yenileme: Turkce terminoloji, zaman akisi, command rail, durum cubugu.
 6. Codex calistirma kaydi: hazir promptlar, deneme kaydi, JSONL stdout/stderr gunlugu, commit/push oncesi gorunur ozet.
 7. Onboarding: hafiza reposu, repo tanilama, yerel ayna/indeks, proje koku, Codex CLI ve ornek devam brifi tek akista dogrulanir.
 8. claude-review P0 UX paketi: dark mode, command palette, activity log, kisa yollar.

@@ -64,7 +64,7 @@ AI sohbetleri kaybolsa bile insan çalışma bağlamını koruyan GitHub destekl
 Ürün yönü seçildi; uygulama sıfırdan kuruluyor.
 
 ## Next Action
-Oturum Akışı ve GitHub repo bağlantısını işlevsel hale getir.
+Oturum Akışı ve hafıza bağlantısını işlevsel hale getir.
 
 ## Risks / Blockers
 GitHub token deneyimi sade olmalı.

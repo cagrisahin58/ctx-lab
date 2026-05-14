@@ -1232,7 +1232,7 @@ function commandItems() {
     }
   }));
   return [
-    { id: "view:workspace", title: "Proje Çalışma Merkezi", subtitle: "Timeline ve güncel bağlam", shortcut: "g p", keywords: "proje calisma merkezi timeline", run: () => setView("workspace") },
+    { id: "view:workspace", title: "Proje Çalışma Merkezi", subtitle: "Zaman akışı ve güncel bağlam", shortcut: "g p", keywords: "proje calisma merkezi timeline zaman akisi", run: () => setView("workspace") },
     { id: "view:inbox", title: "Oturum Akışı", subtitle: "İşleme bekleyen oturum özetleri", shortcut: "g i", keywords: "inbox oturum akis triage", run: () => setView("inbox") },
     { id: "view:board", title: "İş Akışı", subtitle: "Aktif, bekleyen ve engelli iş hatları", shortcut: "g b", keywords: "board is akisi pano", run: () => setView("board") },
     { id: "view:decisions", title: "Karar Defteri", subtitle: "Kaynaklı karar kayıtları", shortcut: "g d", keywords: "karar decision", run: () => setView("decisions") },
@@ -1311,7 +1311,7 @@ function renderWorkspace(counts) {
   return `
     ${renderHeader(
       "Proje Çalışma Merkezi",
-      "Oturumları, kararları, iş hattı değişimlerini, Codex çalıştırma kayıtlarını ve GitHub senkronizasyonunu tek timeline içinde izle.",
+      "Oturumları, kararları, iş hattı değişimlerini, Codex çalıştırma kayıtlarını ve GitHub senkronizasyonunu tek zaman akışı içinde izle.",
       `<button data-view="new-summary">Yeni Oturum</button><button class="primary" data-action="copy-context-pack">Devam Brifi</button>`
     )}
     <section class="workspace-grid">
@@ -1331,7 +1331,7 @@ function renderWorkspace(counts) {
             <span class="badge">${records.length} kayıt</span>
           </div>
           <div class="timeline">
-            ${events.length ? events.map(renderTimelineEvent).join("") : `<div class="empty">Bu proje için timeline olayı yok.</div>`}
+            ${events.length ? events.map(renderTimelineEvent).join("") : `<div class="empty">Bu proje için zaman akışı olayı yok.</div>`}
           </div>
         </div>
       </div>
@@ -2327,7 +2327,7 @@ function renderConnectionSteps() {
   const steps = [
     {
       number: "1",
-      title: "Repo bağla",
+      title: "Hafızayı bağla",
       text: "Owner/repo, branch ve fine-grained token bilgisini kaydet.",
       done: hasConfig
     },
@@ -2686,7 +2686,7 @@ function memorySyncSnapshot() {
       cacheKind: "waiting",
       mirrorText,
       mirrorKind: mirror?.indexed ? "ok" : "waiting",
-      compareText: "Gerçek repo bağlanınca karşılaştırılır",
+      compareText: "Hafıza reposu bağlanınca karşılaştırılır",
       compareKind: "waiting",
       details
     };

@@ -121,9 +121,9 @@ Electron masaüstü kabuğunda yerel çalıştırıcı omurgası main process i�
 
 Codex çalıştırma kayıtları `%APPDATA%/ctx-lab/runs` altında JSON günlük olarak tutulur. İlk masaüstü akışta deneme kaydı varsayılandır; prompt, otomasyon seviyesi, proje allowlist bilgisi, stdout/stderr, çıkış kodu, test sonucu sinyali, Git başlangıç/sonuç snapshot'ı ve çalışma özeti aynı çalıştırma kaydına yazılır. Desteklenen seviyeler: sadece brif hazırla, öneri üret, dosya değiştir ama commit atma, test çalıştır, commit hazırla, commit + push. Destructive git komutları çalıştırıcı tarafında reddedilir. `commit + push` gerçek çalışmada ayrıca açık onay verilmezse çalıştırıcı Codex'i başlatmaz ve çalıştırma kaydını `blocked` olarak yazar. UI'daki `Çalıştırma Kanıtı` alanı günlük yolunu, test sonucunu, Git durumunu, çıktı özetini ve commit/push öncesi kapıyı görünür tutar.
 
-Çalıştırma sonucu seçili iş hattına bağlanabilir. Bu durumda ctx-lab `handoffs/` altında `kind: codex_run` içeren kaynaklı bir kayıt oluşturur ve ilgili iş hattının `codex_runs` frontmatter listesini günceller. Böylece Codex otomasyonu yalnızca yerel günlükte kalmaz, GitHub work-memory timeline içinde de görünür hale gelir.
+Çalıştırma sonucu seçili iş hattına bağlanabilir. Bu durumda ctx-lab `handoffs/` altında `kind: codex_run` içeren kaynaklı bir kayıt oluşturur ve ilgili iş hattının `codex_runs` frontmatter listesini günceller. Böylece Codex otomasyonu yalnızca yerel günlükte kalmaz, GitHub work-memory zaman akışı içinde de görünür hale gelir.
 
-Yerel hafıza aynası `%APPDATA%/ctx-lab/memory/git` altında, türetilmiş indeks ise `%APPDATA%/ctx-lab/memory/index` altında tutulur. Ayna akışı GitHub token'ını çalıştırıcıya taşımaz; `git clone/fetch/pull` yerel Git/Git Credential Manager yetkileriyle çalışır. İndeks, mevcut markdown/frontmatter kayıtlarını okuyup masaüstü timeline ve sağlık görünürlüğü için özet JSON üretir.
+Yerel hafıza aynası `%APPDATA%/ctx-lab/memory/git` altında, türetilmiş indeks ise `%APPDATA%/ctx-lab/memory/index` altında tutulur. Ayna akışı GitHub token'ını çalıştırıcıya taşımaz; `git clone/fetch/pull` yerel Git/Git Credential Manager yetkileriyle çalışır. İndeks, mevcut markdown/frontmatter kayıtlarını okuyup masaüstü zaman akışı ve sağlık görünürlüğü için özet JSON üretir.
 
 ## Manuel oturum özeti akışı
 

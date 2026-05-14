@@ -364,7 +364,7 @@ try {
 
   await expectVisibleText(page, "Kısa Kurulum");
   await expectVisibleText(page, "GitHub Hafıza Reposu");
-  await expectVisibleText(page, "Repo bağla");
+  await expectVisibleText(page, "Hafızayı bağla");
   await expectVisibleText(page, "Yapıyı hazırla");
   await expectVisibleText(page, "Doğrula");
   await expectVisibleText(page, "Codex CLI Kontrolü");

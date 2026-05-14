@@ -10,6 +10,7 @@ AI sohbet geçmişine güvenmek yerine, her önemli oturumdan sonra kısa ve ins
 - Oturum Akışı'nda proje, repo, etiket ve güncellik sinyallerine göre mevcut iş hattı önerir,
 - İş Akışı'nda aktif işleri gösterir,
 - İş Akışı hatlarını sürükle-bırak ile durumlar arasında taşır,
+- sol proje rayındaki hızlı filtrelerle işleme bekleyen oturumlara, aktif/bekleyen/engelli iş hatlarına ve Codex kayıtlarına tek tıkla gider,
 - aynı proje için gelen yeni oturumları mevcut iş hattına bağlar,
 - karar defterini kaynaklı tutar,
 - Codex veya Claude için iş hattı merkezli, içerik metrikleri görünen devam brifi üretir.

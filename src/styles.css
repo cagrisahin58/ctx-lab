@@ -310,6 +310,13 @@ kbd {
   padding-top: 14px;
 }
 
+.quick-filters {
+  display: grid;
+  gap: 7px;
+  border-top: 1px solid var(--line);
+  padding-top: 14px;
+}
+
 .rail-title {
   margin-bottom: 8px;
   color: var(--faint);
@@ -335,6 +342,52 @@ kbd {
 .project-pill small {
   color: var(--muted);
   font-size: 12px;
+}
+
+.quick-filter {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 2px 8px;
+  width: 100%;
+  text-align: left;
+  background: rgba(148, 163, 184, 0.06);
+  border-color: rgba(148, 163, 184, 0.14);
+  padding: 8px 9px;
+}
+
+.quick-filter span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.quick-filter strong {
+  font-size: 13px;
+}
+
+.quick-filter small {
+  grid-column: 1 / -1;
+  color: var(--faint);
+  font-size: 11px;
+}
+
+.quick-filter.active {
+  background: rgba(45, 212, 191, 0.14);
+  border-color: rgba(45, 212, 191, 0.32);
+  color: var(--text);
+}
+
+.filter-chip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  border: 1px solid rgba(45, 212, 191, 0.28);
+  border-radius: 8px;
+  padding: 8px 10px;
+  background: rgba(45, 212, 191, 0.1);
+  color: var(--text);
+  font-size: 13px;
 }
 
 .sync-panel {

@@ -71,6 +71,7 @@ const state = {
   demo: false,
   warnings: [],
   query: "",
+  quickFilter: "",
   pendingArchiveId: "",
   settingsTab: "connection",
   commandPalette: {
@@ -167,6 +168,7 @@ function setToast(message, kind = "info") {
 
 function setView(view) {
   state.view = view;
+  state.quickFilter = "";
   state.pendingArchiveId = "";
   keepSelectionVisible();
   render();
@@ -176,6 +178,7 @@ function setSettingsTab(tab) {
   if (!["connection", "appearance"].includes(tab)) return;
   state.settingsTab = tab;
   state.view = "settings";
+  state.quickFilter = "";
   state.pendingArchiveId = "";
   render();
 }
@@ -194,6 +197,7 @@ function toggleTokenVisibility() {
 
 function setQuery(query) {
   state.query = query;
+  state.quickFilter = "";
   keepSelectionVisible();
   render();
   const search = document.querySelector("[data-search]");
@@ -208,7 +212,11 @@ function recordsByType(type) {
 }
 
 function filteredRecords(type) {
-  return filterRecords(recordsByType(type), state.query);
+  let records = recordsByType(type);
+  if (type === "work_items" && WORK_STATUSES.includes(state.quickFilter)) {
+    records = records.filter((record) => record.status === state.quickFilter);
+  }
+  return filterRecords(records, state.query);
 }
 
 function keepSelectionVisible() {
@@ -920,6 +928,30 @@ function finishOnboarding() {
   setToast("Kurulum tamamlandı. Proje Çalışma Merkezi açıldı.", "success");
 }
 
+function applyQuickFilter(filter) {
+  const allowed = ["needs_triage", "runner", ...WORK_STATUSES];
+  if (!allowed.includes(filter)) return;
+  state.quickFilter = filter;
+  state.query = "";
+  state.pendingArchiveId = "";
+  if (filter === "needs_triage") {
+    state.view = "inbox";
+    state.inboxStatus = "needs_triage";
+  } else if (WORK_STATUSES.includes(filter)) {
+    state.view = "board";
+  } else if (filter === "runner") {
+    state.view = "runner";
+  }
+  keepSelectionVisible();
+  render();
+}
+
+function clearQuickFilter() {
+  state.quickFilter = "";
+  keepSelectionVisible();
+  render();
+}
+
 async function createInboxSummaryFromForm(form) {
   if (!state.demo && (!state.config.owner || !state.config.repo)) {
     setToast("Önce GitHub hafıza bağlantısını kaydet.");
@@ -1057,6 +1089,7 @@ ${dailyBriefText("codex")}
 function render() {
   const counts = {
     inbox: recordsByType("inbox").length,
+    triage: recordsByType("inbox").filter((record) => record.status === "needs_triage").length,
     work: recordsByType("work_items").length,
     decisions: recordsByType("decisions").length,
     archive: recordsByType("archive").length,
@@ -1093,6 +1126,7 @@ function render() {
           ${navButton("settings", "Hafıza Bağlantısı")}
         </nav>
         ${renderProjectRail()}
+        ${renderQuickFilters(counts)}
         <div class="sync-panel">
           <span>${state.demo ? "Örnek veri modu" : repoLabel()}</span>
           ${state.demo ? "" : `<span class="cache-meta">${cacheLabel()}</span>`}
@@ -1153,6 +1187,28 @@ function renderProjectRail() {
           </button>
         `).join("")}
       </div>
+    </div>
+  `;
+}
+
+function renderQuickFilters(counts) {
+  const filters = [
+    { id: "needs_triage", label: "İşleme bekliyor", count: counts.triage, detail: "oturum" },
+    { id: "active", label: "Aktif hatlar", count: counts.active, detail: "iş hattı" },
+    { id: "waiting", label: "Bekleyen hatlar", count: counts.waiting, detail: "iş hattı" },
+    { id: "blocked", label: "Engelli hatlar", count: counts.blocked, detail: "iş hattı" },
+    { id: "runner", label: "Codex kayıtları", count: state.runner.runs.length, detail: "çalıştırma" }
+  ];
+  return `
+    <div class="quick-filters" aria-label="Hızlı filtreler">
+      <div class="rail-title">Hızlı filtreler</div>
+      ${filters.map((filter) => `
+        <button class="quick-filter ${state.quickFilter === filter.id ? "active" : ""}" data-action="quick-filter" data-filter="${escapeHtml(filter.id)}">
+          <span>${escapeHtml(filter.label)}</span>
+          <strong>${filter.count}</strong>
+          <small>${escapeHtml(filter.detail)}</small>
+        </button>
+      `).join("")}
     </div>
   `;
 }
@@ -1362,7 +1418,7 @@ function renderWorkspace(counts) {
       <div class="workspace-main">
         <div class="metric-strip">
           ${metricCard("Açık iş", counts.active + counts.waiting + counts.blocked)}
-          ${metricCard("İşleme bekliyor", counts.inbox)}
+          ${metricCard("İşleme bekliyor", counts.triage)}
           ${metricCard("Karar", counts.decisions)}
           ${metricCard("Codex çalıştırma", activeRuns.length)}
         </div>
@@ -2092,6 +2148,7 @@ function renderBoard() {
       "Kalıcı gerçeklik burada tutulur; oturum akışı sadece işleme bekleyen kayıt alanıdır.",
       `<button class="primary" data-view="new-work">Yeni İş Hattı</button>`
     )}
+    ${renderActiveQuickFilter()}
     ${renderSearchBar("İş hattı, proje veya durum ara")}
     <div class="board-layout">
       <div class="board">
@@ -2108,6 +2165,16 @@ function renderBoard() {
       <section class="panel detail">
         ${selected ? renderWorkContext(selected) : `<div class="empty">İş hattı seçin.</div>`}
       </section>
+    </div>
+  `;
+}
+
+function renderActiveQuickFilter() {
+  if (!WORK_STATUSES.includes(state.quickFilter)) return "";
+  return `
+    <div class="filter-chip">
+      <span>Hızlı filtre: ${escapeHtml(statusLabel(state.quickFilter))}</span>
+      <button class="ghost compact" data-action="clear-quick-filter">Filtreyi temizle</button>
     </div>
   `;
 }
@@ -3311,6 +3378,7 @@ function bindEvents() {
   document.querySelectorAll("[data-inbox-status]").forEach((select) => {
     select.addEventListener("change", () => {
       state.inboxStatus = select.value;
+      state.quickFilter = "";
       keepSelectionVisible();
       render();
     });
@@ -3424,6 +3492,8 @@ function handleAction(action, payload) {
     state.activityOpen = !state.activityOpen;
     render();
   }
+  if (action === "quick-filter") applyQuickFilter(payload?.filter || "");
+  if (action === "clear-quick-filter") clearQuickFilter();
   if (action === "open-command-palette") openCommandPalette();
   if (action === "open-shortcuts") openCommandPalette("shortcuts");
   if (action === "close-command-palette") closeCommandPalette();
@@ -3454,6 +3524,7 @@ function handleAction(action, payload) {
   if (action === "demo") loadDemo();
   if (action === "clear-search") {
     state.query = "";
+    state.quickFilter = "";
     render();
   }
   if (action === "create-summary") guarded(() => createInboxSummaryFromForm(payload));

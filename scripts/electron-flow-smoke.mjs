@@ -425,6 +425,11 @@ try {
   await expectVisibleText(page, "workspace-write");
   await expectVisibleText(page, "Çalışma Günlüğü");
   await expectVisibleText(page, "Tek tıkla devam brifi");
+  await expectVisibleText(page, "Hızlı filtreler");
+  await page.getByRole("button", { name: /Aktif hatlar/ }).click();
+  await expectVisibleText(page, "İş Akışı");
+  await expectVisibleText(page, "Hızlı filtre: Aktif");
+  await page.getByRole("button", { name: "Filtreyi temizle" }).click();
   await page.locator('[data-action="toggle-activity-log"]').click();
   await page.locator(".activity-log").waitFor({ state: "detached", timeout: 15_000 });
   await page.locator('[data-action="toggle-activity-log"]').click();

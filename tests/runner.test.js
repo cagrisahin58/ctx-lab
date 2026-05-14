@@ -337,8 +337,45 @@ test("codex run gercek calisma icin codex exec json komutunu kullanir", async ()
 
     assert.equal(run.status, "succeeded");
     assert.equal(run.sandbox, "read-only");
+    assert.equal(run.testResult, "not_detected");
     assert.ok(calls.some((call) => call.args.includes("exec") && call.args.includes("--json")));
     assert.match(calls.at(-1).options.input, /Sadece oner/);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+    await rm(projectDir, { recursive: true, force: true });
+  }
+});
+
+test("codex run test sonucunu ve commit kapisini loglar", async () => {
+  const dir = await mkdtemp(join(tmpdir(), "ctxlab-runner-"));
+  const projectDir = await mkdtemp(join(tmpdir(), "ctxlab-project-"));
+  const paths = buildRunnerPaths(dir);
+
+  try {
+    const project = await registerProject(paths, {
+      name: "ctx-lab",
+      path: projectDir
+    });
+    const run = await startCodexRun(paths, {
+      projectId: project.id,
+      automationLevel: "commit_push",
+      prompt: "Testleri calistir ve commit oncesi ozet hazirla.",
+      dryRun: false
+    }, {
+      now: new Date("2026-05-14T12:30:00.000Z"),
+      finishedAt: new Date("2026-05-14T12:31:00.000Z"),
+      candidates: ["codex.cmd"],
+      runCommand: async (_command, args) => {
+        if (args.includes("--version")) return { ok: true, stdout: "codex-cli test\n", stderr: "", code: 0 };
+        return { ok: true, stdout: "npm test\n69 tests passed\n", stderr: "", code: 0 };
+      }
+    });
+    const log = JSON.parse(await readFile(run.logPath, "utf8"));
+
+    assert.equal(run.testResult, "passed");
+    assert.match(run.summary, /test çıktısı başarılı/);
+    assert.match(run.commitGate, /Commit\/push/);
+    assert.equal(log.testResult, "passed");
   } finally {
     await rm(dir, { recursive: true, force: true });
     await rm(projectDir, { recursive: true, force: true });

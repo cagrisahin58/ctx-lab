@@ -369,7 +369,9 @@ export async function startCodexRun(paths = buildRunnerPaths(), input = {}, opti
     const record = {
       ...baseRecord,
       status: "dry_run",
-      summary: "Codex calistirilmadi; prompt ve proje kapsami kaydedildi."
+      summary: "Codex çalıştırılmadı; prompt ve proje kapsamı kaydedildi.",
+      testResult: "not_run",
+      commitGate: commitGateForAutomationLevel(automationLevel)
     };
     await writeRunLog(logPath, record);
     return record;
@@ -408,6 +410,9 @@ export async function startCodexRun(paths = buildRunnerPaths(), input = {}, opti
     status: result.ok ? "succeeded" : "failed",
     codex,
     sandbox,
+    summary: buildCodexResultSummary(result),
+    testResult: detectTestResult(result.stdout, result.stderr),
+    commitGate: commitGateForAutomationLevel(automationLevel),
     stdout: result.stdout || "",
     stderr: result.stderr || "",
     exitCode: result.code ?? (result.ok ? 0 : 1)
@@ -641,6 +646,32 @@ function assertSafeAutomationPrompt(prompt) {
 function sandboxForAutomationLevel(level) {
   if (level === "suggest") return "read-only";
   return "workspace-write";
+}
+
+function buildCodexResultSummary(result = {}) {
+  const testResult = detectTestResult(result.stdout, result.stderr);
+  if (!result.ok) return "Codex komutu hata ile tamamlandı; stderr ve exit code kontrol edilmeli.";
+  if (testResult === "passed") return "Codex komutu tamamlandı; test çıktısı başarılı görünüyor.";
+  if (testResult === "failed") return "Codex komutu tamamlandı; test çıktısında hata sinyali var.";
+  return "Codex komutu tamamlandı; test sonucu çıktıda net tespit edilemedi.";
+}
+
+function detectTestResult(stdout = "", stderr = "") {
+  const text = `${stdout || ""}\n${stderr || ""}`;
+  if (!text.trim()) return "not_detected";
+  if (/\b(fail|failed|failing|error|errored|tests?\s+failed)\b/i.test(text)) return "failed";
+  if (/\b(pass|passed|passing|tests?\s+passed|all tests passed|ok)\b/i.test(text)) return "passed";
+  return "not_detected";
+}
+
+function commitGateForAutomationLevel(level) {
+  if (level === "commit_prepare") {
+    return "Commit taslağı kullanıcı onayı ve görünür test sonucu olmadan uygulanmaz.";
+  }
+  if (level === "commit_push") {
+    return "Commit/push kullanıcı onayı, görünür özet ve test sonucu olmadan uygulanmaz.";
+  }
+  return "";
 }
 
 async function writeRunLog(logPath, record) {

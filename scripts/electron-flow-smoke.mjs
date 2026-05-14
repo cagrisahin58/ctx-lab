@@ -85,6 +85,9 @@ try {
   await runForm.getByRole("button", { name: "Run kaydı oluştur" }).click();
   await expectVisibleText(page, "Codex dry-run kaydı hazırlandı.");
   await expectVisibleText(page, "dry_run");
+  await expectVisibleText(page, "Run Kanıtı");
+  await expectVisibleText(page, "Test sonucu");
+  await expectVisibleText(page, "Çalıştırılmadı");
 
   await page.keyboard.press("Control+K");
   await page.locator("[data-command-search]").fill("iş akışı");

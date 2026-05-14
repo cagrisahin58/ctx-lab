@@ -1170,6 +1170,7 @@ function renderTimelineEvent(event) {
 
 function renderCodexRunPanel() {
   const projects = state.runner.projects;
+  const evidenceRun = selectedRunForContext();
   return `
     <form class="panel codex-run-form" id="codex-run-form">
       <div class="panel-heading">
@@ -1210,6 +1211,7 @@ function renderCodexRunPanel() {
       <label class="check-row"><input type="checkbox" name="linkMemory" checked> Run sonucunu seçili iş hattına bağla</label>
       <button class="primary" type="submit" ${projects.length ? "" : "disabled"}>Run kaydı oluştur</button>
       ${state.runner.runs.length ? `<div class="run-list">${state.runner.runs.slice(0, 4).map(renderRunMini).join("")}</div>` : ""}
+      ${renderRunEvidence(evidenceRun)}
     </form>
   `;
 }
@@ -1231,6 +1233,75 @@ function renderRunMini(run) {
       <span>${escapeHtml(run.status)} · ${escapeHtml(run.automationLevel || "")}${run.sourceWorkItemId ? ` · ${escapeHtml(run.sourceWorkItemId)}` : ""}</span>
     </div>
   `;
+}
+
+function selectedRunForContext() {
+  const workItem = selectedProjectWorkItem();
+  const runs = selectedProjectRuns();
+  if (!runs.length) return null;
+  return runs.find((run) => workItem?.id && run.sourceWorkItemId === workItem.id) || runs[0];
+}
+
+function renderRunEvidence(run) {
+  if (!run) {
+    return `
+      <div class="run-evidence empty-evidence">
+        <h4>Run Kanıtı</h4>
+        <p>Henüz Codex run kaydı yok. İlk dry-run sonrası log yolu, test sonucu ve çıktı özeti burada görünür.</p>
+      </div>
+    `;
+  }
+  const output = compactOutput(run.stdout || run.stderr || run.error || run.summary || "");
+  return `
+    <div class="run-evidence">
+      <div class="run-evidence-head">
+        <div>
+          <h4>Run Kanıtı</h4>
+          <p>${escapeHtml(run.id)}</p>
+        </div>
+        <span class="badge ${run.status === "failed" ? "blocked" : "active"}">${escapeHtml(run.status || "durum yok")}</span>
+      </div>
+      <div class="run-evidence-grid">
+        ${runFact("Otomasyon", automationLevelLabel(run.automationLevel))}
+        ${runFact("Test sonucu", testResultLabel(run.testResult))}
+        ${runFact("Exit code", run.exitCode ?? (run.dryRun ? "dry-run" : "yok"))}
+        ${runFact("Log", run.logPath || "log yolu yok")}
+      </div>
+      ${run.summary ? `<p class="run-summary">${escapeHtml(run.summary)}</p>` : ""}
+      ${run.commitGate ? `<p class="run-gate">${escapeHtml(run.commitGate)}</p>` : ""}
+      ${output ? `<pre>${escapeHtml(output)}</pre>` : ""}
+    </div>
+  `;
+}
+
+function runFact(label, value) {
+  return `<span><strong>${escapeHtml(label)}</strong>${escapeHtml(value)}</span>`;
+}
+
+function automationLevelLabel(level) {
+  return {
+    brief: "Sadece brif",
+    suggest: "Öneri",
+    edit_no_commit: "Dosya değiştir, commit yok",
+    test: "Test çalıştır",
+    commit_prepare: "Commit hazırla",
+    commit_push: "Commit + push"
+  }[level] || level || "belirsiz";
+}
+
+function testResultLabel(result) {
+  return {
+    passed: "Başarılı sinyal",
+    failed: "Hata sinyali",
+    not_run: "Çalıştırılmadı",
+    not_detected: "Net tespit yok"
+  }[result] || "Net tespit yok";
+}
+
+function compactOutput(value) {
+  const text = String(value || "").trim();
+  if (!text) return "";
+  return text.length > 900 ? `${text.slice(0, 900)}\n...` : text;
 }
 
 function renderActivityLog() {

@@ -106,7 +106,7 @@ v2 ile `start-windows` komutu ayrıca `scripts/ctxlab-runner.mjs` servislerini b
 
 `Yerel Codex Runner` ekranında runner sağlığı, Codex CLI sürümü ve kayıtlı proje kökleri görülür. Bir proje kökü kaydedilmeden Codex otomasyonu o klasörde dosya değiştirmeyecek şekilde tasarlanır.
 
-Codex run kayıtları `%APPDATA%/ctx-lab/runs` altında JSON log olarak tutulur. İlk masaüstü akışta dry-run varsayılandır; prompt, otomasyon seviyesi, proje allowlist bilgisi ve çalışma sonucu aynı run kaydına yazılır. Desteklenen seviyeler: sadece brif hazırla, öneri üret, dosya değiştir ama commit atma, test çalıştır, commit hazırla, commit + push. Destructive git komutları runner tarafında reddedilir.
+Codex run kayıtları `%APPDATA%/ctx-lab/runs` altında JSON log olarak tutulur. İlk masaüstü akışta dry-run varsayılandır; prompt, otomasyon seviyesi, proje allowlist bilgisi, stdout/stderr, exit code, test sonucu sinyali ve çalışma özeti aynı run kaydına yazılır. Desteklenen seviyeler: sadece brif hazırla, öneri üret, dosya değiştir ama commit atma, test çalıştır, commit hazırla, commit + push. Destructive git komutları runner tarafında reddedilir. UI'daki `Run Kanıtı` alanı log yolunu, test sonucunu, çıktı özetini ve commit/push öncesi kapıyı görünür tutar.
 
 Run sonucu seçili iş hattına bağlanabilir. Bu durumda ctx-lab `handoffs/` altında `kind: codex_run` içeren kaynaklı bir kayıt oluşturur ve ilgili iş hattının `codex_runs` frontmatter listesini günceller. Böylece Codex otomasyonu yalnızca yerel logda kalmaz, GitHub work-memory timeline içinde de görünür hale gelir.
 

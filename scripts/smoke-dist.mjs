@@ -57,6 +57,8 @@ for (const expected of [
   "Mirror Yenile",
   "Calisma Gunlugu",
   "Codex'e Devret",
+  "Run Kaniti",
+  "Test sonucu",
   "Run sonucunu secili is hattina bagla",
   "Proje Koku",
   "Oturum Kapanis"

@@ -62,6 +62,11 @@ const state = {
   demo: false,
   warnings: [],
   query: "",
+  commandPalette: {
+    open: false,
+    query: "",
+    mode: "commands"
+  },
   inboxStatus: "needs_triage",
   handoffTarget: "codex",
   onboardingBrief: "",
@@ -80,6 +85,9 @@ const state = {
     syncedAt: initialCache.syncedAt
   }
 };
+
+let keyPrefix = "";
+let keyPrefixTimer = 0;
 
 function saveConfig(config) {
   state.config = saveAppConfig(config);
@@ -799,6 +807,10 @@ function render() {
           <h1>ctx-lab</h1>
           <span>AI çalışma hafızası</span>
         </div>
+        <button class="command-trigger" data-action="open-command-palette">
+          <span>Komut Paleti</span>
+          <kbd>Ctrl K</kbd>
+        </button>
         <nav class="nav" aria-label="Ana gezinme">
           ${navButton("onboarding", "Kurulum")}
           ${navButton("workspace", "Proje Çalışma Merkezi")}
@@ -825,6 +837,7 @@ function render() {
         ${renderStatusBar()}
         ${renderCurrentView(counts)}
       </main>
+      ${renderCommandPalette()}
       ${state.toast ? `<div class="toast">${escapeHtml(state.toast)}</div>` : ""}
     </div>
   `;
@@ -890,6 +903,144 @@ function renderStatusBar() {
       <button class="ghost compact" data-action="refresh-runner">Runner</button>
     </div>
   `;
+}
+
+function renderCommandPalette() {
+  if (!state.commandPalette.open) return "";
+  const query = state.commandPalette.query.trim();
+  const mode = state.commandPalette.mode;
+  const commands = filteredCommandItems(query);
+  return `
+    <div class="command-backdrop" data-action="close-command-palette">
+      <section class="command-palette" role="dialog" aria-modal="true" aria-label="${mode === "shortcuts" ? "Kısayollar" : "Komut Paleti"}" data-command-dialog>
+        <div class="command-head">
+          <div>
+            <strong>${mode === "shortcuts" ? "Kısayollar" : "Komut Paleti"}</strong>
+            <span>${mode === "shortcuts" ? "Hızlı gezinme ve üretim aksiyonları" : "Görünümler, kayıtlar ve runner aksiyonları"}</span>
+          </div>
+          <button class="ghost compact" data-action="close-command-palette">Esc</button>
+        </div>
+        ${mode === "shortcuts" ? renderShortcutSheet() : `
+          <input data-command-search aria-label="Komut ara" placeholder="Komut, görünüm veya proje ara" value="${escapeHtml(state.commandPalette.query)}" />
+          <div class="command-list">
+            ${commands.length ? commands.map((command, index) => `
+              <button class="command-item ${index === 0 ? "active" : ""}" data-command-id="${escapeHtml(command.id)}">
+                <span>
+                  <strong>${escapeHtml(command.title)}</strong>
+                  <small>${escapeHtml(command.subtitle || "")}</small>
+                </span>
+                ${command.shortcut ? `<kbd>${escapeHtml(command.shortcut)}</kbd>` : ""}
+              </button>
+            `).join("") : `<div class="empty">Eşleşen komut yok.</div>`}
+          </div>
+        `}
+      </section>
+    </div>
+  `;
+}
+
+function renderShortcutSheet() {
+  return `
+    <div class="shortcut-grid">
+      ${shortcutRows().map((row) => `
+        <div class="shortcut-row">
+          <kbd>${escapeHtml(row.keys)}</kbd>
+          <span>${escapeHtml(row.label)}</span>
+        </div>
+      `).join("")}
+    </div>
+  `;
+}
+
+function shortcutRows() {
+  return [
+    { keys: "Ctrl K", label: "Komut paleti" },
+    { keys: "?", label: "Kısayollar" },
+    { keys: "g i", label: "Oturum Akışı" },
+    { keys: "g b", label: "İş Akışı" },
+    { keys: "g d", label: "Karar Defteri" },
+    { keys: "g h", label: "Devam Brifi" },
+    { keys: "n s", label: "Yeni Oturum Özeti" },
+    { keys: "n w", label: "Yeni İş Hattı" },
+    { keys: "n d", label: "Yeni Karar" },
+    { keys: "s", label: "GitHub'dan Yenile" },
+    { keys: "/", label: "Aramayı odakla" },
+    { keys: "Esc", label: "Paneli kapat" }
+  ];
+}
+
+function commandItems() {
+  const projectCommands = projectSummaries().map((project) => ({
+    id: `project:${project.name}`,
+    title: project.name,
+    subtitle: project.repo || project.localPath || "Proje çalışma merkezi",
+    keywords: `proje ${project.name} ${project.repo || ""}`,
+    run: () => {
+      state.selectedProject = project.name;
+      setView("workspace");
+    }
+  }));
+  return [
+    { id: "view:workspace", title: "Proje Çalışma Merkezi", subtitle: "Timeline ve güncel bağlam", shortcut: "g p", keywords: "proje calisma merkezi timeline", run: () => setView("workspace") },
+    { id: "view:inbox", title: "Oturum Akışı", subtitle: "İşleme bekleyen oturum özetleri", shortcut: "g i", keywords: "inbox oturum akis triage", run: () => setView("inbox") },
+    { id: "view:board", title: "İş Akışı", subtitle: "Aktif, bekleyen ve engelli iş hatları", shortcut: "g b", keywords: "board is akisi pano", run: () => setView("board") },
+    { id: "view:decisions", title: "Karar Defteri", subtitle: "Kaynaklı karar kayıtları", shortcut: "g d", keywords: "karar decision", run: () => setView("decisions") },
+    { id: "view:handoff", title: "Devam Brifi", subtitle: "Codex veya Claude için bağlam paketi", shortcut: "g h", keywords: "handoff baglam paketi devam brifi", run: () => setView("handoff") },
+    { id: "view:daily", title: "Günlük Devam Brifi", subtitle: "Açık işlerden günlük çalışma metni", keywords: "gunluk brif", run: () => setView("daily") },
+    { id: "view:runner", title: "Yerel Codex Runner", subtitle: "CLI, proje kökleri ve run kayıtları", keywords: "codex runner otomasyon", run: () => setView("runner") },
+    { id: "view:settings", title: "Hafıza Bağlantısı", subtitle: "GitHub work-memory repo ayarları", keywords: "repo baglanti github hafiza", run: () => setView("settings") },
+    { id: "new:summary", title: "Yeni Oturum Özeti", subtitle: "Yeni kapanan AI oturumunu kaydet", shortcut: "n s", keywords: "yeni ozet session", run: () => setView("new-summary") },
+    { id: "new:work", title: "Yeni İş Hattı", subtitle: "Bağımsız iş hattı oluştur", shortcut: "n w", keywords: "yeni is hatti work", run: () => setView("new-work") },
+    { id: "new:decision", title: "Yeni Karar", subtitle: "Kaynaklı karar kaydı oluştur", shortcut: "n d", keywords: "yeni karar decision", run: () => setView("new-decision") },
+    { id: "action:sync", title: "GitHub'dan Yenile", subtitle: repoLabel(), shortcut: "s", keywords: "sync yenile github", run: () => handleAction("sync") },
+    { id: "action:refresh-runner", title: "Runner Durumunu Yenile", subtitle: "Codex CLI ve proje kökleri", keywords: "runner refresh codex", run: () => handleAction("refresh-runner") },
+    { id: "action:demo", title: "Örnek Verilerle Dene", subtitle: "Demo çalışma hafızası yükle", keywords: "demo ornek veri", run: () => handleAction("demo") },
+    { id: "action:copy-context", title: "Devam Brifini Kopyala", subtitle: selectedProjectName() || "Seçili kayıt", keywords: "kopyala devam brifi context", run: () => handleAction("copy-context-pack") },
+    { id: "help:shortcuts", title: "Kısayollar", subtitle: "Klavye akışını aç", shortcut: "?", keywords: "yardim kisayol shortcut", run: () => openCommandPalette("shortcuts") },
+    ...projectCommands
+  ];
+}
+
+function filteredCommandItems(query) {
+  const items = commandItems();
+  if (!query) return items.slice(0, 12);
+  const normalized = normalizeCommandText(query);
+  return items
+    .map((item) => ({
+      item,
+      score: commandScore(item, normalized)
+    }))
+    .filter((entry) => entry.score > 0)
+    .sort((a, b) => b.score - a.score || a.item.title.localeCompare(b.item.title, "tr"))
+    .slice(0, 12)
+    .map((entry) => entry.item);
+}
+
+function commandScore(command, query) {
+  const haystack = normalizeCommandText(`${command.title} ${command.subtitle || ""} ${command.keywords || ""}`);
+  if (haystack.includes(query)) return 100 - haystack.indexOf(query);
+  let cursor = 0;
+  let score = 0;
+  for (const char of query) {
+    const next = haystack.indexOf(char, cursor);
+    if (next === -1) return 0;
+    score += next === cursor ? 3 : 1;
+    cursor = next + 1;
+  }
+  return score;
+}
+
+function normalizeCommandText(value) {
+  return String(value || "")
+    .toLocaleLowerCase("tr-TR")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/ı/g, "i")
+    .replace(/ğ/g, "g")
+    .replace(/ü/g, "u")
+    .replace(/ş/g, "s")
+    .replace(/ö/g, "o")
+    .replace(/ç/g, "c");
 }
 
 function renderWorkspace(counts) {
@@ -1847,6 +1998,55 @@ function statusLabel(status) {
   }[status] || status || "Durum yok";
 }
 
+function openCommandPalette(mode = "commands") {
+  state.commandPalette = {
+    open: true,
+    query: "",
+    mode
+  };
+  render();
+  const input = document.querySelector("[data-command-search]");
+  if (input) input.focus();
+}
+
+function closeCommandPalette() {
+  if (!state.commandPalette.open) return;
+  state.commandPalette = {
+    ...state.commandPalette,
+    open: false,
+    query: "",
+    mode: "commands"
+  };
+  render();
+}
+
+function updateCommandQuery(query) {
+  state.commandPalette.query = query;
+  render();
+  const input = document.querySelector("[data-command-search]");
+  if (input) {
+    input.focus();
+    input.setSelectionRange(input.value.length, input.value.length);
+  }
+}
+
+function runCommand(commandId) {
+  const command = commandItems().find((item) => item.id === commandId);
+  if (!command) return;
+  const keepPaletteOpen = command.id === "help:shortcuts";
+  if (!keepPaletteOpen) {
+    state.commandPalette.open = false;
+    state.commandPalette.query = "";
+    state.commandPalette.mode = "commands";
+  }
+  command.run();
+}
+
+function runFirstCommand() {
+  const first = filteredCommandItems(state.commandPalette.query)[0];
+  if (first) runCommand(first.id);
+}
+
 function bindEvents() {
   document.querySelectorAll("[data-view]").forEach((button) => {
     button.addEventListener("click", () => setView(button.dataset.view));
@@ -1858,7 +2058,26 @@ function bindEvents() {
     });
   });
   document.querySelectorAll("[data-action]").forEach((button) => {
-    button.addEventListener("click", () => handleAction(button.dataset.action, button.dataset));
+    button.addEventListener("click", (event) => {
+      if (button.dataset.action === "close-command-palette" && event.target !== button) return;
+      handleAction(button.dataset.action, button.dataset);
+    });
+  });
+  document.querySelectorAll("[data-command-id]").forEach((button) => {
+    button.addEventListener("click", () => runCommand(button.dataset.commandId));
+  });
+  document.querySelectorAll("[data-command-search]").forEach((input) => {
+    input.addEventListener("input", () => updateCommandQuery(input.value));
+    input.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        runFirstCommand();
+      }
+      if (event.key === "Escape") {
+        event.preventDefault();
+        closeCommandPalette();
+      }
+    });
   });
   document.querySelectorAll("[data-record-id]").forEach((button) => {
     button.addEventListener("click", () => {
@@ -1987,6 +2206,9 @@ function handleAction(action, payload) {
   };
 
   if (action === "sync") guarded(syncFromGitHub);
+  if (action === "open-command-palette") openCommandPalette();
+  if (action === "open-shortcuts") openCommandPalette("shortcuts");
+  if (action === "close-command-palette") closeCommandPalette();
   if (action === "init-repo") guarded(initializeMemoryRepo);
   if (action === "diagnose-repo") guarded(runDiagnostics);
   if (action === "refresh-runner") guarded(refreshRunnerStatus);
@@ -2041,6 +2263,90 @@ function escapeHtml(value) {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;");
 }
+
+function isEditableTarget(target) {
+  const tag = target?.tagName?.toLowerCase();
+  return tag === "input" || tag === "textarea" || tag === "select" || target?.isContentEditable;
+}
+
+function focusSearchInput() {
+  const search = document.querySelector("[data-search]");
+  if (search) {
+    search.focus();
+    search.setSelectionRange(search.value.length, search.value.length);
+  }
+}
+
+function handleGlobalKeydown(event) {
+  const key = event.key.toLowerCase();
+  const modifier = event.ctrlKey || event.metaKey;
+
+  if (modifier && key === "k") {
+    event.preventDefault();
+    openCommandPalette();
+    return;
+  }
+
+  if (state.commandPalette.open) {
+    if (event.key === "Escape") {
+      event.preventDefault();
+      closeCommandPalette();
+    }
+    return;
+  }
+
+  if (isEditableTarget(event.target)) return;
+
+  if (event.key === "?") {
+    event.preventDefault();
+    openCommandPalette("shortcuts");
+    return;
+  }
+  if (event.key === "/") {
+    event.preventDefault();
+    focusSearchInput();
+    return;
+  }
+  if (key === "escape") {
+    closeCommandPalette();
+    return;
+  }
+  if (key === "s") {
+    event.preventDefault();
+    handleAction("sync");
+    return;
+  }
+
+  if (keyPrefix) {
+    window.clearTimeout(keyPrefixTimer);
+    const combo = `${keyPrefix} ${key}`;
+    keyPrefix = "";
+    const viewMap = {
+      "g p": "workspace",
+      "g i": "inbox",
+      "g b": "board",
+      "g d": "decisions",
+      "g h": "handoff",
+      "n s": "new-summary",
+      "n w": "new-work",
+      "n d": "new-decision"
+    };
+    if (viewMap[combo]) {
+      event.preventDefault();
+      setView(viewMap[combo]);
+    }
+    return;
+  }
+
+  if (key === "g" || key === "n") {
+    keyPrefix = key;
+    keyPrefixTimer = window.setTimeout(() => {
+      keyPrefix = "";
+    }, 900);
+  }
+}
+
+document.addEventListener("keydown", handleGlobalKeydown);
 
 refreshWarnings();
 render();

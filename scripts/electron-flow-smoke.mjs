@@ -65,6 +65,16 @@ try {
   await expectVisibleText(page, "Çalışma Günlüğü");
   await expectVisibleText(page, "Tek tıkla devam brifi");
 
+  await page.keyboard.press("Control+K");
+  await expectVisibleText(page, "Komut Paleti");
+  await page.locator("[data-command-search]").fill("runner");
+  await page.locator("[data-command-dialog]").getByRole("button", { name: /Yerel Codex Runner/ }).click();
+  await expectVisibleText(page, "Yerel Codex Runner");
+  await page.keyboard.press("Control+K");
+  await page.locator("[data-command-search]").fill("proje çalışma");
+  await page.locator("[data-command-dialog]").getByRole("button", { name: /Proje Çalışma Merkezi/ }).click();
+  await expectVisibleText(page, "Codex'e Devret");
+
   const runForm = page.locator("#codex-run-form");
   await runForm.locator('textarea[name="prompt"]').fill("ctx-lab Electron smoke icin dry-run devam brifi hazirla.");
   await runForm.getByRole("button", { name: "Run kaydı oluştur" }).click();

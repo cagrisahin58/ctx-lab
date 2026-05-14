@@ -80,6 +80,14 @@ button:disabled {
   opacity: 0.55;
 }
 
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid rgba(45, 212, 191, 0.72);
+  outline-offset: 2px;
+}
+
 input,
 select,
 textarea {
@@ -145,6 +153,27 @@ label {
 .brand span {
   color: var(--muted);
   font-size: 13px;
+}
+
+.command-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  background: rgba(45, 212, 191, 0.1);
+  border-color: rgba(45, 212, 191, 0.22);
+}
+
+kbd {
+  min-width: 24px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 2px 6px;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--muted);
+  font-size: 11px;
+  font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
+  text-align: center;
 }
 
 .nav,
@@ -678,6 +707,83 @@ label {
 
 .activity-item.success {
   border-color: rgba(52, 211, 153, 0.38);
+}
+
+.command-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: grid;
+  place-items: start center;
+  padding-top: 9vh;
+  background: rgba(2, 6, 23, 0.62);
+  backdrop-filter: blur(10px);
+}
+
+.command-palette {
+  width: min(720px, calc(100vw - 40px));
+  max-height: min(720px, calc(100vh - 96px));
+  overflow: hidden;
+  border: 1px solid rgba(148, 163, 184, 0.32);
+  border-radius: 16px;
+  background: rgba(18, 26, 46, 0.98);
+  box-shadow: var(--shadow);
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+}
+
+.command-head,
+.command-item,
+.shortcut-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.command-head strong {
+  display: block;
+  font-size: 16px;
+}
+
+.command-head span,
+.command-item small {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.command-list,
+.shortcut-grid {
+  display: grid;
+  gap: 7px;
+  overflow: auto;
+  padding-right: 2px;
+}
+
+.command-item {
+  width: 100%;
+  text-align: left;
+  border-color: transparent;
+  background: transparent;
+}
+
+.command-item.active,
+.command-item:hover {
+  border-color: rgba(45, 212, 191, 0.34);
+  background: rgba(45, 212, 191, 0.11);
+}
+
+.command-item span {
+  display: grid;
+  gap: 2px;
+}
+
+.shortcut-row {
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
 }
 
 .empty,

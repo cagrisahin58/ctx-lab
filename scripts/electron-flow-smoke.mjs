@@ -4,6 +4,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createRequire } from "node:module";
 import { _electron as electron } from "playwright-core";
+import { parseMemoryFile } from "../src/domain.js";
+import { CONFIG_STORAGE_KEY, RECORD_CACHE_STORAGE_KEY } from "../src/storage.js";
 
 const require = createRequire(import.meta.url);
 const electronPath = require("electron");
@@ -32,6 +34,88 @@ async function expectVisibleText(page, text) {
   await page.getByText(text, { exact: false }).first().waitFor({
     state: "visible",
     timeout: 15_000
+  });
+}
+
+function validationFixtureRecords() {
+  const updatedAt = "2026-05-14T08:00:00.000Z";
+  return [
+    parseMemoryFile("inbox/missing-status.md", `---
+id: sess_missing_status
+source: codex
+project: ctx-lab
+repo: cagrisahin58/ctx-lab
+created_at: ${updatedAt}
+---
+
+# Eksik Durum
+
+## Amaç
+Eksik status alanının Hafıza Sağlığı panelinde görünmesini doğrula.
+`, "fixture-missing-status"),
+    parseMemoryFile("work_items/missing-id.md", `---
+title: Eksik id doğrulaması
+project: ctx-lab
+status: active
+updated_at: ${updatedAt}
+---
+
+## Objective
+Eksik id uyarısını kullanıcı seviyesinde doğrula.
+`, "fixture-missing-id"),
+    parseMemoryFile("inbox/malformed.md", `---
+id sess_malformed
+source: codex
+project: ctx-lab
+status: needs_triage
+---
+
+# Bozuk Frontmatter
+`, "fixture-malformed"),
+    parseMemoryFile("inbox/duplicate-a.md", `---
+id: sess_duplicate
+source: codex
+project: ctx-lab
+status: needs_triage
+created_at: ${updatedAt}
+---
+
+# Duplicate A
+`, "fixture-duplicate-a"),
+    parseMemoryFile("inbox/duplicate-b.md", `---
+id: sess_duplicate
+source: claude
+project: ctx-lab
+status: needs_triage
+created_at: ${updatedAt}
+---
+
+# Duplicate B
+`, "fixture-duplicate-b")
+  ];
+}
+
+async function seedValidationCache(page) {
+  const config = {
+    owner: "cagrisahin58",
+    repo: "ctx-lab",
+    branch: "main",
+    token: "test-token"
+  };
+  const cache = {
+    scope: "cagrisahin58/ctx-lab@main",
+    syncedAt: "2026-05-14T08:05:00.000Z",
+    remoteHead: "validation-fixture-head",
+    records: validationFixtureRecords()
+  };
+  await page.evaluate(({ configKey, cacheKey, configValue, cacheValue }) => {
+    localStorage.setItem(configKey, JSON.stringify(configValue));
+    localStorage.setItem(cacheKey, JSON.stringify(cacheValue));
+  }, {
+    configKey: CONFIG_STORAGE_KEY,
+    cacheKey: RECORD_CACHE_STORAGE_KEY,
+    configValue: config,
+    cacheValue: cache
   });
 }
 
@@ -240,6 +324,23 @@ try {
   await expectVisibleText(page, "Arşivi Onayla");
   await page.getByRole("button", { name: "Arşivi Onayla" }).click();
   await expectVisibleText(page, "İş hattı arşivlendi.");
+
+  markPhase("Hafiza sagligi uyarilarini kullanici seviyesinde dogrulama");
+  await seedValidationCache(page);
+  await page.reload({ waitUntil: "domcontentloaded" });
+  await expectVisibleText(page, "Proje Çalışma Merkezi");
+  await page.keyboard.press("Control+K");
+  await page.locator("[data-command-search]").fill("hafıza sağlığı");
+  await page.locator('[data-command-id="view:health"]').click();
+  await expectVisibleText(page, "Hafıza Sağlığı");
+  await expectVisibleText(page, "inbox/missing-status.md");
+  await expectVisibleText(page, "status alanı eksik");
+  await expectVisibleText(page, "work_items/missing-id.md");
+  await expectVisibleText(page, "id alanı eksik");
+  await expectVisibleText(page, "inbox/malformed.md");
+  await expectVisibleText(page, "bozuk frontmatter");
+  await expectVisibleText(page, "inbox/duplicate-b.md");
+  await expectVisibleText(page, "duplicate id");
 
   const title = await electronApp.evaluate(({ BrowserWindow }) => {
     return BrowserWindow.getAllWindows()[0]?.getTitle();

@@ -233,6 +233,7 @@ async function moveWorkCardToColumn(page, workId, status) {
 const env = {
   ...process.env,
   CTX_LAB_ELECTRON_USER_DATA: userData,
+  CTX_LAB_ELECTRON_PROJECT_DIR: root,
   ELECTRON_DISABLE_SECURITY_WARNINGS: "true"
 };
 delete env.VITE_DEV_SERVER_URL;
@@ -279,10 +280,12 @@ try {
 
   markPhase("Proje kokunu kaydetme");
   const projectForm = page.locator("#onboarding-project-form");
+  await projectForm.getByRole("button", { name: "Klasör Seç" }).click();
+  await expectVisibleText(page, "Proje kökü seçildi.");
+  assert.equal(await projectForm.locator('input[name="path"]').inputValue(), root);
   await projectForm.locator('input[name="name"]').fill("ctx-lab");
   await projectForm.locator('input[name="repo"]').fill("cagrisahin58/ctx-lab");
   await projectForm.locator('input[name="branch"]').fill("main");
-  await projectForm.locator('input[name="path"]').fill(root);
   await projectForm.getByRole("button", { name: "Proje Kökünü Kaydet" }).click();
   await expectVisibleText(page, "Proje kökü yerel çalıştırıcıya kaydedildi.");
   await expectVisibleText(page, "1 kayıtlı kök");

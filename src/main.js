@@ -79,6 +79,7 @@ const state = {
   inboxStatus: "needs_triage",
   handoffTarget: "codex",
   onboardingBrief: "",
+  projectPathDraft: "",
   tokenVisible: false,
   diagnostics: null,
   diagnosticsLoading: false,
@@ -735,14 +736,16 @@ async function registerProjectFromForm(form) {
   if (Array.isArray(result.registry?.projects)) {
     state.runner.projects = result.registry.projects;
   }
-  setToast("Proje kökü yerel çalıştırıcıya kaydedildi.");
+  state.projectPathDraft = "";
   form.reset();
+  setToast("Proje kökü yerel çalıştırıcıya kaydedildi.");
   refreshRunnerStatus({ silent: true });
 }
 
 async function selectProjectRootForForm() {
   const result = await selectRunnerProjectDirectory();
   if (result.canceled || !result.path) return;
+  state.projectPathDraft = result.path;
   const input = document.querySelector("[data-project-path]");
   if (input) input.value = result.path;
   setToast("Proje kökü seçildi.");
@@ -1650,7 +1653,7 @@ function renderOnboarding() {
             </label>
             <label>
               Yerel Klasör
-              <input name="path" data-project-path required placeholder="C:\\Users\\cagri\\projects\\projeler\\ai_hooks" />
+              <input name="path" data-project-path required placeholder="C:\\Users\\cagri\\projects\\projeler\\ai_hooks" value="${escapeHtml(state.projectPathDraft)}" />
             </label>
             <div class="toolbar-actions full">
               <button type="button" data-action="select-project-root">Klasör Seç</button>
@@ -2539,7 +2542,7 @@ function renderRunner() {
           </label>
           <label>
             Yerel Klasör
-            <input name="path" data-project-path required placeholder="C:\\Users\\cagri\\projects\\projeler\\ai_hooks" />
+            <input name="path" data-project-path required placeholder="C:\\Users\\cagri\\projects\\projeler\\ai_hooks" value="${escapeHtml(state.projectPathDraft)}" />
           </label>
           <div class="toolbar-actions full">
             <button type="button" data-action="select-project-root">Klasör Seç</button>

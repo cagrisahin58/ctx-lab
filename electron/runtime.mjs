@@ -25,6 +25,7 @@ export const DESKTOP_IPC_CHANNELS = Object.freeze({
 export function createDesktopRuntime(options = {}) {
   const paths = options.paths || buildRunnerPaths(options.appDataDir);
   const dialog = options.dialog;
+  const mockProjectDirectory = options.mockProjectDirectory;
 
   return {
     paths,
@@ -39,6 +40,9 @@ export function createDesktopRuntime(options = {}) {
       return { ok: true, project, registry: await readProjectRegistry(paths) };
     },
     async selectProjectDirectory() {
+      if (mockProjectDirectory) {
+        return { canceled: false, path: mockProjectDirectory };
+      }
       if (!dialog?.showOpenDialog) {
         throw new Error("Klasor secici bu calisma ortaminda kullanilamiyor.");
       }

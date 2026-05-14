@@ -98,7 +98,11 @@ async function createMainWindow() {
 
 app.whenReady().then(async () => {
   const paths = buildRunnerPaths(app.getPath("userData"));
-  const runtime = createDesktopRuntime({ paths, dialog });
+  const runtime = createDesktopRuntime({
+    paths,
+    dialog,
+    mockProjectDirectory: process.env.CTX_LAB_ELECTRON_PROJECT_DIR || ""
+  });
   registerDesktopIpcHandlers(ipcMain, runtime);
   createMenu();
   createTrayPlaceholder();

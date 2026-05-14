@@ -49,3 +49,28 @@ test("desktop IPC handlerlari sadece izinli kanallari kaydeder", () => {
   assert.deepEqual(channels.sort(), Object.values(DESKTOP_IPC_CHANNELS).sort());
   assert.ok(handled.every((item) => typeof item.handler === "function"));
 });
+
+test("desktop runtime test klasor secimini env kancasi ile dondurur", async () => {
+  const dir = await mkdtemp(join(tmpdir(), "ctxlab-desktop-"));
+  const projectDir = await mkdtemp(join(tmpdir(), "ctxlab-project-"));
+  let dialogCalled = false;
+  const runtime = createDesktopRuntime({
+    paths: buildRunnerPaths(dir),
+    mockProjectDirectory: projectDir,
+    dialog: {
+      showOpenDialog: async () => {
+        dialogCalled = true;
+        return { canceled: false, filePaths: ["C:\\yanlis"] };
+      }
+    }
+  });
+
+  try {
+    const selected = await runtime.selectProjectDirectory();
+    assert.equal(selected.path, projectDir);
+    assert.equal(dialogCalled, false);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+    await rm(projectDir, { recursive: true, force: true });
+  }
+});

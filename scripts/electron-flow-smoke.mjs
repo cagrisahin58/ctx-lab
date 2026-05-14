@@ -15,6 +15,7 @@ const electronPath = require("electron");
 const root = process.cwd();
 const userData = await mkdtemp(join(tmpdir(), "ctxlab-electron-flow-"));
 const memoryFixtureFile = join(userData, "memory-fixture.json");
+const screenshotOutput = process.env.CTX_LAB_ELECTRON_FLOW_SCREENSHOT || "";
 let runtimeUserData = userData;
 let phase = "Electron baslatma";
 
@@ -152,6 +153,13 @@ async function expectNoVisibleText(page, text) {
     state: "hidden",
     timeout: 15_000
   });
+}
+
+async function saveScreenshotArtifact(png) {
+  if (!screenshotOutput) return;
+  await mkdir(dirname(screenshotOutput), { recursive: true });
+  await writeFile(screenshotOutput, png);
+  console.log(`[electron-flow] Screenshot artefakti yazildi: ${screenshotOutput}`);
 }
 
 async function selectedRecordCardId(page) {
@@ -963,6 +971,7 @@ try {
 
   const screenshot = await page.screenshot({ fullPage: true });
   assertRenderedScreenshot(screenshot);
+  await saveScreenshotArtifact(screenshot);
 
   console.log("electron flow smoke ok");
 } catch (error) {

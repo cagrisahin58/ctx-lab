@@ -74,6 +74,7 @@ npm run desktop:flow
 ```
 
 Bu kontrol Electron'u izole bir kullanıcı veri klasörüyle açar; ilk kurulum ekranını, yerel proje kökü kaydını, örnek devam brifi üretimini, demo veriden çalışma merkezine geçişi, Oturum Akışı klavye dolaşımını (`↑`/`↓` ve `J`/`K`), `Ctrl+K` komut paletiyle ana görünümleri, Codex deneme kaydı oluşturmayı, çalıştırma sonucunun hafızaya ve devam brifi kaynaklarına bağlanmasını, commit/push onay kapısını, hafıza sağlığı uyarılarını, yerel ayna fark görünürlüğünü ve ekran görüntüsü alınabildiğini doğrular.
+`CTX_LAB_ELECTRON_FLOW_SCREENSHOT=dosya.png` ortam değişkeni verilirse son ekran görüntüsü ayrıca PNG artefaktı olarak yazılır; GitHub Actions Windows `desktop-verify` işi bu görüntüyü CI artefaktı olarak saklar.
 
 Masaüstü kapısını toplu çalıştırmak için:
 

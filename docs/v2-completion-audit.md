@@ -3,8 +3,8 @@
 Bu belge, masaustu odakli ctx-lab v2 hedefini gercek repo artefaktlari ve calisan test kanitlariyla takip eder. Amac "bitti" demek degil; hangi gereksinimin hangi dosya, test veya CI sonucu ile kapandigini ve hangi noktalarda kanitin zayif kaldigini gorunur tutmaktir.
 
 Son denetim tarihi: 2026-05-14
-Son denetlenen commit: `85afe2b` (`Make desktop startup path primary`)
-GitHub Actions: `Verify` run `25861971593`, `verify` ve `desktop-verify` basarili.
+Son denetlenen commit: `3247817` (`Add v2 completion audit`)
+GitHub Actions: `Verify` run `25862195968`, `verify` ve `desktop-verify` basarili.
 
 ## Kalite kapisi kanitlari
 
@@ -49,17 +49,17 @@ Not: `desktop:pack:smoke`, Windows exe politikasi nedeniyle `app.asar` fallback 
 | App icon, menu/tray opsiyonu | `electron/assets/icon.ico`, `electron/main.mjs` menu ve tray | `desktop:pack:smoke`, Electron boot smoke | Kapali |
 | Guvenli IPC sinirlari | `preload.cjs`, `runtime.mjs`, `DESKTOP_IPC_CHANNELS` | `desktop-runtime.test.js` izinli kanal testi | Kapali |
 | Production build ve Windows paketleme hazirligi | `electron-builder.yml`, `desktop:pack`, `desktop:dist` | `desktop:pack:smoke`, CI `desktop-verify` | Kapali |
-| Gorsel regression/screenshot kontrolleri | `electron-flow-smoke.mjs` PNG decode, renk/kontrast ve viewport kontrolleri | `desktop:flow` | Kismen kapali; pixel baseline/regression arsivi yok |
+| Gorsel regression/screenshot kontrolleri | `electron-flow-smoke.mjs` PNG decode, renk/kontrast ve viewport kontrolleri; CI screenshot artefakti | `desktop:flow`, `desktop-verify` artefakt yukleme | Kapali, fakat pixel baseline/regression arsivi yok |
 
 ## Bilinen zayif kanitlar
 
 1. Canli GitHub private repo yazma testi otomasyon icinde mock'lanir. Kod gercek Contents API yazma testi yapiyor, fakat CI'da token kullanilmadigi icin canli private repo uzerinde dogrulanmaz.
-2. Gorsel kalite icin screenshot smoke nonblank/kontrast ve ana akislari dogrular; tasarimin "profesyonel masaustu araci gibi gorunmesi" halen kismen manuel degerlendirme ister.
+2. Gorsel kalite icin screenshot smoke nonblank/kontrast ve ana akislari dogrular; CI screenshot artefakti manuel inceleme icin saklanir. Tasarimin "profesyonel masaustu araci gibi gorunmesi" halen kismen manuel degerlendirme ister.
 3. `claude-review.md` untracked oldugu icin kanit olarak commitlenmez. Bu belge P0/P1 maddelerinin urune yansiyan kisimlarini izler, fakat kaynak review dosyasi bilerek repo disinda kalir.
 4. Tum UI Turkce hedefi smoke ile eski terim ve kritik metin duzeyinde korunur; tum bundle icin dogal Turkce denetimi tam otomatik degildir.
 
 ## Sonraki somut adaylar
 
-1. Gorsel regression icin `desktop:flow` ekran goruntusunu opsiyonel artefakt olarak saklayan ve boyut/renk disinda ana bolge yerlesimini kontrol eden ek denetim.
-2. Canli GitHub tani akisini token gerektirmeden belgeleyen manuel test checklist'i veya token varliginda opsiyonel entegrasyon testi.
-3. `smoke-dist` icinde Turkce dil denetimini genisletmek: kritik butonlar, hata banner'lari ve onboarding adimlari icin daha fazla beklenen metin.
+1. Canli GitHub tani akisini token gerektirmeden belgeleyen manuel test checklist'i veya token varliginda opsiyonel entegrasyon testi.
+2. `smoke-dist` icinde Turkce dil denetimini genisletmek: kritik butonlar, hata banner'lari ve onboarding adimlari icin daha fazla beklenen metin.
+3. Screenshot artefaktina ek olarak ana bolge yerlesimi icin daha deterministik alan/konum denetimi.

@@ -48,6 +48,16 @@ jobs:
 
       - name: Run Electron user flow
         run: npm run desktop:flow
+        env:
+          CTX_LAB_ELECTRON_FLOW_SCREENSHOT: electron-flow-screenshot.png
+
+      - name: Upload Electron flow screenshot
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: electron-flow-screenshot
+          path: electron-flow-screenshot.png
+          if-no-files-found: ignore
 
       - name: Run packaged app smoke
         run: npm run desktop:pack:smoke

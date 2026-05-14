@@ -93,6 +93,8 @@ for (const expected of [
   "Onizleme hedefi",
   "icin hazirlaniyor",
   "Devam Brifini Kopyala",
+  "Devam Brifini Markdown Indir",
+  "Markdown Indir",
   "Yerel Codex Calistirici",
   "Yerel Hafiza Aynasi",
   "Aynayi Yenile",

@@ -619,6 +619,14 @@ try {
   await expectVisibleText(page, "Hedef araç: Claude Code");
   await expectVisibleText(page, "Claude Code için hazırlanıyor");
   await expectVisibleText(page, "Önizleme hedefi: Claude Code");
+  const markdownDownloadLink = page.getByRole("link", { name: "Markdown İndir" });
+  const suggestedFilename = await markdownDownloadLink.getAttribute("download");
+  const downloadHref = await markdownDownloadLink.getAttribute("href");
+  assert.match(suggestedFilename || "", /claude-code-devam-brifi\.md$/);
+  assert.ok(downloadHref?.startsWith("data:text/markdown;charset=utf-8,"), "Devam brifi Markdown indirme linki data URL olmalı");
+  const downloadedMarkdown = decodeURIComponent(downloadHref.split(",").slice(1).join(","));
+  assert.match(downloadedMarkdown, /Claude Code için ctx-lab devam brifi/);
+  assert.match(downloadedMarkdown, /Çalışma kuralı:/);
   await page.keyboard.press("Control+K");
   await page.locator("[data-command-search]").fill("hafıza sağlığı");
   await page.locator('[data-command-id="view:health"]').click();

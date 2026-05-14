@@ -26,6 +26,7 @@ import {
   parseMemoryFile,
   replaceFrontmatter,
   resolveWorkContext,
+  slugify,
   suggestWorkItemForSession,
   updateWorkItemNextActionContent,
   updateWorkItemStatusContent,
@@ -1122,6 +1123,41 @@ async function copyContextPack(target = "codex") {
   setToast("Devam brifi kopyalandı.");
 }
 
+function downloadTextFile(filename, content) {
+  const link = document.createElement("a");
+  link.href = markdownDownloadHref(content);
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+}
+
+function handoffDownloadFilename(record, target) {
+  const stamp = new Date().toISOString().slice(0, 10);
+  const targetSlug = target === "claude" ? "claude-code" : "codex";
+  const sourceSlug = slugify(record?.project || record?.title || record?.id || "devam-brifi");
+  return `${stamp}-${sourceSlug}-${targetSlug}-devam-brifi.md`;
+}
+
+function markdownDownloadHref(content) {
+  return `data:text/markdown;charset=utf-8,${encodeURIComponent(content)}`;
+}
+
+function renderHandoffDownloadLink(record, target, label = "Markdown İndir") {
+  if (!record) return "";
+  const prompt = buildContextPack(state.records, record, target);
+  return `<a class="button-link" href="${escapeHtml(markdownDownloadHref(prompt))}" download="${escapeHtml(handoffDownloadFilename(record, target))}">${escapeHtml(label)}</a>`;
+}
+
+function downloadContextPack(target = "codex") {
+  const record = contextRecord();
+  if (!record) return;
+  const prompt = buildContextPack(state.records, record, target);
+  downloadTextFile(handoffDownloadFilename(record, target), prompt);
+  addActivity("Devam brifi Markdown olarak indirildi.", "success", record.title || record.id || "");
+  setToast("Devam brifi Markdown olarak indirildi.");
+}
+
 function dailyBriefText(target = "codex") {
   return buildDailyBrief(state.records, target);
 }
@@ -1412,6 +1448,7 @@ function commandItems() {
     { id: "action:theme", title: "Temayı Değiştir", subtitle: state.theme === "dark" ? "Açık temaya geç" : "Koyu temaya geç", keywords: "tema dark light acik koyu", run: () => handleAction("toggle-theme") },
     { id: "action:demo", title: "Örnek Verilerle Dene", subtitle: "Demo çalışma hafızası yükle", keywords: "demo ornek veri", run: () => handleAction("demo") },
     { id: "action:copy-context", title: "Devam Brifini Kopyala", subtitle: selectedProjectName() || "Seçili kayıt", keywords: "kopyala devam brifi context", run: () => handleAction("copy-context-pack") },
+    { id: "action:download-context", title: "Devam Brifini Markdown İndir", subtitle: selectedProjectName() || "Seçili kayıt", keywords: "indir markdown devam brifi", run: () => handleAction("download-context-pack") },
     { id: "help:shortcuts", title: "Kısayollar", subtitle: "Klavye akışını aç", shortcut: "?", keywords: "yardim kisayol shortcut", run: () => openCommandPalette("shortcuts") },
     ...projectCommands
   ];
@@ -2455,6 +2492,7 @@ function renderHandoff() {
         <div class="toolbar-actions">
           <button class="primary" data-action="save-handoff-current">Devam Brifini Kaydet</button>
           <button data-action="copy-handoff">Kopyala</button>
+          ${renderHandoffDownloadLink(selected, state.handoffTarget)}
         </div>
         <div class="handoff-preview" aria-label="Devam brifi önizlemesi">
           <div class="preview-target">Önizleme hedefi: ${escapeHtml(target.label)}</div>
@@ -2572,6 +2610,7 @@ function renderWorkContext(workItem) {
     <div class="toolbar-actions">
       <button class="primary" data-action="copy-context-pack">Devam Brifini Kopyala</button>
       <button data-action="save-handoff-codex">Devam Brifini Kaydet</button>
+      ${renderHandoffDownloadLink(workItem, "codex")}
       <select class="status-select" data-status-select data-work-id="${escapeHtml(workItem.id)}" aria-label="İş hattı durumu">
         ${WORK_STATUSES.map((status) => `<option value="${status}" ${workItem.status === status ? "selected" : ""}>${statusLabel(status)}</option>`).join("")}
       </select>
@@ -3677,6 +3716,7 @@ function handleAction(action, payload) {
   if (action === "create-manual-decision") guarded(() => createManualDecisionFromForm(payload));
   if (action === "copy-close-prompt") guarded(copyClosePrompt);
   if (action === "copy-context-pack") guarded(copyContextPack);
+  if (action === "download-context-pack") guarded(downloadContextPack);
   if (action === "copy-daily-brief") guarded(copyDailyBrief);
   if (action === "save-daily-brief") guarded(saveDailyBrief);
   if (action === "create-work") guarded(createWorkFromSelected);

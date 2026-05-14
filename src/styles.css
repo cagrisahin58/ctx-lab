@@ -59,21 +59,28 @@ textarea {
   font: inherit;
 }
 
-button {
+button,
+.button-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   border: 1px solid var(--line);
   background: var(--panel-soft);
   color: var(--text);
   border-radius: 8px;
   padding: 9px 12px;
   cursor: pointer;
+  text-decoration: none;
   transition: transform 120ms ease, border-color 120ms ease, background 120ms ease;
 }
 
-button:hover {
+button:hover,
+.button-link:hover {
   border-color: rgba(45, 212, 191, 0.55);
 }
 
-button:active {
+button:active,
+.button-link:active {
   transform: translateY(1px);
 }
 

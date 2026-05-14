@@ -763,7 +763,7 @@ async function startCodexRunFromForm(form) {
     await persistCodexRunMemoryLink(run, sourceRecord, sourceWorkItem);
   }
   addActivity(`Codex run kaydı: ${run.id}`, run.status === "failed" ? "error" : "success", run.summary || run.error || "");
-  setToast(run.status === "dry_run" ? "Codex dry-run kaydı hazırlandı." : "Codex run tamamlandı.", run.status === "failed" ? "error" : "success");
+  setToast(run.status === "dry_run" ? "Codex deneme kaydı hazırlandı." : "Codex run tamamlandı.", run.status === "failed" ? "error" : "success");
   form.reset();
   const dryRun = form.querySelector("input[name='dryRun']");
   if (dryRun) dryRun.checked = true;
@@ -1364,7 +1364,7 @@ function renderCodexRunPanel() {
       <div class="panel-heading">
         <div>
           <h3>Codex'e Devret</h3>
-          <p>Varsayılan dry-run; run logları yerel app-data altında tutulur.</p>
+          <p>Varsayılan deneme modu; run logları yerel app-data altında tutulur.</p>
         </div>
       </div>
       <label>Proje kökü
@@ -1395,7 +1395,7 @@ function renderCodexRunPanel() {
       <label>Prompt
         <textarea name="prompt" required placeholder="Codex'e verilecek kontrollü görev...">${escapeHtml(workItemPromptSeed())}</textarea>
       </label>
-      <label class="check-row"><input type="checkbox" name="dryRun" checked> Dry-run olarak kaydet</label>
+      <label class="check-row"><input type="checkbox" name="dryRun" checked> Deneme kaydı olarak kaydet</label>
       <label class="check-row"><input type="checkbox" name="linkMemory" checked> Run sonucunu seçili iş hattına bağla</label>
       <label class="check-row caution"><input type="checkbox" name="confirmCommitPush"> Commit + push için ayrı onay verdim</label>
       <button class="primary" type="submit" ${projects.length ? "" : "disabled"}>Run kaydı oluştur</button>
@@ -1419,7 +1419,7 @@ function renderRunMini(run) {
   return `
     <div class="run-mini">
       <strong>${escapeHtml(run.id)}</strong>
-      <span>${escapeHtml(run.status)} · ${escapeHtml(run.automationLevel || "")}${run.sourceWorkItemId ? ` · ${escapeHtml(run.sourceWorkItemId)}` : ""}</span>
+      <span>${escapeHtml(runStatusLabel(run.status))} · ${escapeHtml(automationLevelLabel(run.automationLevel))}${run.sourceWorkItemId ? ` · ${escapeHtml(run.sourceWorkItemId)}` : ""}</span>
     </div>
   `;
 }
@@ -1436,7 +1436,7 @@ function renderRunEvidence(run) {
     return `
       <div class="run-evidence empty-evidence">
         <h4>Run Kanıtı</h4>
-        <p>Henüz Codex run kaydı yok. İlk dry-run sonrası log yolu, test sonucu ve çıktı özeti burada görünür.</p>
+        <p>Henüz Codex run kaydı yok. İlk deneme kaydı sonrası log yolu, test sonucu ve çıktı özeti burada görünür.</p>
       </div>
     `;
   }
@@ -1448,12 +1448,12 @@ function renderRunEvidence(run) {
           <h4>Run Kanıtı</h4>
           <p>${escapeHtml(run.id)}</p>
         </div>
-        <span class="badge ${["failed", "blocked"].includes(run.status) ? "blocked" : "active"}">${escapeHtml(run.status || "durum yok")}</span>
+        <span class="badge ${["failed", "blocked"].includes(run.status) ? "blocked" : "active"}">${escapeHtml(runStatusLabel(run.status))}</span>
       </div>
       <div class="run-evidence-grid">
         ${runFact("Otomasyon", automationLevelLabel(run.automationLevel))}
         ${runFact("Test sonucu", testResultLabel(run.testResult))}
-        ${runFact("Exit code", run.exitCode ?? (run.dryRun ? "dry-run" : "yok"))}
+        ${runFact("Çıkış kodu", run.exitCode ?? (run.dryRun ? "deneme kaydı" : "yok"))}
         ${runFact("Git başlangıç", gitSnapshotLabel(run.gitBefore))}
         ${runFact("Git sonuç", gitSnapshotLabel(run.gitAfter))}
         ${runFact("Log", run.logPath || "log yolu yok")}
@@ -1478,6 +1478,17 @@ function automationLevelLabel(level) {
     commit_prepare: "Commit hazırla",
     commit_push: "Commit + push"
   }[level] || level || "belirsiz";
+}
+
+function runStatusLabel(status) {
+  return {
+    dry_run: "Deneme kaydı",
+    running: "Çalışıyor",
+    succeeded: "Tamamlandı",
+    failed: "Hata",
+    blocked: "Engellendi",
+    corrupt: "Bozuk log"
+  }[status] || statusLabel(status);
 }
 
 function testResultLabel(result) {
@@ -2837,7 +2848,13 @@ function statusLabel(status) {
     waiting: "Beklemede",
     blocked: "Engelli",
     done: "Tamamlandı",
-    archived: "Arşiv"
+    archived: "Arşiv",
+    dry_run: "Deneme kaydı",
+    running: "Çalışıyor",
+    succeeded: "Tamamlandı",
+    failed: "Hata",
+    corrupt: "Bozuk log",
+    registered: "Kayıtlı"
   }[status] || status || "Durum yok";
 }
 

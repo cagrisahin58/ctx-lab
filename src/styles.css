@@ -1651,6 +1651,16 @@ kbd {
   }
 }
 
+@media (max-width: 1420px) {
+  .board-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .board {
+    overflow-x: visible;
+  }
+}
+
 @media (max-width: 1180px) {
   body {
     min-width: 0;

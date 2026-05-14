@@ -354,7 +354,7 @@ export function buildTimelineEvents(records, runnerProjects = [], runs = []) {
       events.push({
         ...base,
         kind: record.frontmatter?.kind === "codex_run" ? "codex_run" : "handoff",
-        label: record.frontmatter?.kind === "codex_run" ? "Codex run" : "Devam brifi",
+        label: record.frontmatter?.kind === "codex_run" ? "Codex çalıştırma" : "Devam brifi",
         at: record.frontmatter?.created_at || base.at
       });
     } else if (record.type === "archive") {
@@ -372,12 +372,12 @@ export function buildTimelineEvents(records, runnerProjects = [], runs = []) {
       id: `run:${run.id}`,
       recordId: run.id,
       kind: "codex_run",
-      label: "Codex run",
+      label: "Codex çalıştırma",
       project: run.project?.name || "genel",
       repo: run.project?.repo || "",
       status: run.status || "",
       title: `${run.automationLevel || "brief"} · ${run.template || "continue_work"}`,
-      summary: run.summary || run.error || run.stderr || "Codex run kaydı.",
+      summary: run.summary || run.error || run.stderr || "Codex çalıştırma kaydı.",
       nextAction: "",
       path: run.logPath || "",
       at: run.finishedAt || run.updatedAt || run.createdAt || ""
@@ -640,7 +640,7 @@ export function appendDecisionToWorkItem(workItem, decision, now = new Date()) {
 
 export function appendCodexRunToWorkItem(workItem, runRecord, now = new Date()) {
   const runId = typeof runRecord === "string" ? runRecord : runRecord?.id;
-  if (!runId) throw new Error("Codex run id yok.");
+  if (!runId) throw new Error("Codex çalıştırma id yok.");
   const existingRuns = normalizeArray(workItem.frontmatter.codex_runs);
   const codex_runs = existingRuns.includes(runId)
     ? existingRuns
@@ -786,7 +786,7 @@ export function buildDailyBrief(records, target = "codex", now = new Date()) {
 }
 
 export function buildCodexRunMemoryRecord(run, sourceRecord = null, now = new Date()) {
-  if (!run?.id) throw new Error("Codex run kaydı için run id zorunlu.");
+  if (!run?.id) throw new Error("Codex çalıştırma kaydı için run id zorunlu.");
   const stamp = timestampSlug(now);
   const memoryId = `codex_run_${slugify(run.id)}`;
   const project = run.project?.name || sourceRecord?.project || "genel";
@@ -795,8 +795,8 @@ export function buildCodexRunMemoryRecord(run, sourceRecord = null, now = new Da
   const sourceWorkItem = run.sourceWorkItemId || (sourceRecord?.type === "work_items" ? sourceRecord.id : sourceRecord?.linkedWorkItem || "");
   const sourceRecordId = run.sourceRecordId || sourceRecord?.id || "";
   const status = run.status || "unknown";
-  const summary = run.summary || run.error || run.stderr || "Codex run sonucu yerel log kaydına yazıldı.";
-  const resultText = run.stdout || run.stderr || run.error || run.summary || "Run çıktısı yerel log dosyasında.";
+  const summary = run.summary || run.error || run.stderr || "Codex çalıştırma sonucu yerel günlük kaydına yazıldı.";
+  const resultText = run.stdout || run.stderr || run.error || run.summary || "Çalıştırma çıktısı yerel günlük dosyasında.";
   const content = `${serializeFrontmatter({
     id: memoryId,
     kind: "codex_run",
@@ -815,7 +815,7 @@ export function buildCodexRunMemoryRecord(run, sourceRecord = null, now = new Da
     log_path: run.logPath || ""
   })}
 
-# Codex Run Kaydı
+# Codex Çalıştırma Kaydı
 
 ## Güncel Durum
 ${formatSectionText(summary)}
@@ -824,12 +824,12 @@ ${formatSectionText(summary)}
 ${formatSectionText(resultText)}
 
 ## Kaynak
-- Run id: ${run.id}
+- Çalıştırma id: ${run.id}
 - Kaynak kayıt: ${sourceRecordId || "yok"}
 - İş hattı: ${sourceWorkItem || "yok"}
 - Otomasyon seviyesi: ${run.automationLevel || "brief"}
 - Şablon: ${run.template || "continue_work"}
-- Log: ${run.logPath || "yerel log yolu yok"}
+- Günlük: ${run.logPath || "yerel günlük yolu yok"}
 `;
 
   return {

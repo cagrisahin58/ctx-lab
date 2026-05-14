@@ -49,14 +49,14 @@ ctx-lab v2, GitHub-backed hafiza katmanini koruyarak proje timeline merkezli, Tu
   - memory repo clone/pull/push
   - app-data indeks yenileme
   - `codex.cmd exec --json` calistirma
-  - Codex sonucunu run kaydina ve work-memory dosyalarina yazma
+  - Codex sonucunu calistirma kaydina ve work-memory dosyalarina yazma
   - proje repo commit/push islemleri
 - Guvenlik sinirlari:
   - sadece `127.0.0.1`
   - kayitli proje kokleri allowlist
   - runner token
   - destructive git ve credential dosyalarina erisim yasak
-  - dogrulama komutlari ve run log zorunlu
+  - dogrulama komutlari ve calistirma gunlugu zorunlu
 
 ## Uygulama asamalari
 
@@ -65,7 +65,7 @@ ctx-lab v2, GitHub-backed hafiza katmanini koruyarak proje timeline merkezli, Tu
 3. Memory mirror: work-memory clone/pull/index. Ilk kesitte token runner'a tasinmadan Git/GCM uzerinden clone/fetch/pull ve JSON index uretimi yapilir.
 4. Proje Timeline veri modeli: legacy kayitlardan timeline event uretimi.
 5. UI yenileme: Turkce terminoloji, timeline, command rail, durum cubugu.
-6. Codex run: hazir promptlar, dry-run, JSONL stdout/stderr log, commit/push oncesi gorunur ozet.
+6. Codex calistirma kaydi: hazir promptlar, deneme kaydi, JSONL stdout/stderr gunlugu, commit/push oncesi gorunur ozet.
 7. Onboarding: hafiza reposu, repo tanilama, yerel mirror/index, proje koku, Codex CLI ve ornek devam brifi tek akista dogrulanir.
 8. claude-review P0 UX paketi: dark mode, command palette, activity log, kisa yollar.
 
@@ -76,7 +76,7 @@ ctx-lab v2, GitHub-backed hafiza katmanini koruyarak proje timeline merkezli, Tu
 - `npm run smoke`
 - `npm run verify`
 - runner unit testleri
-- runner dry-run health check
-- Windows launcher dry-run
+- runner deneme saglik kontrolu
+- Windows launcher deneme kontrolu
 - Electron desktop smoke ve kullanici seviyesi desktop flow
 - GitHub Actions web verify ve Windows desktop verify

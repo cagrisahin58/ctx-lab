@@ -762,8 +762,8 @@ async function startCodexRunFromForm(form) {
   if (data.get("linkMemory") === "on") {
     await persistCodexRunMemoryLink(run, sourceRecord, sourceWorkItem);
   }
-  addActivity(`Codex run kaydı: ${run.id}`, run.status === "failed" ? "error" : "success", run.summary || run.error || "");
-  setToast(run.status === "dry_run" ? "Codex deneme kaydı hazırlandı." : "Codex run tamamlandı.", run.status === "failed" ? "error" : "success");
+  addActivity(`Codex çalıştırma kaydı: ${run.id}`, run.status === "failed" ? "error" : "success", run.summary || run.error || "");
+  setToast(run.status === "dry_run" ? "Codex deneme kaydı hazırlandı." : "Codex çalıştırması tamamlandı.", run.status === "failed" ? "error" : "success");
   form.reset();
   const dryRun = form.querySelector("input[name='dryRun']");
   if (dryRun) dryRun.checked = true;
@@ -772,20 +772,20 @@ async function startCodexRunFromForm(form) {
 async function persistCodexRunMemoryLink(run, sourceRecord, sourceWorkItem) {
   if (!sourceRecord) return;
   if (!state.demo && (!state.config.owner || !state.config.repo)) {
-    addActivity("Codex run hafıza kaydına bağlanamadı.", "warning", "Hafıza bağlantısı yok.");
+    addActivity("Codex çalıştırma kaydı hafızaya bağlanamadı.", "warning", "Hafıza bağlantısı yok.");
     return;
   }
   const runMemory = buildCodexRunMemoryRecord(run, sourceRecord);
-  const savedRun = await saveMemoryRecord(runMemory.path, runMemory.content, `codex run: ${run.id} sonucunu kaydet`);
+  const savedRun = await saveMemoryRecord(runMemory.path, runMemory.content, `codex çalıştırma: ${run.id} sonucunu kaydet`);
   if (sourceWorkItem) {
     const latestWorkItem = state.records.find((record) => record.id === sourceWorkItem.id) || sourceWorkItem;
     const updatedWork = appendCodexRunToWorkItem(latestWorkItem, savedRun);
-    const parsedWork = await saveMemoryRecord(latestWorkItem.path, updatedWork, `work: ${latestWorkItem.id} codex run bağlantısını güncelle`);
+    const parsedWork = await saveMemoryRecord(latestWorkItem.path, updatedWork, `work: ${latestWorkItem.id} codex çalıştırma bağlantısını güncelle`);
     state.selectedId = parsedWork.id;
   } else {
     state.selectedId = savedRun.id;
   }
-  addActivity(`Codex run hafıza kaydına bağlandı: ${savedRun.id}`, "success");
+  addActivity(`Codex çalıştırma kaydı hafızaya bağlandı: ${savedRun.id}`, "success");
 }
 
 async function syncMemoryMirrorFromConfig() {
@@ -1214,7 +1214,7 @@ function commandItems() {
     { id: "view:decisions", title: "Karar Defteri", subtitle: "Kaynaklı karar kayıtları", shortcut: "g d", keywords: "karar decision", run: () => setView("decisions") },
     { id: "view:handoff", title: "Devam Brifi", subtitle: "Codex veya Claude için bağlam paketi", shortcut: "g h", keywords: "handoff baglam paketi devam brifi", run: () => setView("handoff") },
     { id: "view:daily", title: "Günlük Devam Brifi", subtitle: "Açık işlerden günlük çalışma metni", keywords: "gunluk brif", run: () => setView("daily") },
-    { id: "view:runner", title: "Yerel Codex Runner", subtitle: "CLI, proje kökleri ve run kayıtları", keywords: "codex runner otomasyon", run: () => setView("runner") },
+    { id: "view:runner", title: "Yerel Codex Runner", subtitle: "CLI, proje kökleri ve çalıştırma kayıtları", keywords: "codex runner otomasyon", run: () => setView("runner") },
     { id: "view:settings", title: "Hafıza Bağlantısı", subtitle: "GitHub hafıza reposu ayarları", keywords: "repo baglanti github hafiza", run: () => setSettingsTab("connection") },
     { id: "view:appearance", title: "Görünüm", subtitle: "Tema ve klavye akışı", keywords: "gorunum tema kisayol shortcut", run: () => setSettingsTab("appearance") },
     { id: "view:health", title: "Hafıza Sağlığı", subtitle: state.warnings.length ? `${state.warnings.length} format uyarısı` : "Format uyarısı yok", keywords: "hafiza saglik validation uyarı duplicate status", run: () => setSettingsTab("connection") },
@@ -1287,7 +1287,7 @@ function renderWorkspace(counts) {
   return `
     ${renderHeader(
       "Proje Çalışma Merkezi",
-      "Oturumları, kararları, iş hattı değişimlerini, Codex run kayıtlarını ve GitHub senkronizasyonunu tek timeline içinde izle.",
+      "Oturumları, kararları, iş hattı değişimlerini, Codex çalıştırma kayıtlarını ve GitHub senkronizasyonunu tek timeline içinde izle.",
       `<button data-view="new-summary">Yeni Oturum</button><button class="primary" data-action="copy-context-pack">Devam Brifi</button>`
     )}
     <section class="workspace-grid">
@@ -1296,7 +1296,7 @@ function renderWorkspace(counts) {
           ${metricCard("Açık iş", counts.active + counts.waiting + counts.blocked)}
           ${metricCard("İşleme bekliyor", counts.inbox)}
           ${metricCard("Karar", counts.decisions)}
-          ${metricCard("Codex run", activeRuns.length)}
+          ${metricCard("Codex çalıştırma", activeRuns.length)}
         </div>
         <div class="panel timeline-panel">
           <div class="panel-heading">
@@ -1364,7 +1364,7 @@ function renderCodexRunPanel() {
       <div class="panel-heading">
         <div>
           <h3>Codex'e Devret</h3>
-          <p>Varsayılan deneme modu; run logları yerel app-data altında tutulur.</p>
+          <p>Varsayılan deneme modu; çalıştırma günlükleri yerel app-data altında tutulur.</p>
         </div>
       </div>
       <label>Proje kökü
@@ -1396,9 +1396,9 @@ function renderCodexRunPanel() {
         <textarea name="prompt" required placeholder="Codex'e verilecek kontrollü görev...">${escapeHtml(workItemPromptSeed())}</textarea>
       </label>
       <label class="check-row"><input type="checkbox" name="dryRun" checked> Deneme kaydı olarak kaydet</label>
-      <label class="check-row"><input type="checkbox" name="linkMemory" checked> Run sonucunu seçili iş hattına bağla</label>
+      <label class="check-row"><input type="checkbox" name="linkMemory" checked> Çalıştırma sonucunu seçili iş hattına bağla</label>
       <label class="check-row caution"><input type="checkbox" name="confirmCommitPush"> Commit + push için ayrı onay verdim</label>
-      <button class="primary" type="submit" ${projects.length ? "" : "disabled"}>Run kaydı oluştur</button>
+      <button class="primary" type="submit" ${projects.length ? "" : "disabled"}>Çalıştırma kaydı oluştur</button>
       ${state.runner.runs.length ? `<div class="run-list">${state.runner.runs.slice(0, 4).map(renderRunMini).join("")}</div>` : ""}
       ${renderRunEvidence(evidenceRun)}
     </form>
@@ -1435,8 +1435,8 @@ function renderRunEvidence(run) {
   if (!run) {
     return `
       <div class="run-evidence empty-evidence">
-        <h4>Run Kanıtı</h4>
-        <p>Henüz Codex run kaydı yok. İlk deneme kaydı sonrası log yolu, test sonucu ve çıktı özeti burada görünür.</p>
+        <h4>Çalıştırma Kanıtı</h4>
+        <p>Henüz Codex çalıştırma kaydı yok. İlk deneme kaydı sonrasında günlük yolu, test sonucu ve çıktı özeti burada görünür.</p>
       </div>
     `;
   }
@@ -1445,7 +1445,7 @@ function renderRunEvidence(run) {
     <div class="run-evidence">
       <div class="run-evidence-head">
         <div>
-          <h4>Run Kanıtı</h4>
+          <h4>Çalıştırma Kanıtı</h4>
           <p>${escapeHtml(run.id)}</p>
         </div>
         <span class="badge ${["failed", "blocked"].includes(run.status) ? "blocked" : "active"}">${escapeHtml(runStatusLabel(run.status))}</span>
@@ -1456,7 +1456,7 @@ function renderRunEvidence(run) {
         ${runFact("Çıkış kodu", run.exitCode ?? (run.dryRun ? "deneme kaydı" : "yok"))}
         ${runFact("Git başlangıç", gitSnapshotLabel(run.gitBefore))}
         ${runFact("Git sonuç", gitSnapshotLabel(run.gitAfter))}
-        ${runFact("Log", run.logPath || "log yolu yok")}
+        ${runFact("Günlük", run.logPath || "günlük yolu yok")}
       </div>
       ${run.summary ? `<p class="run-summary">${escapeHtml(run.summary)}</p>` : ""}
       ${run.commitGate ? `<p class="run-gate">${escapeHtml(run.commitGate)}</p>` : ""}
@@ -1487,7 +1487,7 @@ function runStatusLabel(status) {
     succeeded: "Tamamlandı",
     failed: "Hata",
     blocked: "Engellendi",
-    corrupt: "Bozuk log"
+    corrupt: "Bozuk günlük"
   }[status] || statusLabel(status);
 }
 
@@ -2013,7 +2013,7 @@ function renderHandoff() {
           <div class="handoff-metrics" aria-label="Paket içeriği">
             ${metricCard("Oturum", metrics.sessions)}
             ${metricCard("Karar", metrics.decisions)}
-            ${metricCard("Codex run", metrics.codexRuns)}
+            ${metricCard("Codex çalıştırma", metrics.codexRuns)}
             ${metricCard("Tahmini token", metrics.tokens)}
           </div>
         </section>
@@ -2853,7 +2853,7 @@ function statusLabel(status) {
     running: "Çalışıyor",
     succeeded: "Tamamlandı",
     failed: "Hata",
-    corrupt: "Bozuk log",
+    corrupt: "Bozuk günlük",
     registered: "Kayıtlı"
   }[status] || status || "Durum yok";
 }

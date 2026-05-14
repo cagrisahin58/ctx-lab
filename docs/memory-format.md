@@ -25,7 +25,7 @@ Geçerli durumlar: `needs_triage`, `linked`, `active`, `waiting`, `blocked`, `do
 
 ## Timeline event katmanı
 
-v2 arayüzü mevcut markdown/frontmatter formatını bozmadan kayıtlardan türetilmiş bir timeline katmanı oluşturur. Bu katman kalıcı şemayı değiştirmez; `inbox` oturumları, `work_items` iş hattı güncellemeleri, `decisions` kararlar, `handoffs` devam brifleri, `archive` kayıtları, yerel proje kökleri ve Codex run logları tek sıralı olay listesine dönüştürülür. Eski kayıtlar timeline içinde görünmeye devam eder.
+v2 arayüzü mevcut markdown/frontmatter formatını bozmadan kayıtlardan türetilmiş bir timeline katmanı oluşturur. Bu katman kalıcı şemayı değiştirmez; `inbox` oturumları, `work_items` iş hattı güncellemeleri, `decisions` kararlar, `handoffs` devam brifleri, `archive` kayıtları, yerel proje kökleri ve Codex çalıştırma günlükleri tek sıralı olay listesine dönüştürülür. Eski kayıtlar timeline içinde görünmeye devam eder.
 
 Yerel masaüstü mirror bu kayıtları `%APPDATA%/ctx-lab/memory/git` altında Git clone olarak, özet index'i de `%APPDATA%/ctx-lab/memory/index/<owner>__<repo>__<branch>.json` altında tutar. Index türetilmiş veridir; GitHub memory repo kaynak gerçeklik olmaya devam eder.
 
@@ -175,6 +175,6 @@ GitHub 409/422 yazma hatalarında dosyanın güncel `sha` değeri okunur ve yazm
 
 `Günlük Devam Brifi` kaydedildiğinde `handoffs/daily-YYYY-MM-DD.md` yolu kullanılır ve aynı gün yeniden kaydedilirse dosya güncellenir.
 
-## Codex run kaydı
+## Codex çalıştırma kaydı
 
-Yerel Codex otomasyonu çalıştırıldığında sonuç `%APPDATA%/ctx-lab/runs` altında JSON log olarak kalır. Kullanıcı run sonucunu hafıza reposuna bağlamayı seçerse ctx-lab ayrıca `handoffs/` altında `kind: codex_run` frontmatter alanına sahip bir kayıt üretir. Seçili iş hattı varsa bu iş hattının frontmatter alanına `codex_runs` listesi eklenir. Böylece run geçmişi hem yerel logda hem de GitHub work-memory timeline içinde izlenebilir.
+Yerel Codex otomasyonu çalıştırıldığında sonuç `%APPDATA%/ctx-lab/runs` altında JSON günlük olarak kalır. Kullanıcı çalıştırma sonucunu hafıza reposuna bağlamayı seçerse ctx-lab ayrıca `handoffs/` altında `kind: codex_run` frontmatter alanına sahip bir kayıt üretir. Seçili iş hattı varsa bu iş hattının frontmatter alanına `codex_runs` listesi eklenir. Böylece çalıştırma geçmişi hem yerel günlükte hem de GitHub work-memory timeline içinde izlenebilir.

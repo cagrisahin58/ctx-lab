@@ -196,13 +196,14 @@ try {
   markPhase("Codex dry-run kaydi olusturma");
   const runForm = page.locator("#codex-run-form");
   await runForm.locator('textarea[name="prompt"]').fill("ctx-lab Electron smoke icin dry-run devam brifi hazirla.");
-  await runForm.getByRole("button", { name: "Run kaydı oluştur" }).click();
+  await runForm.getByRole("button", { name: "Çalıştırma kaydı oluştur" }).click();
   await expectVisibleText(page, "Codex deneme kaydı hazırlandı.");
   await expectVisibleText(page, "Deneme kaydı");
-  await expectVisibleText(page, "Run Kanıtı");
+  await expectVisibleText(page, "Çalıştırma Kanıtı");
   await expectVisibleText(page, "Test sonucu");
   await expectVisibleText(page, "Çıkış kodu");
   await expectVisibleText(page, "Deneme kaydı olarak kaydet");
+  await expectVisibleText(page, "Çalıştırma sonucunu seçili iş hattına bağla");
   await expectVisibleText(page, "Git başlangıç");
   await expectVisibleText(page, "Git sonuç");
   await expectVisibleText(page, "Çalıştırılmadı");

@@ -324,7 +324,7 @@ export async function listCodexRuns(paths = buildRunnerPaths(), limit = 20) {
       runs.push({
         id: name.replace(/\.json$/, ""),
         status: "corrupt",
-        error: "Run logu okunamadi."
+        error: "Çalıştırma günlüğü okunamadı."
       });
     }
   }

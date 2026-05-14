@@ -51,7 +51,7 @@ Bu komut Vite dev server'ını başlatır ve Electron kabuğunu güvenli preload
 npm run desktop:smoke
 ```
 
-Electron kabuğu renderer tarafında Node entegrasyonunu kapalı tutar; proje klasörü seçimi, runner sağlığı, proje registry ve Codex run kayıtları yalnızca izinli IPC kanallarından geçer.
+Electron kabuğu renderer tarafında Node entegrasyonunu kapalı tutar; proje klasörü seçimi, runner sağlığı, proje registry ve Codex çalıştırma kayıtları yalnızca izinli IPC kanallarından geçer.
 
 Windows paketleme hazırlığı:
 
@@ -69,7 +69,7 @@ Kullanıcı seviyesindeki masaüstü akışını doğrulamak için:
 npm run desktop:flow
 ```
 
-Bu kontrol Electron'u izole bir kullanıcı veri klasörüyle açar; ilk kurulum ekranını, yerel proje kökü kaydını, örnek devam brifi üretimini, demo veriden çalışma merkezine geçişi, Codex dry-run kaydı oluşturmayı ve ekran görüntüsü alınabildiğini doğrular.
+Bu kontrol Electron'u izole bir kullanıcı veri klasörüyle açar; ilk kurulum ekranını, yerel proje kökü kaydını, örnek devam brifi üretimini, demo veriden çalışma merkezine geçişi, Codex deneme kaydı oluşturmayı ve ekran görüntüsü alınabildiğini doğrular.
 
 Masaüstü kapısını toplu çalıştırmak için:
 
@@ -77,7 +77,7 @@ Masaüstü kapısını toplu çalıştırmak için:
 npm run verify:desktop
 ```
 
-Bu komut Electron güvenlik/IPC smoke kontrolünü ve kullanıcı seviyesindeki masaüstü akışını birlikte çalıştırır. GitHub Actions aynı kapıyı Windows runner üzerinde statik smoke, Electron boot smoke ve kullanıcı akışı olarak ayrı adımlarda çalıştırır; ek olarak Windows launcher dry-run kontrolünü yapar.
+Bu komut Electron güvenlik/IPC smoke kontrolünü ve kullanıcı seviyesindeki masaüstü akışını birlikte çalıştırır. GitHub Actions aynı kapıyı Windows runner üzerinde statik smoke, Electron boot smoke ve kullanıcı akışı olarak ayrı adımlarda çalıştırır; ek olarak Windows launcher deneme kontrolünü yapar.
 
 İlk açılışta `Kısa Kurulum` ekranı hafıza reposu bağlantısı, repo tanılaması, yerel mirror/index, proje kökü, Codex CLI kontrolü ve örnek devam brifi adımlarını tek akışta gösterir. Kurulum tamamlandığında kullanıcı doğrudan `Proje Çalışma Merkezi` ekranına geçer.
 
@@ -118,9 +118,9 @@ v2 ile `start-windows` komutu ayrıca `scripts/ctxlab-runner.mjs` servislerini b
 
 `Yerel Codex Runner` ekranında runner sağlığı, Codex CLI sürümü ve kayıtlı proje kökleri görülür. Bir proje kökü kaydedilmeden Codex otomasyonu o klasörde dosya değiştirmeyecek şekilde tasarlanır.
 
-Codex run kayıtları `%APPDATA%/ctx-lab/runs` altında JSON log olarak tutulur. İlk masaüstü akışta dry-run varsayılandır; prompt, otomasyon seviyesi, proje allowlist bilgisi, stdout/stderr, exit code, test sonucu sinyali, Git başlangıç/sonuç snapshot'ı ve çalışma özeti aynı run kaydına yazılır. Desteklenen seviyeler: sadece brif hazırla, öneri üret, dosya değiştir ama commit atma, test çalıştır, commit hazırla, commit + push. Destructive git komutları runner tarafında reddedilir. `commit + push` gerçek çalışmada ayrıca açık onay verilmezse runner Codex'i başlatmaz ve run kaydını `blocked` olarak yazar. UI'daki `Run Kanıtı` alanı log yolunu, test sonucunu, Git durumunu, çıktı özetini ve commit/push öncesi kapıyı görünür tutar.
+Codex çalıştırma kayıtları `%APPDATA%/ctx-lab/runs` altında JSON günlük olarak tutulur. İlk masaüstü akışta deneme kaydı varsayılandır; prompt, otomasyon seviyesi, proje allowlist bilgisi, stdout/stderr, çıkış kodu, test sonucu sinyali, Git başlangıç/sonuç snapshot'ı ve çalışma özeti aynı çalıştırma kaydına yazılır. Desteklenen seviyeler: sadece brif hazırla, öneri üret, dosya değiştir ama commit atma, test çalıştır, commit hazırla, commit + push. Destructive git komutları runner tarafında reddedilir. `commit + push` gerçek çalışmada ayrıca açık onay verilmezse runner Codex'i başlatmaz ve çalıştırma kaydını `blocked` olarak yazar. UI'daki `Çalıştırma Kanıtı` alanı günlük yolunu, test sonucunu, Git durumunu, çıktı özetini ve commit/push öncesi kapıyı görünür tutar.
 
-Run sonucu seçili iş hattına bağlanabilir. Bu durumda ctx-lab `handoffs/` altında `kind: codex_run` içeren kaynaklı bir kayıt oluşturur ve ilgili iş hattının `codex_runs` frontmatter listesini günceller. Böylece Codex otomasyonu yalnızca yerel logda kalmaz, GitHub work-memory timeline içinde de görünür hale gelir.
+Çalıştırma sonucu seçili iş hattına bağlanabilir. Bu durumda ctx-lab `handoffs/` altında `kind: codex_run` içeren kaynaklı bir kayıt oluşturur ve ilgili iş hattının `codex_runs` frontmatter listesini günceller. Böylece Codex otomasyonu yalnızca yerel günlükte kalmaz, GitHub work-memory timeline içinde de görünür hale gelir.
 
 Yerel memory mirror `%APPDATA%/ctx-lab/memory/git` altında, türetilmiş index ise `%APPDATA%/ctx-lab/memory/index` altında tutulur. Mirror akışı GitHub token'ını runner'a taşımaz; `git clone/fetch/pull` yerel Git/Git Credential Manager yetkileriyle çalışır. Index, mevcut markdown/frontmatter kayıtlarını okuyup masaüstü timeline ve sağlık görünürlüğü için özet JSON üretir.
 

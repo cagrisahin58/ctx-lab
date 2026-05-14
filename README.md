@@ -58,10 +58,11 @@ Windows paketleme hazırlığı:
 ```bash
 npm run icon:generate
 npm run desktop:pack
+npm run desktop:pack:smoke
 npm run desktop:dist
 ```
 
-`icon:generate` bağımlılık eklemeden `electron/assets/icon.ico` dosyasını üretir. `desktop:pack` production renderer çıktısını `release/win-unpacked` altında paketlenmiş Electron klasörü olarak hazırlar. `desktop:dist` aynı yapılandırmayla Windows portable artefact üretir. Paketleme çıktıları git dışında tutulur.
+`icon:generate` bağımlılık eklemeden `electron/assets/icon.ico` dosyasını üretir. `desktop:pack` production renderer çıktısını `release/win-unpacked` altında paketlenmiş Electron klasörü olarak hazırlar. `desktop:pack:smoke` bu klasördeki `ctx-lab.exe` ve `app.asar` dosyalarını doğrular, ardından paketlenmiş uygulamayı `--smoke` ile açıp production shell'in yüklendiğini kontrol eder. `desktop:dist` aynı yapılandırmayla Windows portable artefact üretir. Paketleme çıktıları git dışında tutulur.
 
 Kullanıcı seviyesindeki masaüstü akışını doğrulamak için:
 

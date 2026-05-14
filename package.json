@@ -14,6 +14,7 @@
     "desktop:smoke": "npm run build && node scripts/desktop-smoke.mjs && node scripts/electron-smoke-launch.mjs",
     "desktop:flow": "npm run build && node scripts/electron-flow-smoke.mjs",
     "desktop:pack": "npm run build && electron-builder --dir",
+    "desktop:pack:smoke": "npm run desktop:pack && node scripts/desktop-pack-smoke.mjs",
     "desktop:dist": "npm run build && electron-builder --win portable",
     "verify:desktop": "npm run desktop:smoke && npm run desktop:flow",
     "start:windows": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/start-windows.ps1",

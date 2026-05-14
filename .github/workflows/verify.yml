@@ -49,6 +49,9 @@ jobs:
       - name: Run Electron user flow
         run: npm run desktop:flow
 
+      - name: Run packaged app smoke
+        run: npm run desktop:pack:smoke
+
       - name: Run Windows launcher dry-run
         shell: pwsh
         run: .\scripts\start-windows.ps1 -DryRun -SkipInstall
